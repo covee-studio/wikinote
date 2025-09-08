@@ -9,6 +9,8 @@ lerna-debug.log*
 # Build outputs
 frontend/dist/
 frontend/dist-ssr/
+frontend/.output/
+.output/
 *.local
 
 # Assets and backups (not version controlled)
