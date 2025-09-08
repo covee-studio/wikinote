@@ -1,10 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 import { StrictMode } from "react"
 import { createRoot } from "react-dom/client"
-import App from "./App.tsx"
-import { ErrorBoundary } from "./components/ErrorBoundary"
-import { LikedArticlesProvider } from "./contexts/LikedArticlesContext"
-import { ToastProvider } from "./contexts/ToastContext"
+import App from "./App.js"
+import { ErrorBoundary } from "./components/ErrorBoundary.js"
+import { LikedArticlesProvider } from "./contexts/LikedArticlesContext.js"
+import { ToastProvider } from "./contexts/ToastContext.js"
 import "./index.css"
 
 const queryClient = new QueryClient()
