@@ -17,6 +17,30 @@ npm run build:web
 npm run build:extension
 ```
 
+## 🧩 WXT (Browser Extension) Development
+
+This project now supports WXT for the browser extension build.
+
+- Dev (loads the extension with HMR):
+
+```bash
+npm run dev:extension
+```
+
+- Production build (outputs to `.output/chrome-mv3` by default):
+
+```bash
+npm run build:extension:wxt
+```
+
+### Entrypoints
+
+- New Tab override: `entrypoints/newtab/index.html` mounting React at `entrypoints/newtab/main.tsx`.
+
+### Config
+
+- WXT config: `wxt.config.ts` (includes React and Tailwind Vite plugins, sets `__IS_EXTENSION__`, mirrors legacy `manifest.json`).
+
 ## 📁 Structure
 
 ```
@@ -38,7 +62,7 @@ Handled in `src/utils/environment.ts`:
 
 ## 🔒 CSP
 
-`configs/extension/manifest.json` contains a strict `extension_pages` CSP aligned with Wikipedia domains and data URLs for images.
+`wxt.config.ts` defines a strict `extension_pages` CSP aligned with Wikipedia domains and data URLs for images.
 
 ## 🖼️ Icons
 
@@ -63,6 +87,8 @@ Load `dist/extension/` in `chrome://extensions/`. See `TESTING_GUIDE.md` for det
 - Do NOT try to deploy by serving files from `frontend/../../dist/web` produced elsewhere; the hosting provider should run the build from the `frontend` project directly to ensure environment consistency, correct paths, and PWA registration.
 
 ### Chrome Extension
-- Build with `npm run build:extension`
-- Load unpacked extension from `frontend/dist/extension/` in `chrome://extensions/`
-- The extension manifest is MV3 (`manifest_version: 3`). If Chrome reports a manifest error, double‑check you selected `frontend/dist/extension/` (not `dist/extension/` at repository root).
+- Legacy build remains: `npm run build:extension`
+- WXT build: `npm run build:extension:wxt`
+- Dev with HMR: `npm run dev:extension`
+- Load unpacked extension from WXT output: `.output/chrome-mv3/`
+- Manifest is MV3. If Chrome reports a manifest error, ensure you select the correct WXT output directory.
