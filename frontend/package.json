@@ -16,6 +16,7 @@
     "release:minor": "npm run release -- --release-as minor",
     "release:major": "npm run release -- --release-as major",
     "lint": "eslint .",
+    "test:content-safety": "node --experimental-strip-types scripts/test-content-safety.ts",
     "preview": "vite preview"
   },
   "dependencies": {

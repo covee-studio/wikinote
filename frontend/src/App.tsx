@@ -11,7 +11,12 @@ import { useI18n } from "./hooks/useI18n"
 import { useLocalization } from "./hooks/useLocalization"
 import { useScrollPosition } from "./hooks/useScrollPosition"
 import type { WikiArticle } from "./types/ArticleProps"
+import { DEFAULT_SAFE_MODE_ENABLED, isArticleSafe } from "./utils/contentSafety"
 import { fetchWithCORS } from "./utils/environment"
+
+const WIKIPEDIA_BATCH_SIZE = 20
+const TARGET_ARTICLES_PER_PAGE = 20
+const MAX_SAFE_MODE_FETCH_ROUNDS = 3
 
 function App() {
   const [showAbout, setShowAbout] = useState(false)
@@ -27,9 +32,21 @@ function App() {
   const { scrollY } = useScrollPosition(30)
   const titleOpacity = Math.max(0, 1 - scrollY / 80)
 
-  // Query function to fetch a batch of random Wikipedia articles
+  // Query function to fetch and safety-filter a batch of random Wikipedia articles
   const queryFn = useMemo(() => {
-    return async (): Promise<WikiArticle[]> => {
+    type WikipediaThumbnail = { source: string; width: number; height: number }
+    type WikipediaCategory = { title: string }
+    type WikipediaPage = {
+      title: string
+      varianttitles?: Record<string, string>
+      extract: string
+      pageid: number
+      thumbnail?: WikipediaThumbnail
+      canonicalurl: string
+      categories?: WikipediaCategory[]
+    }
+
+    const fetchCandidateArticles = async (): Promise<WikiArticle[]> => {
       const response = await fetchWithCORS(
         currentLanguage.api +
           new URLSearchParams({
@@ -37,15 +54,17 @@ function App() {
             format: "json",
             generator: "random",
             grnnamespace: "0",
-            prop: "extracts|info|pageimages",
+            prop: "extracts|info|pageimages|categories",
             inprop: "url|varianttitles",
-            grnlimit: "20",
+            grnlimit: String(WIKIPEDIA_BATCH_SIZE),
             exintro: "1",
             exlimit: "max",
             exsentences: "5",
             explaintext: "1",
             piprop: "thumbnail",
             pithumbsize: "480",
+            cllimit: "max",
+            clshow: "!hidden",
             origin: "*",
             variant: currentLanguage.id,
           })
@@ -54,18 +73,8 @@ function App() {
       const data = await response.json()
       if (!data.query || !data.query.pages) throw new Error("Invalid API response")
 
-      type WikipediaThumbnail = { source: string; width: number; height: number }
-      type WikipediaPage = {
-        title: string
-        varianttitles?: Record<string, string>
-        extract: string
-        pageid: number
-        thumbnail?: WikipediaThumbnail
-        canonicalurl: string
-      }
-
       const pages = data.query.pages as Record<string, WikipediaPage>
-      const newArticles = Object.values(pages)
+      return Object.values(pages)
         .map(
           (page): WikiArticle => ({
             title: page.title,
@@ -74,10 +83,49 @@ function App() {
             pageid: page.pageid,
             thumbnail: page.thumbnail,
             url: page.canonicalurl,
+            categories: page.categories?.map((category) => category.title),
           })
         )
-        .filter((a) => a.thumbnail && a.thumbnail.source && a.url && a.extract)
-      return newArticles
+        .filter((article) => article.thumbnail?.source && article.url && article.extract)
+    }
+
+    const passesSafeMode = (article: WikiArticle): boolean => {
+      if (!DEFAULT_SAFE_MODE_ENABLED) {
+        return true
+      }
+
+      try {
+        return isArticleSafe({ ...article, languageId: currentLanguage.id })
+      } catch {
+        return true
+      }
+    }
+
+    return async (): Promise<WikiArticle[]> => {
+      const articles: WikiArticle[] = []
+      const seenPageIds = new Set<number>()
+
+      for (
+        let round = 0;
+        round < MAX_SAFE_MODE_FETCH_ROUNDS && articles.length < TARGET_ARTICLES_PER_PAGE;
+        round += 1
+      ) {
+        const candidates = await fetchCandidateArticles()
+
+        for (const article of candidates) {
+          if (seenPageIds.has(article.pageid)) {
+            continue
+          }
+
+          seenPageIds.add(article.pageid)
+
+          if (passesSafeMode(article)) {
+            articles.push(article)
+          }
+        }
+      }
+
+      return articles
     }
   }, [currentLanguage])
 
