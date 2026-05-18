@@ -12,6 +12,11 @@ import { useLocalization } from "./hooks/useLocalization"
 import { useScrollPosition } from "./hooks/useScrollPosition"
 import type { WikiArticle } from "./types/ArticleProps"
 import { fetchWithCORS } from "./utils/environment"
+import { isHighQualityArticle } from "./utils/articleQuality"
+
+const TARGET_ARTICLE_BATCH_SIZE = 20
+const RANDOM_CANDIDATE_BATCH_SIZE = 30
+const MAX_RANDOM_FETCH_ROUNDS = 3
 
 function App() {
   const [showAbout, setShowAbout] = useState(false)
@@ -30,54 +35,83 @@ function App() {
   // Query function to fetch a batch of random Wikipedia articles
   const queryFn = useMemo(() => {
     return async (): Promise<WikiArticle[]> => {
-      const response = await fetchWithCORS(
-        currentLanguage.api +
-          new URLSearchParams({
-            action: "query",
-            format: "json",
-            generator: "random",
-            grnnamespace: "0",
-            prop: "extracts|info|pageimages",
-            inprop: "url|varianttitles",
-            grnlimit: "20",
-            exintro: "1",
-            exlimit: "max",
-            exsentences: "5",
-            explaintext: "1",
-            piprop: "thumbnail",
-            pithumbsize: "480",
-            origin: "*",
-            variant: currentLanguage.id,
-          })
-      )
-      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
-      const data = await response.json()
-      if (!data.query || !data.query.pages) throw new Error("Invalid API response")
-
       type WikipediaThumbnail = { source: string; width: number; height: number }
+      type WikipediaCategory = { title: string; hidden?: string }
       type WikipediaPage = {
         title: string
         varianttitles?: Record<string, string>
-        extract: string
+        extract?: string
         pageid: number
         thumbnail?: WikipediaThumbnail
-        canonicalurl: string
+        canonicalurl?: string
+        categories?: WikipediaCategory[]
+      }
+      type WikipediaQueryResponse = {
+        query?: {
+          pages?: Record<string, WikipediaPage>
+        }
       }
 
-      const pages = data.query.pages as Record<string, WikipediaPage>
-      const newArticles = Object.values(pages)
-        .map(
+      const articles: WikiArticle[] = []
+      const seenPageIds = new Set<number>()
+
+      for (let round = 0; round < MAX_RANDOM_FETCH_ROUNDS; round += 1) {
+        const response = await fetchWithCORS(
+          currentLanguage.api +
+            new URLSearchParams({
+              action: "query",
+              format: "json",
+              generator: "random",
+              grnnamespace: "0",
+              prop: "extracts|info|pageimages|categories",
+              inprop: "url|varianttitles",
+              grnlimit: String(RANDOM_CANDIDATE_BATCH_SIZE),
+              exintro: "1",
+              exlimit: "max",
+              exsentences: "5",
+              explaintext: "1",
+              piprop: "thumbnail",
+              pithumbsize: "480",
+              cllimit: "max",
+              clshow: "!hidden",
+              origin: "*",
+              variant: currentLanguage.id,
+            })
+        )
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
+
+        const data = (await response.json()) as WikipediaQueryResponse
+        const pages = data.query?.pages
+        if (!pages) throw new Error("Invalid API response")
+
+        const candidates = Object.values(pages).map(
           (page): WikiArticle => ({
             title: page.title,
             displaytitle: page.varianttitles?.[currentLanguage.id] || page.title,
-            extract: page.extract,
+            extract: page.extract ?? "",
             pageid: page.pageid,
             thumbnail: page.thumbnail,
-            url: page.canonicalurl,
+            url: page.canonicalurl ?? "",
+            categories: page.categories?.map((category) => category.title) ?? [],
           })
         )
-        .filter((a) => a.thumbnail && a.thumbnail.source && a.url && a.extract)
-      return newArticles
+
+        for (const candidate of candidates) {
+          if (seenPageIds.has(candidate.pageid)) continue
+          seenPageIds.add(candidate.pageid)
+
+          if (isHighQualityArticle(candidate)) {
+            articles.push(candidate)
+          }
+
+          if (articles.length >= TARGET_ARTICLE_BATCH_SIZE) {
+            return articles
+          }
+        }
+      }
+
+      return articles
     }
   }, [currentLanguage])
 

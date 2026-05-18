@@ -16,6 +16,7 @@
     "release:minor": "npm run release -- --release-as minor",
     "release:major": "npm run release -- --release-as major",
     "lint": "eslint .",
+    "test:article-quality": "node --experimental-strip-types scripts/test-article-quality.ts",
     "preview": "vite preview"
   },
   "dependencies": {

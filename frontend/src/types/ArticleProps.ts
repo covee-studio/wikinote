@@ -11,6 +11,7 @@ export interface WikiArticle {
     width: number;
     height: number;
   };
+  categories?: string[];
 }
 
 export interface ArticleProps {
