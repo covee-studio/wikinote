@@ -4,6 +4,13 @@ Build Web and Chrome Extension from a single codebase.
 
 ## 🚀 Quick Start
 
+### Install
+```bash
+npm ci
+```
+
+Use `npm ci` for local verification and CI because it installs dependencies from `package-lock.json` without rewriting dependency resolution.
+
 ### Dev
 ```bash
 npm run dev
@@ -16,6 +23,15 @@ npm run build:all
 npm run build:web
 npm run build:extension
 ```
+
+### Quality Gate
+```bash
+npm audit
+npm run lint
+npm run build:all
+```
+
+Every pull request that changes dependencies, build scripts, shared UI, or extension behavior should pass the full quality gate above.
 
 ## 📁 Structure
 
@@ -51,7 +67,10 @@ Load `dist/extension/` in `chrome://extensions/`. See `TESTING_GUIDE.md` for det
 ## ✅ Conventions
 
 - Keep code and documentation in English
+- Install dependencies with `npm ci`, not ad-hoc package manager commands
 - Lint: `npm run lint` (with `jsx-a11y`)
+- Audit dependencies with `npm audit` after lockfile changes
+- Verify both targets with `npm run build:all`
 - Strong TypeScript settings enabled
 
 ## 📦 Deployment Notes (IMPORTANT)
