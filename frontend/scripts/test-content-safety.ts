@@ -51,3 +51,29 @@ const unsafeChinese = evaluateContentSafety({
 
 assert.equal(unsafeChinese.isSafe, false)
 assert.equal(unsafeChinese.matches.some((match) => match.term === "强奸"), true)
+
+const historicalArticle = evaluateContentSafety({
+  title: "Battle of Example",
+  extract:
+    "The campaign is frequently discussed by historians alongside execution, massacre, genocide, murder, and war crime allegations.",
+  categories: ["Category:Military history"],
+})
+
+assert.equal(historicalArticle.isSafe, true)
+
+const lgbtqContextArticle = evaluateContentSafety({
+  title: "LGBT health",
+  extract: "This article summarizes public health research and social history.",
+  categories: ["Category:Sexual orientation and medicine", "Category:Sexuality and society"],
+})
+
+assert.equal(lgbtqContextArticle.isSafe, true)
+
+const unsafeCrimeCategory = evaluateContentSafety({
+  title: "A historical court case",
+  extract: "This article summarizes a legal case and its social consequences.",
+  categories: ["Category:Murders", "Category:Legal history"],
+})
+
+assert.equal(unsafeCrimeCategory.isSafe, false)
+assert.equal(unsafeCrimeCategory.matches.some((match) => match.field === "category"), true)

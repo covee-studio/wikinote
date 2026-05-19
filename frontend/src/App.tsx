@@ -86,7 +86,7 @@ function App() {
             categories: page.categories?.map((category) => category.title),
           })
         )
-        .filter((article) => article.thumbnail?.source && article.url && article.extract)
+        .filter((article) => article.url && article.extract)
     }
 
     const passesSafeMode = (article: WikiArticle): boolean => {
