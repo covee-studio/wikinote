@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Download, Search, Heart } from 'lucide-react';
-import { useLikedArticles } from '../contexts/LikedArticlesContext';
+import { useLikedArticles } from '../contexts/likedArticles';
 import { useI18n } from '../hooks/useI18n';
 import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation';
 import { useFocusTrap } from '../hooks/useFocusTrap';

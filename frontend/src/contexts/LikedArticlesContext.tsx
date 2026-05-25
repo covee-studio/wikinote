@@ -1,11 +1,10 @@
-import { createContext, useContext, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
-import type { WikiArticle, LikedArticlesContextType } from "../types/ArticleProps";
+import type { WikiArticle } from "../types/ArticleProps";
 import { Heart } from "lucide-react";
 import { StorageAdapter } from "../utils/environment";
+import { LikedArticlesContext } from "./likedArticles";
 import '../assets/heartAnimation.css';
-
-const LikedArticlesContext = createContext<LikedArticlesContextType | undefined>(undefined);
 
 export function LikedArticlesProvider({ children }: { children: ReactNode }) {
     const [likedArticles, setLikedArticles] = useState<WikiArticle[]>([]);
@@ -54,10 +53,4 @@ export function LikedArticlesProvider({ children }: { children: ReactNode }) {
     );
 }
 
-export function useLikedArticles() {
-    const context = useContext(LikedArticlesContext);
-    if (!context) {
-        throw new Error("useLikedArticles must be used within a LikedArticlesProvider");
-    }
-    return context;
-}
+
