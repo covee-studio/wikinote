@@ -1,36 +1,48 @@
-import { BookOpen, Clock, Heart, Share2 } from "lucide-react"
+import { Heart, NotebookPen, Share2 } from "lucide-react"
 import { useState } from "react"
 import { useLikedArticles } from "../contexts/LikedArticlesContext"
 import { useToast } from "../contexts/ToastContext"
 import { useI18n } from "../hooks/useI18n"
-import type { WikiArticleRaw } from "../sources/wikipedia"
+import type { MemoRaw } from "../sources/memos"
+import "../styles/TextCard.css"
 import "../styles/WikiCard.css"
 import type { DiscoveryItem } from "../types/DiscoveryItem"
 
-interface WikiCardProps {
+interface MemoCardProps {
   item: DiscoveryItem
   priority?: boolean
 }
 
-function readMinutes(text: string): number {
-  return Math.max(1, Math.ceil(text.split(/\s+/).filter(Boolean).length / 200))
+function formatDate(isoString: string): string {
+  try {
+    const d = new Date(isoString)
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+  } catch { return "" }
 }
 
-export function WikiCard({ item, priority = false }: WikiCardProps) {
-  const article = item.raw as WikiArticleRaw
+function formatDateLong(isoString: string): string {
+  try {
+    const d = new Date(isoString)
+    return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
+  } catch { return "" }
+}
+
+export function MemoCard({ item, priority = false }: MemoCardProps) {
+  const memo = item.raw as MemoRaw
   const [isImageLoaded, setIsImageLoaded] = useState(false)
   const [shareSuccess, setShareSuccess] = useState(false)
-  const { toggleLike, isLiked } = useLikedArticles()
   const { t } = useI18n()
   const { showToast } = useToast()
+  const { toggleLike, isLiked } = useLikedArticles()
   const liked = isLiked(item)
+  const hasImage = Boolean(memo.imageUrl)
 
   const handleShare = async (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
     if (navigator.share) {
       try {
-        await navigator.share({ title: article.displaytitle, text: article.extract, url: item.url })
+        await navigator.share({ title: item.title, url: item.url })
         setShareSuccess(true)
         setTimeout(() => setShareSuccess(false), 2000)
         return
@@ -44,61 +56,61 @@ export function WikiCard({ item, priority = false }: WikiCardProps) {
     setTimeout(() => setShareSuccess(false), 2000)
   }
 
-  const mins = readMinutes(article.extract || "")
+  const dateShort = formatDate(memo.displayTime)
+  const dateLong = formatDateLong(memo.displayTime)
 
   return (
     <div className="wiki-card inline-grid" style={{ gridTemplateRows: "auto 1fr" }}>
       {/* ── Hero ── */}
-      <div className="wiki-card-image">
-        {article.thumbnail ? (
+      {hasImage ? (
+        /* Photo hero */
+        <div className="wiki-card-image">
           <a
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
             className="block absolute inset-0"
-            aria-label={`Read about ${article.displaytitle}`}
+            aria-label={`Open memo: ${memo.title}`}
           >
             <img
-              src={article.thumbnail.source}
-              alt={article.displaytitle}
+              src={memo.imageUrl}
+              alt={memo.title}
               className={`${isImageLoaded ? "opacity-100" : "opacity-0"} transition-opacity duration-300 w-full h-full object-cover`}
-              width={article.thumbnail.width}
-              height={article.thumbnail.height}
               loading={priority ? "eager" : "lazy"}
               onLoad={() => setIsImageLoaded(true)}
               onError={() => setIsImageLoaded(true)}
               decoding="async"
             />
           </a>
-        ) : (
-          /* Fallback hero */
-          <div
-            className="absolute inset-0 card-hero-text"
-            style={{ background: "#eef2ff" }}
-          >
-            <a
-              href={item.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="absolute inset-0 z-0"
-              aria-label={`Read about ${article.displaytitle}`}
-            />
-            <span className="card-hero-label">From the encyclopedia</span>
-            <BookOpen
-              className="card-hero-watermark"
-              style={{ width: 96, height: 96, color: "#6366f1" }}
-            />
-            <span className="card-hero-tagline">"{article.displaytitle}"</span>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        /* Text hero — warm neutral bg + date + watermark */
+        <div
+          className="wiki-card-image card-hero-text"
+          style={{ background: "#F7F6F8" }}
+        >
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute inset-0 z-0"
+            aria-label={`Open memo: ${memo.title}`}
+          />
+          <span className="card-hero-label">Personal Note</span>
+          <NotebookPen
+            className="card-hero-watermark"
+            style={{ width: 88, height: 88, color: "#94a3b8" }}
+          />
+          <span className="card-hero-date">{dateLong}</span>
+        </div>
+      )}
 
       {/* ── Content ── */}
       <div className="wiki-card-content">
         {/* Source badge */}
         <div className="source-badge">
-          <span className="source-badge-dot" style={{ backgroundColor: "#3b82f6" }} />
-          Wikipedia
+          <span className="source-badge-dot" style={{ backgroundColor: "#8b5cf6" }} />
+          Memos
         </div>
 
         {/* Title */}
@@ -107,19 +119,31 @@ export function WikiCard({ item, priority = false }: WikiCardProps) {
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-blue-500 transition-colors duration-200"
+            className="hover:text-purple-600 transition-colors duration-200"
           >
-            {article.displaytitle}
+            {memo.title}
           </a>
         </h3>
 
         {/* Excerpt */}
-        <p className="wiki-card-excerpt">{article.extract}</p>
+        {memo.excerpt && (
+          <p className="wiki-card-excerpt">{memo.excerpt}</p>
+        )}
 
         {/* Footer */}
         <div className="card-footer-row">
-          <Clock style={{ width: 12, height: 12 }} />
-          <span>{mins} min read</span>
+          {memo.tags.slice(0, 3).map((tag) => (
+            <span
+              key={tag}
+              className="text-xs font-medium"
+              style={{ color: "#94a3b8" }}
+            >
+              #{tag}
+            </span>
+          ))}
+          {memo.tags.length === 0 && (
+            <span>{dateShort}</span>
+          )}
           {/* Hover-only actions */}
           <div className="card-action-buttons">
             <button

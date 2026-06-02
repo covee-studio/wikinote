@@ -1,0 +1,1 @@
+- [Source Adapter Pattern](source-adapter-pattern.md) — how to add new data sources; add one line to registry.ts, zero other files change.

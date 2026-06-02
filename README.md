@@ -24,24 +24,16 @@ A RedNote-style waterfall interface for exploring random Wikipedia articles in m
 
 Run the commands below in the `/frontend` folder.
 
-1. Install dependencies with the lockfile:
+1. Install dependencies:
 
 ```bash
-npm ci
+bun install
 ```
 
 2. Run development server:
 
 ```bash
-npm run dev
-```
-
-3. Run quality checks before opening a pull request:
-
-```bash
-npm audit
-npm run lint
-npm run build:all
+bun run dev
 ```
 
 No backend required!
