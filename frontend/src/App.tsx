@@ -1,5 +1,5 @@
 import { useQueries } from "@tanstack/react-query"
-import { Loader2 } from "lucide-react"
+import { Loader as Loader2 } from "lucide-react"
 import { useMotionValueEvent, useScroll } from "motion/react"
 import { useEffect, useRef, useState } from "react"
 import { AboutModal } from "./components/AboutModal"
@@ -9,6 +9,7 @@ import { SkeletonGrid } from "./components/SkeletonCard"
 import { SourcesModal } from "./components/SourcesModal"
 import { ZenMode } from "./components/ZenMode"
 import { useSources } from "./contexts/SourcesContext"
+import { useToast } from "./contexts/ToastContext"
 import { useI18n } from "./hooks/useI18n"
 import { useLocalization } from "./hooks/useLocalization"
 import { useScrollPosition } from "./hooks/useScrollPosition"
@@ -75,6 +76,7 @@ function App() {
   const [zenIndex, setZenIndex] = useState(-1)
   const { currentLanguage, ready } = useLocalization()
   const { enabledSources, getSourceConfig } = useSources()
+  const { showToast } = useToast()
   const [isScrolled, setIsScrolled] = useState(false)
   const { scrollYProgress } = useScroll()
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
@@ -171,7 +173,7 @@ function App() {
     if (!ready || isLoadingMore || activeAdapters.length === 0) return
     setIsLoadingMore(true)
     try {
-      const batches = await Promise.all(
+      const results = await Promise.allSettled(
         activeAdapters.map(async (adapter) => {
           const items = await adapter.fetch({
             language: currentLanguage,
@@ -180,14 +182,26 @@ function App() {
           return [adapter.id, items] as const
         })
       )
-      setExtraItemsBySource((prev) => {
-        const next = { ...prev }
-        for (const [sourceId, items] of batches) {
-          if (items.length === 0) continue
-          next[sourceId] = [...(next[sourceId] ?? []), ...items]
+      const next: ItemsBySource = {}
+      for (const result of results) {
+        if (result.status === "fulfilled") {
+          const [sourceId, items] = result.value
+          if (items.length > 0) {
+            next[sourceId] = items
+          }
+        } else {
+          showToast("Failed to load more articles")
         }
-        return next
-      })
+      }
+      if (Object.keys(next).length > 0) {
+        setExtraItemsBySource((prev) => {
+          const updated = { ...prev }
+          for (const [sourceId, items] of Object.entries(next)) {
+            updated[sourceId as SourceId] = [...(updated[sourceId as SourceId] ?? []), ...items]
+          }
+          return updated
+        })
+      }
     } finally {
       setIsLoadingMore(false)
     }
