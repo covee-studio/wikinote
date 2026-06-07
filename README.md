@@ -1,42 +1,81 @@
 # Wikinote
 
-A RedNote-style waterfall interface for exploring random Wikipedia articles in multiple languages. This project is based on [IsaacGemal/wikitok](https://github.com/IsaacGemal/wikitok), and we have enhanced it with a masonry layout that's more suitable for web browsing.
+A RedNote-style masonry feed for discovering content from multiple sources. Inspired by [IsaacGemal/wikitok](https://github.com/IsaacGemal/wikitok), enhanced with a waterfall layout suited for web browsing and support for multiple content sources.
 
 ## Features
 
-- Waterfall/Masonry layout for better web browsing experience
-- Support for 14 languages including English, Spanish, French, German, Chinese, Japanese and more
-- Article previews with images, titles and excerpts
-- Share articles directly or copy links
-- Language selector with country flags
-- Preloading of images and content for smooth scrolling
-- Responsive design that works on mobile and desktop
-- Progressive Web App (PWA) support for installing as a standalone app
+- Masonry waterfall layout for comfortable web browsing
+- Three content sources: Wikipedia, Hacker News, and self-hosted Memos
+- 14 languages for Wikipedia (English, Spanish, French, German, Chinese, Japanese, and more)
+- Article and story cards with images, titles, and excerpts
+- Share articles or copy links
+- Liked articles saved locally
+- Zen mode for distraction-free reading
+- Responsive design for mobile and desktop
+- Chrome Extension (new-tab override) and Progressive Web App (PWA)
 
 ## Tech Stack
 
-- React 18
-- TypeScript
-- Tailwind CSS
+- React 18 + TypeScript
+- Tailwind CSS v4
 - Vite
+- No backend required
 
 ## Development
 
-Run the commands below in the `/frontend` folder.
-
-1. Install dependencies:
+All commands run from the `frontend/` directory.
 
 ```bash
-bun install
+cd frontend
+npm install
+npm run dev
 ```
 
-2. Run development server:
+The app runs at `http://localhost:5173` by default.
+
+## Building
 
 ```bash
-bun run dev
+# Web app only
+npm run build:web
+
+# Chrome Extension only
+npm run build:extension
+
+# Both at once
+npm run build:all
 ```
 
-No backend required!
+Output directories (relative to `frontend/`):
+- Web: `dist/web/`
+- Extension: `dist/extension/`
+
+## Chrome Extension
+
+1. Run `npm run build:extension` in `frontend/`
+2. Open `chrome://extensions/` and enable Developer Mode
+3. Click "Load unpacked" and select `frontend/dist/extension/`
+
+## Deploying the Web App
+
+On Vercel / Netlify:
+- Root directory: `frontend`
+- Build command: `npm run build` (delegates to `build:web`)
+- Output directory: `dist/web`
+
+## Sources
+
+| Source | Auth required | Notes |
+|--------|--------------|-------|
+| Wikipedia | No | Random articles, 14 languages |
+| Hacker News | No | Top stories via public HN API |
+| Memos | Yes (API token) | Self-hosted [Memos](https://github.com/usememos/memos) instance |
+
+Memos requires a self-hosted instance URL and API token, configured in the Sources panel inside the app.
+
+## Roadmap
+
+This project intentionally does not include export, tagging, sync, or user accounts in the current roadmap.
 
 ## Support
 
@@ -46,7 +85,7 @@ If you enjoy Wikinote, consider buying me a coffee:
 
 ## License
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
 
 ## Star History
 
