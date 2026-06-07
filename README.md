@@ -1,11 +1,13 @@
 # Wikinote
 
-A RedNote-style masonry feed for discovering content from multiple sources. Inspired by [IsaacGemal/wikitok](https://github.com/IsaacGemal/wikitok), enhanced with a waterfall layout suited for web browsing and support for multiple content sources.
+A RedNote-style masonry feed for discovering content from multiple open sources. Inspired by [IsaacGemal/wikitok](https://github.com/IsaacGemal/wikitok), enhanced with a waterfall layout suited for web browsing.
+
+All built-in sources use fully public APIs — no OAuth, no backend proxy, no token required to get started.
 
 ## Features
 
 - Masonry waterfall layout for comfortable web browsing
-- Three content sources: Wikipedia, Hacker News, and self-hosted Memos
+- Three content sources out of the box: Wikipedia, Hacker News, and self-hosted Memos
 - 14 languages for Wikipedia (English, Spanish, French, German, Chinese, Japanese, and more)
 - Article and story cards with images, titles, and excerpts
 - Share articles or copy links
@@ -65,17 +67,19 @@ On Vercel / Netlify:
 
 ## Sources
 
-| Source | Auth required | Notes |
-|--------|--------------|-------|
-| Wikipedia | No | Random articles, 14 languages |
-| Hacker News | No | Top stories via public HN API |
-| Memos | Yes (API token) | Self-hosted [Memos](https://github.com/usememos/memos) instance |
+| Source | Auth | Notes |
+|--------|------|-------|
+| Wikipedia | None | Random articles across 14 languages |
+| Hacker News | None | Top stories via the public HN Firebase API |
+| Memos | API token (your own instance) | Self-hosted [Memos](https://github.com/usememos/memos) personal notes |
 
-Memos requires a self-hosted instance URL and API token, configured in the Sources panel inside the app.
+Memos requires a self-hosted instance URL and API token, configured in the Sources panel inside the app. Wikipedia and Hacker News work immediately with no setup.
+
+New sources must use a fully public API — no OAuth, no backend proxy. This keeps the app deployable without a server.
 
 ## Roadmap
 
-This project intentionally does not include export, tagging, sync, or user accounts in the current roadmap.
+This project intentionally does not include export, tagging, sync, user accounts, or closed-platform integrations (e.g. Product Hunt) in the current roadmap.
 
 ## Support
 
