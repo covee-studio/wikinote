@@ -6,6 +6,7 @@ import { createContext, useContext, useEffect, useState } from "react"
 import type { ReactNode } from "react"
 import type { SourceId } from "../types/DiscoveryItem"
 import { ADAPTER_LIST } from "../sources/registry"
+import { requestOptionalHostPermission } from "../utils/environment"
 
 // ─── Types ────────────────────────────────────────────────────
 export type SourceConfigs = Partial<Record<SourceId, Record<string, string>>>
@@ -67,6 +68,7 @@ export function SourcesProvider({ children }: { children: ReactNode }) {
   }, [sourceConfigs])
 
   const toggleSource = (id: SourceId) => {
+    const adapter = ADAPTER_LIST.find((a) => a.id === id)
     setEnabledSources((prev) => {
       const next = new Set(prev)
       if (next.has(id)) {
@@ -77,6 +79,13 @@ export function SourcesProvider({ children }: { children: ReactNode }) {
       }
       return next
     })
+
+    if (!enabledSources.has(id) && adapter?.requiresConfig) {
+      const endpoint = sourceConfigs[id]?.endpoint
+      if (endpoint) {
+        void requestOptionalHostPermission(endpoint)
+      }
+    }
   }
 
   const isEnabled = (id: SourceId) => enabledSources.has(id)

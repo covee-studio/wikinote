@@ -1,5 +1,5 @@
 import type { DiscoveryItem } from "../types/DiscoveryItem"
-import type { CardRenderProps, FetchConfig, LikePreview, SourceAdapter } from "./adapter"
+import type { CardRenderProps, LikePreview, SourceAdapter } from "./adapter"
 import { TextCard } from "../components/TextCard"
 
 // ─── Raw API shape — internal to this adapter ─────────────────
@@ -98,7 +98,7 @@ export const hackerNewsAdapter: SourceAdapter = {
   description: "Top stories from the Hacker News community.",
   color: "#ff6600",
 
-  async fetch(_config?: FetchConfig): Promise<DiscoveryItem[]> {
+  async fetch(): Promise<DiscoveryItem[]> {
     return fetchStories()
   },
 

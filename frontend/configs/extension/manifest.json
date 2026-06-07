@@ -6,8 +6,11 @@
   "permissions": ["storage", "unlimitedStorage"],
   "host_permissions": [
     "https://*.wikipedia.org/*",
-    "https://hacker-news.firebaseio.com/*",
-    "https://*/*"
+    "https://hacker-news.firebaseio.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*",
+    "http://*/*"
   ],
   "chrome_url_overrides": {
     "newtab": "newtab.html"

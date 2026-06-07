@@ -118,11 +118,15 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                 {/* Article language — Wikipedia only */}
                 {adapter.id === "wikipedia" && (
                   <div className="mt-3 pt-3 border-t border-slate-100">
-                    <label className="text-xs font-medium text-slate-500 block mb-1.5">
+                    <label
+                      htmlFor="article-language-select"
+                      className="text-xs font-medium text-slate-500 block mb-1.5"
+                    >
                       Article language
                     </label>
                     <div className="relative">
                       <select
+                        id="article-language-select"
                         value={currentLanguage.id}
                         onChange={(e) => setLanguage(e.target.value)}
                         className="w-full appearance-none text-sm text-slate-700 px-3 py-2.5 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 pr-8 cursor-pointer"

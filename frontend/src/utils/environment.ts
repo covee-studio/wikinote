@@ -18,6 +18,12 @@ declare global {
             remove: (keys: string[], cb: () => void) => void;
           };
         };
+        permissions?: {
+          request: (
+            permissions: { origins?: string[] },
+            cb: (granted: boolean) => void
+          ) => void;
+        };
       }
     | undefined;
 }
@@ -113,4 +119,26 @@ export const fetchWithCORS = async (url: string, options?: RequestInit): Promise
     return fetch(url, options);
   }
   return fetch(url, options);
-}; 
+};
+
+export function hostPermissionPatternFromUrl(rawUrl: string): string | null {
+  try {
+    const { origin, protocol } = new URL(rawUrl);
+    if (protocol !== 'https:' && protocol !== 'http:') return null;
+    return `${origin}/*`;
+  } catch {
+    return null;
+  }
+}
+
+export async function requestOptionalHostPermission(rawUrl: string): Promise<boolean> {
+  const pattern = hostPermissionPatternFromUrl(rawUrl);
+  if (!pattern) return false;
+  const permissions = typeof chrome !== 'undefined' ? chrome.permissions : undefined;
+  if (!isExtension || !permissions?.request) {
+    return true;
+  }
+  return new Promise((resolve) => {
+    permissions.request({ origins: [pattern] }, resolve);
+  });
+}

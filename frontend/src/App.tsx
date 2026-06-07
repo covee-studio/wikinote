@@ -13,11 +13,15 @@ import { useI18n } from "./hooks/useI18n"
 import { useLocalization } from "./hooks/useLocalization"
 import { useScrollPosition } from "./hooks/useScrollPosition"
 import { ADAPTER_LIST } from "./sources/registry"
+import type { SourceAdapter } from "./sources/adapter"
 import type { DiscoveryItem } from "./types/DiscoveryItem"
+import type { SourceId } from "./types/DiscoveryItem"
 import { feedCache, CACHE_TTL_MS } from "./utils/feedCache"
 
 const ZEN_OPEN_KEY = "zen_open"
 const ZEN_INDEX_KEY = "zen_last_index"
+
+type ItemsBySource = Partial<Record<SourceId, DiscoveryItem[]>>
 
 function interleaveN(arrays: DiscoveryItem[][]): DiscoveryItem[] {
   const result: DiscoveryItem[] = []
@@ -39,10 +43,30 @@ function dedup(items: DiscoveryItem[]): DiscoveryItem[] {
   })
 }
 
+function hashString(value: string): string {
+  let hash = 5381
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 33) ^ value.charCodeAt(i)
+  }
+  return (hash >>> 0).toString(36)
+}
+
+function configFingerprint(adapter: SourceAdapter, config: Record<string, string>): string {
+  const fields = adapter.configSchema ?? []
+  const normalized = fields.reduce<Record<string, string>>((acc, field) => {
+    const value = config[field.key]?.trim() ?? ""
+    acc[field.key] = field.secret ? `secret:${hashString(value)}` : value
+    return acc
+  }, {})
+  return JSON.stringify(normalized)
+}
+
 function App() {
   const [showAbout, setShowAbout] = useState(false)
   const [showLikes, setShowLikes] = useState(false)
   const [showSources, setShowSources] = useState(false)
+  const [extraItemsBySource, setExtraItemsBySource] = useState<ItemsBySource>({})
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   // Initialise to true immediately if zen was open in the previous tab —
   // so the overlay covers the grid from frame 0 and avoids the flash.
   const [showZen, setShowZen] = useState(() => localStorage.getItem(ZEN_OPEN_KEY) === "true")
@@ -64,11 +88,22 @@ function App() {
   const zenRestorePendingRef = useRef(localStorage.getItem(ZEN_OPEN_KEY) === "true")
 
   const activeAdapters = ADAPTER_LIST.filter((a) => enabledSources.has(a.id))
+  const activeSourceKey = activeAdapters
+    .map((adapter) => {
+      const langId = adapter.id === "wikipedia" ? currentLanguage.id : ""
+      return `${adapter.id}:${langId}:${configFingerprint(adapter, getSourceConfig(adapter.id))}`
+    })
+    .join("|")
+
+  useEffect(() => {
+    setExtraItemsBySource({})
+  }, [activeSourceKey])
 
   const queryResults = useQueries({
     queries: activeAdapters.map((adapter) => {
       const langId = adapter.id === "wikipedia" ? currentLanguage.id : ""
-      const configStr = JSON.stringify(getSourceConfig(adapter.id))
+      const config = getSourceConfig(adapter.id)
+      const configStr = configFingerprint(adapter, config)
       const cacheKey = feedCache.key(adapter.id, langId, configStr)
       const cached = feedCache.getSync(cacheKey)
 
@@ -77,7 +112,7 @@ function App() {
         queryFn: async () => {
           const items = await adapter.fetch({
             language: currentLanguage,
-            sourceConfig: getSourceConfig(adapter.id),
+            sourceConfig: config,
           })
           if (items.length > 0) {
             feedCache.set(cacheKey, items)
@@ -95,13 +130,14 @@ function App() {
     }),
   })
 
-  const isLoading = queryResults.some((r) => r.isPending || r.isFetching)
+  const isLoading = queryResults.some((r) => r.isPending || r.isFetching) || isLoadingMore
 
   const articles = dedup(
     interleaveN(
-      activeAdapters.map((_, i) =>
-        Array.isArray(queryResults[i]?.data) ? (queryResults[i].data as DiscoveryItem[]) : []
-      )
+      activeAdapters.map((adapter, i) => [
+        ...(Array.isArray(queryResults[i]?.data) ? (queryResults[i].data as DiscoveryItem[]) : []),
+        ...(extraItemsBySource[adapter.id] ?? []),
+      ])
     )
   )
 
@@ -131,12 +167,38 @@ function App() {
   const loadMoreRef = useRef<HTMLDivElement>(null)
   const observerRef = useRef<IntersectionObserver | null>(null)
 
+  const loadMore = async () => {
+    if (!ready || isLoadingMore || activeAdapters.length === 0) return
+    setIsLoadingMore(true)
+    try {
+      const batches = await Promise.all(
+        activeAdapters.map(async (adapter) => {
+          const items = await adapter.fetch({
+            language: currentLanguage,
+            sourceConfig: getSourceConfig(adapter.id),
+          })
+          return [adapter.id, items] as const
+        })
+      )
+      setExtraItemsBySource((prev) => {
+        const next = { ...prev }
+        for (const [sourceId, items] of batches) {
+          if (items.length === 0) continue
+          next[sourceId] = [...(next[sourceId] ?? []), ...items]
+        }
+        return next
+      })
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }
+
   useEffect(() => {
     observerRef.current?.disconnect()
     observerRef.current = new IntersectionObserver(
       (entries) => {
         if (entries[0]?.isIntersecting && !isLoading) {
-          queryResults.forEach((r) => r.refetch())
+          void loadMore()
         }
       },
       { threshold: 0.1 }
@@ -144,7 +206,7 @@ function App() {
     if (loadMoreRef.current) observerRef.current.observe(loadMoreRef.current)
     return () => observerRef.current?.disconnect()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, activeAdapters.length])
+  }, [isLoading, activeSourceKey, articles.length])
 
   const pillBase = "bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg transition-all duration-300"
   const pillScrolled = "bg-white/95 backdrop-blur-xl border-white/40 shadow-xl"

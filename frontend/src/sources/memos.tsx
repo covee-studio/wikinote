@@ -33,7 +33,7 @@ interface MemosApiMemo {
 }
 
 // ─── Content helpers ──────────────────────────────────────────
-const MARKDOWN_INLINE = /[*_`~\[\]()!#>\\]/g
+const MARKDOWN_INLINE = /[*_`~[\]()!#>\\]/g
 
 function extractTitle(content: string): string {
   const lines = content.split("\n")

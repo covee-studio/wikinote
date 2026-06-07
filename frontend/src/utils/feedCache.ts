@@ -37,7 +37,7 @@ export const feedCache = {
     await StorageAdapter.set(PREFIX + key, entry)
   },
 
-  /** Stable key for a given source + language + config combination */
+  /** Stable key for a given source + language + non-secret config fingerprint */
   key(adapterId: string, langId: string, configFingerprint: string): string {
     return `${adapterId}-${langId}-${configFingerprint.slice(0, 40)}`
   },
