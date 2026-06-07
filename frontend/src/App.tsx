@@ -1,204 +1,295 @@
-import { useInfiniteQuery } from "@tanstack/react-query"
-  import { Loader2 } from "lucide-react"
-  import { useInView, useMotionValueEvent, useScroll } from "motion/react"
-  import { useEffect, useMemo, useRef, useState } from "react"
-  import { AboutModal } from "./components/AboutModal"
-  import { LanguageSelector } from "./components/LanguageSelector"
-  import { LikesModal } from "./components/LikesModal"
-  import { LoadingSkeletonCards, SkeletonGrid } from "./components/SkeletonCard"
-  import { WikiCard } from "./components/WikiCard"
-  import { useI18n } from "./hooks/useI18n"
-  import { useLocalization } from "./hooks/useLocalization"
-  import { useScrollPosition } from "./hooks/useScrollPosition"
-  import type { WikiArticle } from "./types/ArticleProps"
-  import { isSafeArticle } from "./utils/contentSafety"
-  import { fetchWithCORS } from "./utils/environment"
+import { useQueries } from "@tanstack/react-query"
+import { Loader2 } from "lucide-react"
+import { useMotionValueEvent, useScroll } from "motion/react"
+import { useEffect, useRef, useState } from "react"
+import { AboutModal } from "./components/AboutModal"
+import { DiscoveryCard } from "./components/DiscoveryCard"
+import { LikesModal } from "./components/LikesModal"
+import { SkeletonGrid } from "./components/SkeletonCard"
+import { SourcesModal } from "./components/SourcesModal"
+import { ZenMode } from "./components/ZenMode"
+import { useSources } from "./contexts/SourcesContext"
+import { useI18n } from "./hooks/useI18n"
+import { useLocalization } from "./hooks/useLocalization"
+import { useScrollPosition } from "./hooks/useScrollPosition"
+import { ADAPTER_LIST } from "./sources/registry"
+import type { SourceAdapter } from "./sources/adapter"
+import type { DiscoveryItem } from "./types/DiscoveryItem"
+import type { SourceId } from "./types/DiscoveryItem"
+import { feedCache, CACHE_TTL_MS } from "./utils/feedCache"
 
-  function App() {
-    const [showAbout, setShowAbout] = useState(false)
-    const [showLikes, setShowLikes] = useState(false)
-    const { currentLanguage, ready } = useLocalization()
-    const [isScrolled, setIsScrolled] = useState<boolean>(false)
-    const { scrollYProgress } = useScroll() // ensure motion scroll values are initialized (not used directly)
-    useMotionValueEvent(scrollYProgress, "change", (latest) => {
-      setIsScrolled(latest > 0.04)
+const ZEN_OPEN_KEY = "zen_open"
+const ZEN_INDEX_KEY = "zen_last_index"
+
+type ItemsBySource = Partial<Record<SourceId, DiscoveryItem[]>>
+
+function interleaveN(arrays: DiscoveryItem[][]): DiscoveryItem[] {
+  const result: DiscoveryItem[] = []
+  const queues = arrays.map((a) => (Array.isArray(a) ? [...a] : []))
+  while (queues.some((q) => q.length > 0)) {
+    for (const q of queues) {
+      if (q.length > 0) result.push(q.shift()!)
+    }
+  }
+  return result
+}
+
+function dedup(items: DiscoveryItem[]): DiscoveryItem[] {
+  const seen = new Set<string>()
+  return items.filter((item) => {
+    if (seen.has(item.id)) return false
+    seen.add(item.id)
+    return true
+  })
+}
+
+function hashString(value: string): string {
+  let hash = 5381
+  for (let i = 0; i < value.length; i++) {
+    hash = (hash * 33) ^ value.charCodeAt(i)
+  }
+  return (hash >>> 0).toString(36)
+}
+
+function configFingerprint(adapter: SourceAdapter, config: Record<string, string>): string {
+  const fields = adapter.configSchema ?? []
+  const normalized = fields.reduce<Record<string, string>>((acc, field) => {
+    const value = config[field.key]?.trim() ?? ""
+    acc[field.key] = field.secret ? `secret:${hashString(value)}` : value
+    return acc
+  }, {})
+  return JSON.stringify(normalized)
+}
+
+function App() {
+  const [showAbout, setShowAbout] = useState(false)
+  const [showLikes, setShowLikes] = useState(false)
+  const [showSources, setShowSources] = useState(false)
+  const [extraItemsBySource, setExtraItemsBySource] = useState<ItemsBySource>({})
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  // Initialise to true immediately if zen was open in the previous tab —
+  // so the overlay covers the grid from frame 0 and avoids the flash.
+  const [showZen, setShowZen] = useState(() => localStorage.getItem(ZEN_OPEN_KEY) === "true")
+  // -1 = sentinel: zen is open but the random index hasn't been picked yet.
+  // ZenMode renders only the background while index < 0, preventing any content flash.
+  const [zenIndex, setZenIndex] = useState(-1)
+  const { currentLanguage, ready } = useLocalization()
+  const { enabledSources, getSourceConfig } = useSources()
+  const [isScrolled, setIsScrolled] = useState(false)
+  const { scrollYProgress } = useScroll()
+  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+    setIsScrolled(latest > 0.04)
+  })
+  const { t } = useI18n()
+  const { scrollY } = useScrollPosition(30)
+  const titleOpacity = Math.max(0, 1 - scrollY / 80)
+
+  // Track whether we still need to restore Zen mode from localStorage
+  const zenRestorePendingRef = useRef(localStorage.getItem(ZEN_OPEN_KEY) === "true")
+
+  const activeAdapters = ADAPTER_LIST.filter((a) => enabledSources.has(a.id))
+  const activeSourceKey = activeAdapters
+    .map((adapter) => {
+      const langId = adapter.id === "wikipedia" ? currentLanguage.id : ""
+      return `${adapter.id}:${langId}:${configFingerprint(adapter, getSourceConfig(adapter.id))}`
     })
+    .join("|")
 
-    const { t } = useI18n()
-    const { scrollY } = useScrollPosition(30)
-    const titleOpacity = Math.max(0, 1 - scrollY / 80)
+  useEffect(() => {
+    setExtraItemsBySource({})
+  }, [activeSourceKey])
 
-    // Query function to fetch a batch of random Wikipedia articles with safe-mode filtering.
-    // We request 30 articles so that after filtering out sensitive content there is
-    // always a comfortable surplus to fill the grid.  The category data is used only
-    // for filtering and is not forwarded to WikiArticle.
-    const queryFn = useMemo(() => {
-      return async (): Promise<WikiArticle[]> => {
-        const response = await fetchWithCORS(
-          currentLanguage.api +
-            new URLSearchParams({
-              action: "query",
-              format: "json",
-              generator: "random",
-              grnnamespace: "0",
-              prop: "extracts|info|pageimages|categories",
-              inprop: "url|varianttitles",
-              grnlimit: "30",
-              exintro: "1",
-              exlimit: "max",
-              exsentences: "5",
-              explaintext: "1",
-              piprop: "thumbnail",
-              pithumbsize: "480",
-              cllimit: "20",
-              clshow: "!hidden",
-              origin: "*",
-              variant: currentLanguage.id,
-            })
-        )
-        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`)
-        const data = await response.json()
-        if (!data.query || !data.query.pages) throw new Error("Invalid API response")
+  const queryResults = useQueries({
+    queries: activeAdapters.map((adapter) => {
+      const langId = adapter.id === "wikipedia" ? currentLanguage.id : ""
+      const config = getSourceConfig(adapter.id)
+      const configStr = configFingerprint(adapter, config)
+      const cacheKey = feedCache.key(adapter.id, langId, configStr)
+      const cached = feedCache.getSync(cacheKey)
 
-        type WikipediaThumbnail = { source: string; width: number; height: number }
-        type WikipediaPage = {
-          title: string
-          varianttitles?: Record<string, string>
-          extract: string
-          pageid: number
-          thumbnail?: WikipediaThumbnail
-          canonicalurl: string
-          categories?: { title: string }[]
-        }
-
-        const pages = data.query.pages as Record<string, WikipediaPage>
-        const newArticles = Object.values(pages)
-          .filter((page) => isSafeArticle(page.categories?.map((c) => c.title)))
-          .map(
-            (page): WikiArticle => ({
-              title: page.title,
-              displaytitle: page.varianttitles?.[currentLanguage.id] || page.title,
-              extract: page.extract,
-              pageid: page.pageid,
-              thumbnail: page.thumbnail,
-              url: page.canonicalurl,
-            })
-          )
-          .filter((a) => a.thumbnail && a.thumbnail.source && a.url && a.extract)
-        return newArticles
+      return {
+        queryKey: ["articles", adapter.id, langId, configStr],
+        queryFn: async () => {
+          const items = await adapter.fetch({
+            language: currentLanguage,
+            sourceConfig: config,
+          })
+          if (items.length > 0) {
+            feedCache.set(cacheKey, items)
+          }
+          return items
+        },
+        enabled: ready,
+        refetchOnWindowFocus: false,
+        retry: 1,
+        // Show cached items immediately; refetch silently in background if stale
+        initialData: cached?.items,
+        initialDataUpdatedAt: cached?.timestamp ?? 0,
+        staleTime: CACHE_TTL_MS,
       }
-    }, [currentLanguage])
+    }),
+  })
 
-    const {
-      data: queryData,
-      fetchNextPage,
-      isFetching,
-      isFetchingNextPage,
-      isPending,
-    } = useInfiniteQuery({
-      queryKey: ["wikiArticles", currentLanguage.id],
-      queryFn: () => queryFn(),
-      initialPageParam: 0,
-      getNextPageParam: (_lastPage: WikiArticle[], allPages: WikiArticle[][]) => allPages.length,
-      retry: 2,
-      refetchOnWindowFocus: false,
-      enabled: ready,
-    })
+  const isLoading = queryResults.some((r) => r.isPending || r.isFetching) || isLoadingMore
 
-    const flatArticles = (queryData?.pages ?? []).flat() as WikiArticle[]
-    const articles = flatArticles
-    const loading = isPending || isFetching || isFetchingNextPage
-
-    const loadMoreDetectorRef = useRef<HTMLDivElement>(null)
-    const loadMoreDetectorInView = useInView(loadMoreDetectorRef)
-
-    useEffect(() => {
-      if (loadMoreDetectorInView) {
-        fetchNextPage()
-      }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [loadMoreDetectorInView])
-
-    return (
-      <div className="relative min-h-screen gradient-bg">
-        {/* Top-left brand */}
-        <div className="fixed top-4 left-4 z-50">
-          <button
-            onClick={() => window.location.reload()}
-            className={`text-2xl font-bold text-glow hover:opacity-90 transition-all duration-300 px-2 py-1 hover:scale-105 text-slate-800 ${
-              titleOpacity === 0 ? "pointer-events-none" : ""
-            }`}
-            style={{
-              opacity: titleOpacity,
-              transform: `translateY(${titleOpacity === 0 ? "-10px" : "0"})`,
-              transition: "all 0.3s ease-in-out",
-            }}
-          >
-            {t("app.title")}
-          </button>
-        </div>
-        {/* Top-right controls */}
-        <div className="fixed top-4 right-4 z-50">
-          <div className="flex items-center gap-3">
-            <div
-              className={`modern-button-group flex items-center rounded-full p-1 border shadow-lg transition-all duration-300 ${
-                isScrolled
-                  ? "bg-white/95 backdrop-blur-xl border-white/40 shadow-xl"
-                  : "bg-white/10 backdrop-blur-xl border-white/20"
-              }`}
-            >
-              <button
-                onClick={() => setShowAbout(true)}
-                className="button-indicator px-4 py-2 text-slate-700 hover:text-blue-600 hover:bg-blue-50/80 rounded-full transition-all duration-300 text-sm font-medium flex items-center gap-2 group"
-              >
-                <div className="w-1.5 h-1.5 bg-current rounded-full opacity-60 group-hover:opacity-100 transition-opacity"></div>
-                {t("app.about")}
-              </button>
-              <button
-                onClick={() => setShowLikes(true)}
-                className="button-indicator px-4 py-2 text-slate-700 hover:text-red-500 hover:bg-red-50/80 rounded-full transition-all duration-300 text-sm font-medium flex items-center gap-2 group"
-              >
-                <div className="w-1.5 h-1.5 bg-current rounded-full opacity-60 group-hover:opacity-100 transition-opacity"></div>
-                {t("app.likes")}
-              </button>
-            </div>
-            <div
-              className={`rounded-full p-1 border shadow-lg relative transition-all duration-300 ${
-                isScrolled
-                  ? "bg-white/95 backdrop-blur-xl border-white/40 shadow-xl"
-                  : "bg-white/10 backdrop-blur-xl border-white/20"
-              }`}
-              style={{ zIndex: 9998 }}
-            >
-              <LanguageSelector />
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="masonry-grid">
-          {articles.map((article, idx) => (
-            <WikiCard key={article.pageid} article={article} priority={idx < 6} />
-          ))}
-          {isPending && <SkeletonGrid count={6} />}
-          {loading && <LoadingSkeletonCards />}
-          <div ref={loadMoreDetectorRef} className="h-10 col-span-full" />
-        </div>
-
-        {/* Floating global loading */}
-        {loading && articles.length > 0 && (
-          <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center justify-center gap-3 glass-effect px-6 py-3 rounded-full shadow-lg border border-white/20 pointer-events-none z-[60]">
-            <Loader2 className="h-5 w-5 animate-spin text-slate-700" />
-            <span className="text-slate-700 font-medium">{t("common.loadingMore")}</span>
-          </div>
-        )}
-
-        {/* Modals */}
-        <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
-        <LikesModal isOpen={showLikes} onClose={() => setShowLikes(false)} />
-      </div>
+  const articles = dedup(
+    interleaveN(
+      activeAdapters.map((adapter, i) => [
+        ...(Array.isArray(queryResults[i]?.data) ? (queryResults[i].data as DiscoveryItem[]) : []),
+        ...(extraItemsBySource[adapter.id] ?? []),
+      ])
     )
+  )
+
+  // Restore Zen mode once articles are available
+  useEffect(() => {
+    if (!zenRestorePendingRef.current) return
+    if (articles.length === 0) return
+    zenRestorePendingRef.current = false
+    // Pick a random article each time a new tab opens — avoid always seeing the same one
+    const next = Math.floor(Math.random() * articles.length)
+    setZenIndex(next)
+    setShowZen(true)
+  }, [articles.length])
+
+  const openZen = (idx: number) => {
+    localStorage.setItem(ZEN_OPEN_KEY, "true")
+    localStorage.setItem(ZEN_INDEX_KEY, String(idx))
+    setZenIndex(idx)
+    setShowZen(true)
   }
 
-  export default App
-  
+  const closeZen = () => {
+    localStorage.removeItem(ZEN_OPEN_KEY)
+    setShowZen(false)
+  }
+
+  const loadMoreRef = useRef<HTMLDivElement>(null)
+  const observerRef = useRef<IntersectionObserver | null>(null)
+
+  const loadMore = async () => {
+    if (!ready || isLoadingMore || activeAdapters.length === 0) return
+    setIsLoadingMore(true)
+    try {
+      const batches = await Promise.all(
+        activeAdapters.map(async (adapter) => {
+          const items = await adapter.fetch({
+            language: currentLanguage,
+            sourceConfig: getSourceConfig(adapter.id),
+          })
+          return [adapter.id, items] as const
+        })
+      )
+      setExtraItemsBySource((prev) => {
+        const next = { ...prev }
+        for (const [sourceId, items] of batches) {
+          if (items.length === 0) continue
+          next[sourceId] = [...(next[sourceId] ?? []), ...items]
+        }
+        return next
+      })
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }
+
+  useEffect(() => {
+    observerRef.current?.disconnect()
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isLoading) {
+          void loadMore()
+        }
+      },
+      { threshold: 0.1 }
+    )
+    if (loadMoreRef.current) observerRef.current.observe(loadMoreRef.current)
+    return () => observerRef.current?.disconnect()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isLoading, activeSourceKey, articles.length])
+
+  const pillBase = "bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg transition-all duration-300"
+  const pillScrolled = "bg-white/95 backdrop-blur-xl border-white/40 shadow-xl"
+  const btnCls = "px-4 py-2 rounded-full text-sm font-medium transition-all duration-200"
+
+  return (
+    <div className="relative min-h-screen gradient-bg">
+      {/* Top-left brand */}
+      <div className="fixed top-4 left-4 z-50">
+        <button
+          onClick={() => window.location.reload()}
+          className={`text-2xl font-bold text-glow hover:opacity-90 transition-all duration-300 px-2 py-1 hover:scale-105 text-slate-800 ${
+            titleOpacity === 0 ? "pointer-events-none" : ""
+          }`}
+          style={{
+            opacity: titleOpacity,
+            transform: `translateY(${titleOpacity === 0 ? "-10px" : "0"})`,
+            transition: "all 0.3s ease-in-out",
+          }}
+        >
+          {t("app.title")}
+        </button>
+      </div>
+
+      {/* Top-right controls */}
+      <div className="fixed top-4 right-4 z-50">
+        <div className={`modern-button-group flex items-center rounded-full p-1 ${isScrolled ? pillScrolled : pillBase}`}>
+          <button
+            onClick={() => setShowAbout(true)}
+            className={`${btnCls} text-slate-700 hover:text-blue-600 hover:bg-blue-50/80`}
+          >
+            {t("app.about")}
+          </button>
+          <button
+            onClick={() => setShowLikes(true)}
+            className={`${btnCls} text-slate-700 hover:text-red-500 hover:bg-red-50/80`}
+          >
+            {t("app.likes")}
+          </button>
+          <button
+            onClick={() => setShowSources(true)}
+            className={`${btnCls} text-slate-700 hover:text-slate-900 hover:bg-slate-100/80`}
+          >
+            Sources
+          </button>
+          <button
+            onClick={() => openZen(0)}
+            className={`${btnCls} text-slate-500 hover:text-slate-800 hover:bg-slate-100/80`}
+            disabled={articles.length === 0}
+          >
+            Zen
+          </button>
+        </div>
+      </div>
+
+      {/* Content grid */}
+      <div className="masonry-grid" style={{ paddingTop: "80px" }}>
+        {articles.map((item, idx) => (
+          <DiscoveryCard key={item.id} item={item} priority={idx < 6} />
+        ))}
+        {isLoading && articles.length === 0 && <SkeletonGrid count={6} />}
+        <div ref={loadMoreRef} className="h-10 col-span-full" />
+      </div>
+
+      {/* Loading indicator */}
+      {isLoading && articles.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 glass-effect px-6 py-3 rounded-full shadow-lg border border-white/20 pointer-events-none z-[60]">
+          <Loader2 className="h-5 w-5 animate-spin text-slate-700" />
+          <span className="text-slate-700 font-medium">{t("common.loadingMore")}</span>
+        </div>
+      )}
+
+      <AboutModal isOpen={showAbout} onClose={() => setShowAbout(false)} />
+      <LikesModal isOpen={showLikes} onClose={() => setShowLikes(false)} />
+      <SourcesModal isOpen={showSources} onClose={() => setShowSources(false)} />
+      <ZenMode
+        isOpen={showZen}
+        items={articles}
+        initialIndex={zenIndex}
+        onClose={closeZen}
+      />
+    </div>
+  )
+}
+
+export default App

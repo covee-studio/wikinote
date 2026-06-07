@@ -1,21 +1,6 @@
-// Unified article-related type definitions
-
-export interface WikiArticle {
-  title: string;
-  displaytitle: string;
-  extract: string;
-  pageid: number;
-  url: string;
-  thumbnail?: {
-    source: string;
-    width: number;
-    height: number;
-  };
-}
-
-export interface ArticleProps {
-  article: WikiArticle;
-}
+// Shared non-source-specific types.
+// WikiArticle has been moved to sources/wikipedia.tsx as WikiArticleRaw
+// (internal to that adapter). Only Language and error shapes remain here.
 
 export interface Language {
   id: string;
@@ -23,12 +8,6 @@ export interface Language {
   flag: string;
   api: string;
   article: string;
-}
-
-export interface LikedArticlesContextType {
-  likedArticles: WikiArticle[];
-  toggleLike: (article: WikiArticle) => void;
-  isLiked: (pageid: number) => boolean;
 }
 
 export interface APIError {
