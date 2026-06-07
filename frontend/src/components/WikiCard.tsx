@@ -1,131 +1,143 @@
-import { Heart, Share2 } from "lucide-react"
+import { BookOpen, Clock, Heart, Share2 } from "lucide-react"
 import { useState } from "react"
-import { useLikedArticles } from "../contexts/likedArticles"
-import { useToast } from "../contexts/toast"
+import { useLikedArticles } from "../contexts/LikedArticlesContext"
+import { useToast } from "../contexts/ToastContext"
 import { useI18n } from "../hooks/useI18n"
+import type { WikiArticleRaw } from "../sources/wikipedia"
 import "../styles/WikiCard.css"
-import type { ArticleProps } from "../types/ArticleProps"
+import type { DiscoveryItem } from "../types/DiscoveryItem"
 
-interface WikiCardProps extends ArticleProps {
+interface WikiCardProps {
+  item: DiscoveryItem
   priority?: boolean
 }
 
-export function WikiCard({ article, priority = false }: WikiCardProps) {
+function readMinutes(text: string): number {
+  return Math.max(1, Math.ceil(text.split(/\s+/).filter(Boolean).length / 200))
+}
+
+export function WikiCard({ item, priority = false }: WikiCardProps) {
+  const article = item.raw as WikiArticleRaw
   const [isImageLoaded, setIsImageLoaded] = useState(false)
-  const [shareError, setShareError] = useState(false)
   const [shareSuccess, setShareSuccess] = useState(false)
   const { toggleLike, isLiked } = useLikedArticles()
   const { t } = useI18n()
   const { showToast } = useToast()
+  const liked = isLiked(item)
 
-  const handleShare = async () => {
-    setShareError(false)
-    setShareSuccess(false)
-
+  const handleShare = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
     if (navigator.share) {
       try {
-        await navigator.share({
-          title: article.displaytitle,
-          text: article.extract || "",
-          url: article.url,
-        })
+        await navigator.share({ title: article.displaytitle, text: article.extract, url: item.url })
         setShareSuccess(true)
         setTimeout(() => setShareSuccess(false), 2000)
-      } catch (error) {
-        if ((error as Error).name !== "AbortError") {
-          console.error("Error sharing:", error)
-          setShareError(true)
-        }
-      }
-    } else {
-      // Fallback: Copy to clipboard
-      try {
-        await navigator.clipboard.writeText(article.url)
-        setShareSuccess(true)
-        setTimeout(() => setShareSuccess(false), 2000)
-        showToast(t("common.copied"))
-      } catch (error) {
-        console.error("Error copying to clipboard:", error)
-        setShareError(true)
+        return
+      } catch (err) {
+        if ((err as Error).name === "AbortError") return
       }
     }
+    await navigator.clipboard.writeText(item.url)
+    showToast(t("common.copied"))
+    setShareSuccess(true)
+    setTimeout(() => setShareSuccess(false), 2000)
   }
 
+  const mins = readMinutes(article.extract || "")
+
   return (
-    <div
-      className="wiki-card hover:shadow-lg transition-shadow duration-300 inline-grid"
-      style={{
-        gridTemplateRows: "auto 1fr",
-      }}
-    >
+    <div className="wiki-card inline-grid" style={{ gridTemplateRows: "auto 1fr" }}>
+      {/* ── Hero ── */}
       <div className="wiki-card-image">
-        <a
-          href={article.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full h-full cursor-pointer group"
-          aria-label={`Read more about ${article.displaytitle}`}
-          title={`Read more about ${article.displaytitle}`}
-        >
-          {article.thumbnail ? (
+        {article.thumbnail ? (
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block absolute inset-0"
+            aria-label={`Read about ${article.displaytitle}`}
+          >
             <img
               src={article.thumbnail.source}
               alt={article.displaytitle}
-              className={`${
-                isImageLoaded ? "opacity-100" : "opacity-0"
-              } transition-opacity duration-300 w-full h-full object-cover transition-transform duration-300`}
+              className={`${isImageLoaded ? "opacity-100" : "opacity-0"} transition-opacity duration-300 w-full h-full object-cover`}
               width={article.thumbnail.width}
               height={article.thumbnail.height}
               loading={priority ? "eager" : "lazy"}
               onLoad={() => setIsImageLoaded(true)}
-              onError={(e) => {
-                console.error("Image failed to load:", e)
-                setIsImageLoaded(true)
-              }}
+              onError={() => setIsImageLoaded(true)}
               decoding="async"
             />
-          ) : (
-            <div className="bg-gray-200 h-full w-full group-hover:bg-gray-300 transition-colors duration-300" />
-          )}
-        </a>
-        <div className="absolute top-4 right-4 flex gap-2 z-10">
-          <button
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              toggleLike(article)
-            }}
-            className={`w-10 h-10 glass-button flex items-center justify-center ${
-              isLiked(article.pageid) ? "text-red-500 liked" : "text-white hover:text-red-500"
-            }`}
-            aria-label={t("common.like")}
-            title={t("common.like")}
+          </a>
+        ) : (
+          /* Fallback hero */
+          <div
+            className="absolute inset-0 card-hero-text"
+            style={{ background: "#eef2ff" }}
           >
-            <Heart className="w-5 h-5" fill={isLiked(article.pageid) ? "currentColor" : "none"} />
-          </button>
-          <button
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              handleShare()
-            }}
-            className={`w-10 h-10 glass-button flex items-center justify-center text-white hover:text-blue-500 ${
-              shareError ? "text-red-500" : ""
-            } ${shareSuccess ? "share-active" : ""}`}
-            aria-label={t("common.share")}
-            title={t("common.share")}
-          >
-            <Share2 className="w-5 h-5" />
-          </button>
-        </div>
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="absolute inset-0 z-0"
+              aria-label={`Read about ${article.displaytitle}`}
+            />
+            <span className="card-hero-label">From the encyclopedia</span>
+            <BookOpen
+              className="card-hero-watermark"
+              style={{ width: 96, height: 96, color: "#6366f1" }}
+            />
+            <span className="card-hero-tagline">"{article.displaytitle}"</span>
+          </div>
+        )}
       </div>
+
+      {/* ── Content ── */}
       <div className="wiki-card-content">
-        <h3 className="wiki-card-title hover:text-blue-500 transition-colors duration-300">
-          <a href={article.url} target="_blank" rel="noopener noreferrer">
+        {/* Source badge */}
+        <div className="source-badge">
+          <span className="source-badge-dot" style={{ backgroundColor: "#3b82f6" }} />
+          Wikipedia
+        </div>
+
+        {/* Title */}
+        <h3 className="wiki-card-title">
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-blue-500 transition-colors duration-200"
+          >
             {article.displaytitle}
           </a>
         </h3>
+
+        {/* Excerpt */}
         <p className="wiki-card-excerpt">{article.extract}</p>
+
+        {/* Footer */}
+        <div className="card-footer-row">
+          <Clock style={{ width: 12, height: 12 }} />
+          <span>{mins} min read</span>
+          {/* Hover-only actions */}
+          <div className="card-action-buttons">
+            <button
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleLike(item) }}
+              className={`card-action-btn ${liked ? "liked" : ""}`}
+              aria-label={t("common.like")}
+            >
+              <Heart style={{ width: 14, height: 14 }} fill={liked ? "currentColor" : "none"} />
+            </button>
+            <button
+              onClick={handleShare}
+              className={`card-action-btn ${shareSuccess ? "share-active" : ""}`}
+              aria-label={t("common.share")}
+            >
+              <Share2 style={{ width: 13, height: 13 }} />
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
