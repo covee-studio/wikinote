@@ -1,0 +1,59 @@
+// SourceAdapter — the contract every data source must satisfy.
+// Adding a new source = implement this interface + register in registry.ts.
+// No other file needs to change.
+
+import type { ReactNode } from "react"
+import type { DiscoveryItem, SourceId } from "../types/DiscoveryItem"
+import type { Language } from "../types/ArticleProps"
+
+export interface FetchConfig {
+  language?: Language
+  /** Per-source user settings (API keys, endpoints, etc.) stored in SourcesContext */
+  sourceConfig?: Record<string, string>
+}
+
+export interface CardRenderProps {
+  priority?: boolean
+}
+
+// Returned by getLikePreview — LikesModal uses this for its shared layout.
+// The adapter provides data; LikesModal owns the surrounding chrome (remove
+// button, border, etc.) so the layout stays consistent across sources.
+export interface LikePreview {
+  thumbnailNode: ReactNode
+  descriptionText: string
+  titleHoverClass: string
+}
+
+export interface SourceConfigField {
+  key: string
+  label: string
+  placeholder: string
+  secret?: boolean
+  hint?: string
+}
+
+export interface SourceAdapter {
+  readonly id: SourceId
+  readonly label: string
+  readonly description: string
+  /** Hex accent colour used for indicator dots and UI highlights */
+  readonly color: string
+  /** Optional per-source user-configurable fields (e.g. API key, endpoint).
+   *  When present, the SourcesModal renders input fields for these. */
+  readonly configSchema?: SourceConfigField[]
+  /** If true, source requires config before it can return data.
+   *  These sources are excluded from the default-enabled set. */
+  readonly requiresConfig?: boolean
+
+  /** Fetch a batch of items for the feed */
+  fetch(config?: FetchConfig): Promise<DiscoveryItem[]>
+  /** Render the full feed card for this item */
+  renderCard(item: DiscoveryItem, props: CardRenderProps): ReactNode
+  /** Provide display data for the Likes modal entry */
+  getLikePreview(item: DiscoveryItem): LikePreview
+  /** Return text used for search filtering in LikesModal */
+  getSearchText(item: DiscoveryItem): string
+  /** Return a plain object for JSON export */
+  getExportData(item: DiscoveryItem): Record<string, unknown>
+}
