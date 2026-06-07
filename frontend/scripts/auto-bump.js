@@ -114,7 +114,7 @@ function main() {
     existing = '# Changelog\n\nAll notable changes to this project will be documented in this file.\n';
   }
   const updated = existing.startsWith('# Changelog')
-    ? existing + entry
+    ? existing.replace(/^(# Changelog[^\n]*\n(\n[^\n]*\n)?)/, `$1${entry}\n`)
     : `# Changelog\n\n${entry}\n${existing}`;
   writeFileSync(changelogPath, updated.trim() + '\n', 'utf8');
 
