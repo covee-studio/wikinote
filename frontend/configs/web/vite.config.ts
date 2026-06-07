@@ -50,4 +50,9 @@ export default defineConfig({
   },
   // Use the same static assets source as dev/extension
   publicDir: resolve(__dirname, "../../public"),
+  server: {
+    host: "0.0.0.0",
+    port: 5000,
+    allowedHosts: true,
+  },
 }); 
