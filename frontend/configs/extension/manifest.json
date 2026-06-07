@@ -1,10 +1,14 @@
 {
   "manifest_version": 3,
   "name": "Wikinote",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Discover random Wikipedia articles on every new tab",
   "permissions": ["storage", "unlimitedStorage"],
-  "host_permissions": ["https://*.wikipedia.org/*"],
+  "host_permissions": [
+    "https://*.wikipedia.org/*",
+    "https://hacker-news.firebaseio.com/*",
+    "https://*/*"
+  ],
   "chrome_url_overrides": {
     "newtab": "newtab.html"
   },
@@ -24,6 +28,6 @@
     }
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://*.wikipedia.org https://en.wikipedia.org https://upload.wikimedia.org; img-src 'self' data: https://*; style-src 'self' 'unsafe-inline' data:;"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://*.wikipedia.org https://en.wikipedia.org https://upload.wikimedia.org https://hacker-news.firebaseio.com https:; img-src 'self' data: https://*; style-src 'self' 'unsafe-inline' data:;"
   }
 }
