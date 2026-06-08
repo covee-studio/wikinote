@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "magic_patterns": {
+      "enabled": true
+    }
+  }
+}
