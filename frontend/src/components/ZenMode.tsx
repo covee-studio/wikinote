@@ -1,212 +1,280 @@
-import { BookOpen, ChevronLeft, ChevronRight, Clock, Flame, Heart, MessageSquare, NotebookPen, Share2, X } from "lucide-react"
-import { useEffect, useState } from "react"
-import { useLikedArticles } from "../contexts/LikedArticlesContext"
-import { useToast } from "../contexts/ToastContext"
-import { useI18n } from "../hooks/useI18n"
-import type { HNArticleRaw } from "../sources/hackernews"
-import type { MemoRaw } from "../sources/memos"
-import type { WikiArticleRaw } from "../sources/wikipedia"
-import type { DiscoveryItem } from "../types/DiscoveryItem"
-import { ZenWave } from "./ZenWave"
-import { formatRelativeTime, getDomain } from "./TextCard"
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { motion, AnimatePresence } from 'motion/react'
+import {
+  ChevronLeftIcon, ChevronRightIcon,
+  HeartIcon, Share2Icon,
+  LayersIcon, PaletteIcon, InfoIcon,
+  CheckIcon, ClockIcon, MessageSquareIcon, CalendarIcon,
+} from 'lucide-react'
+import { useLikedArticles } from '../contexts/LikedArticlesContext'
+import { useToast } from '../contexts/ToastContext'
+import { useI18n } from '../hooks/useI18n'
+import type { HNArticleRaw } from '../sources/hackernews'
+import type { MemoRaw } from '../sources/memos'
+import type { WikiArticleRaw } from '../sources/wikipedia'
+import type { DiscoveryItem } from '../types/DiscoveryItem'
+import { ZEN_THEMES } from '../utils/zenThemes'
+import { AboutModal } from './AboutModal'
+import { LikesModal } from './LikesModal'
+import { SourcesModal } from './SourcesModal'
+import { getDomain, formatRelativeTime } from './TextCard'
 
 interface ZenModeProps {
   isOpen: boolean
   items: DiscoveryItem[]
   initialIndex: number
   onClose: () => void
+  onNearEnd?: () => void
 }
 
-function readMinutes(text: string): number {
-  return Math.max(1, Math.ceil(text.split(/\s+/).filter(Boolean).length / 200))
+const SOURCE_TOKENS = {
+  wikipedia:  { label: 'Wikipedia',    accent: '#5e7a96', accentText: '#4a6480' },
+  hackernews: { label: 'Hacker News',  accent: '#b3764e', accentText: '#9c603a' },
+  memos:      { label: 'Memos',        accent: '#867b9a', accentText: '#6e6383' },
+} as const
+
+function primarySize(len: number): string {
+  if (len <= 36)  return 'clamp(30px, 4.2vw, 48px)'
+  if (len <= 90)  return 'clamp(25px, 3vw, 38px)'
+  if (len <= 160) return 'clamp(22px, 2.4vw, 31px)'
+  return 'clamp(19px, 2vw, 26px)'
 }
 
 function formatDate(isoString: string): string {
   try {
-    const d = new Date(isoString)
-    return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-  } catch { return "" }
+    return new Date(isoString).toLocaleDateString('en-US', {
+      month: 'long', day: 'numeric', year: 'numeric',
+    })
+  } catch { return '' }
 }
 
-// ─── Per-source Zen content ───────────────────────────────────
-function WikipediaZenContent({ item }: { item: DiscoveryItem }) {
-  const article = item.raw as WikiArticleRaw
-  const mins = readMinutes(article.extract || "")
-  return (
-    <div className="flex flex-col items-center text-center max-w-xl mx-auto w-full px-6">
-      {/* Circular image avatar */}
-      {article.thumbnail && (
-        <img
-          src={article.thumbnail.source}
-          alt={article.displaytitle}
-          className="w-24 h-24 rounded-full object-cover mb-5 shadow-md"
-        />
-      )}
-      {/* Source badge */}
-      <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-3">
-        <BookOpen style={{ width: 10, height: 10 }} />
-        Wikipedia
-      </span>
-      <div className="w-8 h-px bg-slate-300 mb-5" />
-      {/* Title */}
-      <h2 className="text-3xl font-semibold text-slate-800 leading-tight mb-4" style={{ fontFamily: "Georgia, serif" }}>
-        <a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:text-blue-600 transition-colors">
-          {article.displaytitle}
-        </a>
-      </h2>
-      {/* Excerpt */}
-      <p className="text-slate-500 text-base leading-relaxed mb-5 line-clamp-5">
-        {article.extract}
-      </p>
-      {/* Read time */}
-      <span className="flex items-center gap-1.5 text-sm text-slate-400">
-        <Clock style={{ width: 13, height: 13 }} />
-        {mins} min read
-      </span>
-    </div>
-  )
-}
-
-function HNZenContent({ item }: { item: DiscoveryItem }) {
-  const article = item.raw as HNArticleRaw
-  const domain = getDomain(item.url)
-  const isExternal = !item.url.includes("news.ycombinator.com")
-  const displayDomain = isExternal && domain ? domain : "news.ycombinator.com"
-  const discussionUrl = `https://news.ycombinator.com/item?id=${article.id}`
-  return (
-    <div className="flex flex-col items-center text-center max-w-xl mx-auto w-full px-6">
-      {/* Source badge */}
-      <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-3">
-        <Flame style={{ width: 10, height: 10 }} />
-        Hacker News
-      </span>
-      <div className="w-8 h-px bg-slate-300 mb-4" />
-      {/* Domain */}
-      <p className="text-sm font-mono text-slate-400 mb-3">{displayDomain}</p>
-      {/* Title */}
-      <h2 className="text-2xl font-semibold text-slate-800 leading-snug mb-5" style={{ fontFamily: "Georgia, serif" }}>
-        <a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 transition-colors">
-          {item.title}
-        </a>
-      </h2>
-      {/* Meta */}
-      <div className="flex items-center gap-3 text-sm text-slate-400">
-        <a href={discussionUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-orange-400 transition-colors">
-          <MessageSquare style={{ width: 13, height: 13 }} />
-          {article.commentCount}
-        </a>
-        <span className="opacity-40">·</span>
-        <span>{article.author}</span>
-        <span className="opacity-40">·</span>
-        <span>{formatRelativeTime(article.time)}</span>
-      </div>
-    </div>
-  )
-}
-
-/** Remove lines that are purely hashtag tokens (they're shown in the footer already) */
 function stripHashtagLines(content: string): string {
   return content
-    .split("\n")
+    .split('\n')
     .filter((line) => {
-      const trimmed = line.trim()
-      if (!trimmed) return true
-      return !trimmed.split(/\s+/).every((token) => token.startsWith("#"))
+      const t = line.trim()
+      if (!t) return true
+      return !t.split(/\s+/).every((tok) => tok.startsWith('#'))
     })
-    .join("\n")
+    .join('\n')
     .trim()
 }
 
-function MemosZenContent({ item }: { item: DiscoveryItem }) {
-  const memo = item.raw as MemoRaw
-  const displayContent = stripHashtagLines(memo.content)
-  return (
-    <div className="flex flex-col items-center text-center max-w-xl mx-auto w-full px-6">
-      {/* Source badge */}
-      <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-violet-400 mb-3">
-        <NotebookPen style={{ width: 10, height: 10 }} />
-        Memos
-      </span>
-      <div className="w-8 h-px bg-slate-300 mb-6" />
-      {/* Content text — scrollable when note is long; hashtag-only lines stripped */}
-      <div
-        className="w-full max-h-[55vh] overflow-y-auto text-left px-2 mb-5"
-        style={{ scrollbarWidth: "thin", scrollbarColor: "#c4b5fd transparent" }}
-      >
-        <a href={item.url} target="_blank" rel="noopener noreferrer" className="hover:text-violet-600 transition-colors">
-          <p className="text-xl text-slate-700 leading-relaxed whitespace-pre-wrap" style={{ fontFamily: "Georgia, serif" }}>
-            {displayContent}
-          </p>
-        </a>
-      </div>
-      {/* Date + tags */}
-      <div className="flex items-center gap-2 flex-wrap justify-center text-sm text-slate-400">
-        <span>{formatDate(memo.displayTime)}</span>
-        {memo.tags.length > 0 && <span className="opacity-40">·</span>}
-        {memo.tags.slice(0, 4).map((tag) => (
-          <span key={tag} className="text-violet-400 font-medium">#{tag}</span>
-        ))}
-      </div>
+function ZenContent({ item }: { item: DiscoveryItem }) {
+  const token = SOURCE_TOKENS[item.source]
+
+  const sourceLabel = (
+    <div
+      className="inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.18em]"
+      style={{ color: token.accentText }}
+    >
+      <span aria-hidden className="w-1 h-1 rounded-full" style={{ backgroundColor: token.accent }} />
+      {token.label}
     </div>
+  )
+
+  const rule = (
+    <div
+      aria-hidden
+      className="mx-auto h-[2px] w-10 rounded-full"
+      style={{ backgroundColor: token.accent, opacity: 0.5 }}
+    />
+  )
+
+  let primary = ''
+  let secondary: string | null = null
+  let meta: React.ReactNode = null
+  let image: string | undefined
+
+  if (item.source === 'wikipedia') {
+    const raw = item.raw as WikiArticleRaw
+    primary = raw.displaytitle
+    secondary = raw.extract
+    image = raw.thumbnail?.source
+    const mins = Math.max(1, Math.ceil((raw.extract || '').split(/\s+/).filter(Boolean).length / 200))
+    meta = (
+      <span className="inline-flex items-center gap-1.5">
+        <ClockIcon className="w-3 h-3" strokeWidth={2} />
+        {mins} min read
+      </span>
+    )
+  } else if (item.source === 'hackernews') {
+    const raw = item.raw as HNArticleRaw
+    const domain = getDomain(item.url)
+    primary = item.title
+    meta = (
+      <span className="inline-flex items-center flex-wrap justify-center gap-x-2 gap-y-1">
+        {domain && <span className="font-mono text-slate-500">{domain}</span>}
+        {domain && <span className="text-slate-300">·</span>}
+        <span><span className="font-medium text-slate-600">{raw.score}</span> points</span>
+        <span className="text-slate-300">·</span>
+        <span className="inline-flex items-center gap-1">
+          <MessageSquareIcon className="w-3 h-3" strokeWidth={2} />
+          <span className="font-medium text-slate-600">{raw.commentCount}</span>
+        </span>
+        <span className="text-slate-300">·</span>
+        <span>{raw.author}</span>
+        <span className="text-slate-300">·</span>
+        <span>{formatRelativeTime(raw.time)}</span>
+      </span>
+    )
+  } else {
+    const raw = item.raw as MemoRaw
+    primary = stripHashtagLines(raw.content)
+    meta = (
+      <span className="inline-flex items-center gap-3">
+        <span className="inline-flex items-center gap-1.5">
+          <CalendarIcon className="w-3 h-3" strokeWidth={2} />
+          {formatDate(raw.displayTime)}
+        </span>
+        {raw.tags.length > 0 && (
+          <>
+            <span className="w-1 h-1 rounded-full bg-slate-300" />
+            <span className="font-mono">{raw.tags.slice(0, 4).map((t) => `#${t}`).join('  ')}</span>
+          </>
+        )}
+      </span>
+    )
+  }
+
+  return (
+    <article className="text-center flex flex-col items-center">
+      {image && (
+        <img
+          src={image}
+          alt=""
+          className="w-[120px] h-[120px] object-cover rounded-full shadow-[0_8px_28px_rgba(15,23,42,0.12)] ring-4 ring-white/60 mb-8"
+        />
+      )}
+      <div className="mb-6">{sourceLabel}</div>
+      <div className="mb-7">{rule}</div>
+      <a href={item.url} target="_blank" rel="noopener noreferrer">
+        <p
+          className="font-serif-display text-slate-900 whitespace-pre-line mx-auto max-w-[680px] hover:opacity-80 transition-opacity"
+          style={{
+            fontSize: primarySize(primary.length),
+            lineHeight: 1.5,
+            letterSpacing: '-0.005em',
+            fontWeight: item.source === 'memos' ? 400 : 500,
+          }}
+        >
+          {primary}
+        </p>
+      </a>
+      {secondary && (
+        <p
+          className="font-serif-display text-slate-500 leading-[1.75] mx-auto max-w-[600px] mt-6 line-clamp-4"
+          style={{ fontSize: 'clamp(15px, 1.3vw, 18px)' }}
+        >
+          {secondary}
+        </p>
+      )}
+      <div className="mt-9 text-[12px] text-slate-400">{meta}</div>
+    </article>
   )
 }
 
-// ─── Main ZenMode ─────────────────────────────────────────────
-export function ZenMode({ isOpen, items, initialIndex, onClose }: ZenModeProps) {
-  const [index, setIndex] = useState(initialIndex)
-  const [fadeVisible, setFadeVisible] = useState(true)
-  const [uiVisible, setUiVisible] = useState(false)
+function ChromeButton({
+  children, label, onClick, active,
+}: {
+  children: React.ReactNode
+  label: string
+  onClick: () => void
+  active?: boolean
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={label}
+      className={`w-10 h-10 inline-flex items-center justify-center rounded-full transition-colors ${
+        active
+          ? 'bg-white text-slate-900 shadow-[0_2px_8px_rgba(15,23,42,0.08)]'
+          : 'text-slate-500 hover:text-slate-900 hover:bg-white/60'
+      }`}
+    >
+      {children}
+    </button>
+  )
+}
+
+type ModalKey = 'sources' | 'likes' | 'about' | null
+
+export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: ZenModeProps) {
+  const [index, setIndex] = useState(initialIndex < 0 ? 0 : initialIndex)
+  const [themeId, setThemeId] = useState(ZEN_THEMES[0].id)
+  const [themeOpen, setThemeOpen] = useState(false)
+  const [modal, setModal] = useState<ModalKey>(null)
+  const [idle, setIdle] = useState(false)
+  const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   const { toggleLike, isLiked } = useLikedArticles()
-  const { t } = useI18n()
   const { showToast } = useToast()
+  const { t } = useI18n()
+
+  const theme = ZEN_THEMES.find((th) => th.id === themeId) ?? ZEN_THEMES[0]
+  const Backdrop = theme.Backdrop
 
   useEffect(() => {
-    if (isOpen) setIndex(initialIndex)
+    if (isOpen) setIndex(initialIndex < 0 ? 0 : initialIndex)
   }, [isOpen, initialIndex])
 
-  const navigate = (newIdx: number) => {
-    localStorage.setItem("zen_last_index", String(newIdx))
-    setFadeVisible(false)
-    setTimeout(() => {
-      setIndex(newIdx)
-      setFadeVisible(true)
-    }, 150)
-  }
+  const wakeUp = useCallback(() => {
+    setIdle(false)
+    if (idleTimer.current) clearTimeout(idleTimer.current)
+    idleTimer.current = setTimeout(() => setIdle(true), 2800)
+  }, [])
 
-  const prev = () => navigate((index - 1 + items.length) % items.length)
-  const next = () => navigate((index + 1) % items.length)
+  useEffect(() => {
+    wakeUp()
+    return () => { if (idleTimer.current) clearTimeout(idleTimer.current) }
+  }, [wakeUp])
+
+  const next = useCallback(() => {
+    const newIdx = (index + 1) % Math.max(1, items.length)
+    setIndex(newIdx)
+    wakeUp()
+    if (onNearEnd && items.length - newIdx <= 5) onNearEnd()
+  }, [index, items.length, wakeUp, onNearEnd])
+
+  const prev = useCallback(() => {
+    setIndex((i) => (i - 1 + Math.max(1, items.length)) % Math.max(1, items.length))
+    wakeUp()
+  }, [items.length, wakeUp])
 
   useEffect(() => {
     if (!isOpen) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowLeft") prev()
-      else if (e.key === "ArrowRight") next()
-      else if (e.key === "Escape") onClose()
+      if (modal || themeOpen) return
+      if (e.key === 'ArrowLeft') prev()
+      else if (e.key === 'ArrowRight') next()
+      else if (e.key === 'Escape') onClose()
     }
-    window.addEventListener("keydown", onKey)
-    return () => window.removeEventListener("keydown", onKey)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, index, items.length])
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [isOpen, modal, themeOpen, prev, next, onClose])
 
   if (!isOpen) return null
 
-  // While open but the random index hasn't been picked yet (index === -1) OR
-  // articles haven't arrived yet — render only the background so the grid
-  // underneath never flashes through even for a single frame.
+  // Loading / not-ready state — show background only to prevent flash
   if (items.length === 0 || index < 0 || index >= items.length) {
     return (
       <div
         className="fixed inset-0 z-[200]"
-        style={{ background: "#f2f1ee" }}
+        style={{ background: theme.surface }}
         role="dialog"
         aria-modal="true"
         aria-label="Zen mode loading"
-      />
+      >
+        <Backdrop />
+      </div>
     )
   }
 
   const item = items[index]
   const liked = isLiked(item)
+  const chromeVisible = !idle || themeOpen || !!modal
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -214,110 +282,193 @@ export function ZenMode({ isOpen, items, initialIndex, onClose }: ZenModeProps) 
         await navigator.share({ title: item.title, url: item.url })
         return
       } catch (err) {
-        if ((err as Error).name === "AbortError") return
+        if ((err as Error).name === 'AbortError') return
       }
     }
     await navigator.clipboard.writeText(item.url)
-    showToast(t("common.copied"))
+    showToast(t('common.copied'))
   }
-
-  const uiTransition = "opacity 0.35s ease"
 
   return (
     <div
-      className="fixed inset-0 z-[200] flex flex-col"
-      style={{ background: "#f2f1ee" }}
+      className="fixed inset-0 z-[200] overflow-hidden"
+      style={{ background: theme.surface }}
       role="dialog"
       aria-modal="true"
       aria-label="Zen mode"
-      onMouseMove={() => setUiVisible(true)}
-      onMouseLeave={() => setUiVisible(false)}
+      onMouseMove={wakeUp}
     >
-      {/* Top bar — no Zen label, just counter + close */}
-      <div className="flex items-center justify-between px-8 pt-6 pb-2 flex-shrink-0">
-        <span className="text-xs font-mono text-slate-400 tracking-widest select-none">
-          {String(index + 1).padStart(2, "0")} / {String(items.length).padStart(2, "0")}
-        </span>
+      <Backdrop />
+
+      {/* Top-left: brand + counter */}
+      <motion.div
+        animate={{ opacity: chromeVisible ? 1 : 0, y: chromeVisible ? 0 : -6 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="absolute top-0 left-0 px-8 pt-6 z-20 flex items-center gap-4"
+      >
         <button
           onClick={onClose}
-          className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors"
-          aria-label="Close Zen mode"
+          className="text-[15px] font-bold tracking-tight text-slate-700 hover:opacity-70 transition-opacity"
         >
-          <X style={{ width: 18, height: 18 }} />
+          Wikinote
         </button>
-      </div>
+        <span className="text-[11px] font-mono tabular-nums tracking-tight text-slate-400">
+          {String(index + 1).padStart(2, '0')}
+          <span className="text-slate-300 mx-1">/</span>
+          {String(items.length).padStart(2, '0')}
+        </span>
+      </motion.div>
 
-      {/* Content area — vertically centered, above the waves */}
-      <div className="flex-1 flex items-center justify-center relative">
-        {/* Left arrow — visible only on hover */}
-        <button
-          onClick={prev}
-          className="absolute left-4 w-10 h-10 rounded-full border border-slate-200 bg-white/50 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-slate-700 hover:border-slate-300 transition-all z-10"
-          style={{ opacity: uiVisible ? 1 : 0, transition: uiTransition, pointerEvents: uiVisible ? "auto" : "none" }}
-          aria-label="Previous"
-        >
-          <ChevronLeft style={{ width: 18, height: 18 }} />
-        </button>
+      {/* Top-right: icon buttons + theme picker */}
+      <motion.div
+        animate={{ opacity: chromeVisible ? 1 : 0, y: chromeVisible ? 0 : -6 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="absolute top-0 right-0 px-7 pt-5 z-30 flex items-center gap-1"
+      >
+        <ChromeButton label="About" onClick={() => setModal('about')}>
+          <InfoIcon className="w-[18px] h-[18px]" strokeWidth={2} />
+        </ChromeButton>
+        <ChromeButton label="Sources" onClick={() => setModal('sources')}>
+          <LayersIcon className="w-[18px] h-[18px]" strokeWidth={2} />
+        </ChromeButton>
+        <ChromeButton label="Liked" onClick={() => setModal('likes')}>
+          <HeartIcon className="w-[18px] h-[18px]" strokeWidth={2} />
+        </ChromeButton>
 
-        {/* Content with crossfade */}
-        <div
-          style={{
-            opacity: fadeVisible ? 1 : 0,
-            transition: "opacity 0.15s ease",
-            width: "100%",
-          }}
-        >
-          {item.source === "wikipedia" && <WikipediaZenContent item={item} />}
-          {item.source === "hackernews" && <HNZenContent item={item} />}
-          {item.source === "memos" && <MemosZenContent item={item} />}
+        {/* Theme picker */}
+        <div className="relative">
+          <ChromeButton
+            label="Appearance"
+            active={themeOpen}
+            onClick={() => setThemeOpen((v) => !v)}
+          >
+            <PaletteIcon className="w-[18px] h-[18px]" strokeWidth={2} />
+          </ChromeButton>
+          <AnimatePresence>
+            {themeOpen && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setThemeOpen(false)} aria-hidden />
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+                  className="absolute right-0 mt-2 w-[260px] z-20 rounded-2xl bg-white/90 backdrop-blur-xl border border-white/70 shadow-[0_16px_48px_rgba(15,23,42,0.16)] p-3"
+                >
+                  <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400 px-1 pb-2">
+                    Appearance
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {ZEN_THEMES.map((th) => {
+                      const sel = th.id === themeId
+                      return (
+                        <button
+                          key={th.id}
+                          type="button"
+                          onClick={() => { setThemeId(th.id); setThemeOpen(false) }}
+                          className="group flex flex-col items-center gap-1.5"
+                          aria-pressed={sel}
+                        >
+                          <span
+                            className="relative w-full h-12 rounded-lg overflow-hidden border transition-all"
+                            style={{
+                              background: th.swatch,
+                              backgroundSize: th.id === 'constellation' ? '10px 10px' : 'cover',
+                              borderColor: sel ? '#334155' : 'rgba(226,232,240,0.9)',
+                              boxShadow: sel ? '0 0 0 1.5px #334155' : 'none',
+                            }}
+                          >
+                            {sel && (
+                              <span className="absolute top-1 right-1 w-4 h-4 rounded-full bg-slate-800 text-white inline-flex items-center justify-center">
+                                <CheckIcon className="w-2.5 h-2.5" strokeWidth={3} />
+                              </span>
+                            )}
+                          </span>
+                          <span className={`text-[11px] ${sel ? 'text-slate-900 font-medium' : 'text-slate-500'}`}>
+                            {th.name}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
+      </motion.div>
 
-        {/* Right arrow — visible only on hover */}
-        <button
-          onClick={next}
-          className="absolute right-4 w-10 h-10 rounded-full border border-slate-200 bg-white/50 backdrop-blur-sm flex items-center justify-center text-slate-400 hover:text-slate-700 hover:border-slate-300 transition-all z-10"
-          style={{ opacity: uiVisible ? 1 : 0, transition: uiTransition, pointerEvents: uiVisible ? "auto" : "none" }}
-          aria-label="Next"
-        >
-          <ChevronRight style={{ width: 18, height: 18 }} />
-        </button>
+      {/* Center content */}
+      <div className="absolute inset-0 flex items-center justify-center px-8 pt-16 pb-32">
+        <div className="w-full max-w-[820px] relative">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <ZenContent item={item} />
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </div>
 
-      {/* Bottom: waves + ghost action pill */}
-      <div className="relative flex-shrink-0">
-        {/* Subtle ghost pill — appears on hover, very low-key */}
-        <div
-          className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 flex items-center gap-0.5 px-2 py-1.5 rounded-full"
-          style={{
-            background: "rgba(255,255,255,0.28)",
-            backdropFilter: "blur(12px)",
-            border: "1px solid rgba(255,255,255,0.4)",
-            opacity: uiVisible ? 1 : 0,
-            transition: uiTransition,
-            pointerEvents: uiVisible ? "auto" : "none",
-          }}
-        >
+      {/* Left / right navigation */}
+      <motion.button
+        type="button"
+        onClick={prev}
+        aria-label="Previous"
+        animate={{ opacity: chromeVisible ? 1 : 0, x: chromeVisible ? 0 : -8 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="absolute left-6 md:left-10 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-slate-500 hover:bg-white hover:text-slate-900 hover:scale-105 transition-all inline-flex items-center justify-center shadow-[0_4px_16px_rgba(15,23,42,0.06)] z-20"
+      >
+        <ChevronLeftIcon className="w-5 h-5" strokeWidth={2} />
+      </motion.button>
+      <motion.button
+        type="button"
+        onClick={next}
+        aria-label="Next"
+        animate={{ opacity: chromeVisible ? 1 : 0, x: chromeVisible ? 0 : 8 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="absolute right-6 md:right-10 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full bg-white/40 backdrop-blur-md border border-white/60 text-slate-500 hover:bg-white hover:text-slate-900 hover:scale-105 transition-all inline-flex items-center justify-center shadow-[0_4px_16px_rgba(15,23,42,0.06)] z-20"
+      >
+        <ChevronRightIcon className="w-5 h-5" strokeWidth={2} />
+      </motion.button>
+
+      {/* Bottom: like + share pill */}
+      <motion.div
+        animate={{ opacity: chromeVisible ? 1 : 0, y: chromeVisible ? 0 : 8 }}
+        transition={{ duration: 0.4, ease: 'easeOut' }}
+        className="absolute bottom-0 inset-x-0 pb-7 flex justify-center z-20"
+      >
+        <div className="inline-flex items-center gap-1 px-2 py-1.5 rounded-full bg-white/60 backdrop-blur-md border border-white/70 shadow-[0_4px_16px_rgba(15,23,42,0.06)]">
           <button
+            type="button"
             onClick={() => toggleLike(item)}
-            className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
-              liked ? "text-red-400" : "text-slate-400/70 hover:text-red-400"
-            }`}
-            aria-label={t("common.like")}
+            aria-label={liked ? 'Unlike' : 'Like'}
+            aria-pressed={liked}
+            className="w-9 h-9 inline-flex items-center justify-center rounded-full text-slate-500 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+            style={liked ? { color: '#f43f5e' } : undefined}
           >
-            <Heart style={{ width: 15, height: 15 }} fill={liked ? "currentColor" : "none"} />
+            <HeartIcon className="w-[15px] h-[15px]" strokeWidth={2} fill={liked ? 'currentColor' : 'none'} />
           </button>
-          <div className="w-px h-4 bg-slate-300/50" />
+          <span className="w-px h-4 bg-slate-200" />
           <button
+            type="button"
             onClick={handleShare}
-            className="w-8 h-8 rounded-full flex items-center justify-center text-slate-400/70 hover:text-blue-400 transition-colors"
-            aria-label={t("common.share")}
+            aria-label={t('common.share')}
+            className="w-9 h-9 inline-flex items-center justify-center rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-colors"
           >
-            <Share2 style={{ width: 14, height: 14 }} />
+            <Share2Icon className="w-[15px] h-[15px]" strokeWidth={2} />
           </button>
         </div>
+      </motion.div>
 
-        <ZenWave />
-      </div>
+      <AboutModal isOpen={modal === 'about'} onClose={() => setModal(null)} />
+      <SourcesModal isOpen={modal === 'sources'} onClose={() => setModal(null)} />
+      <LikesModal isOpen={modal === 'likes'} onClose={() => setModal(null)} />
     </div>
   )
 }

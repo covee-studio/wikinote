@@ -1,9 +1,28 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 html, body {
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   overscroll-behavior-y: contain;
   overflow: visible;
 }
+
+.font-serif-display {
+  font-family: 'Source Serif 4', 'Iowan Old Style', 'Apple Garamond', Georgia, 'Songti SC', 'STSong', serif;
+  font-feature-settings: 'liga', 'kern';
+}
+
+@keyframes zen-wave-drift {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes zen-wave-bob {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
 
 .hide-scroll::-webkit-scrollbar {
   display: none;
