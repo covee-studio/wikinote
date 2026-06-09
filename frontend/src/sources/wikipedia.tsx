@@ -2,8 +2,9 @@ import type { Language } from "../types/ArticleProps"
 import type { DiscoveryItem } from "../types/DiscoveryItem"
 import { isSafeArticle } from "../utils/contentSafety"
 import { fetchWithCORS } from "../utils/environment"
-import type { CardRenderProps, FetchConfig, LikePreview, SourceAdapter } from "./adapter"
+import type { CardRenderProps, FetchConfig, LikePreview, SourceAdapter, ZenContentData } from "./adapter"
 import { WikiCard } from "../components/WikiCard"
+import { Clock as ClockIcon } from "lucide-react"
 
 // ─── Raw API shape — internal to this adapter ─────────────────
 // Only this adapter and WikiCard (via cast) ever read these fields.
@@ -127,6 +128,25 @@ export const wikipediaAdapter: SourceAdapter = {
       source: "wikipedia",
       extract: raw.extract,
       thumbnail: raw.thumbnail?.source ?? null,
+    }
+  },
+
+  getZenContent(item: DiscoveryItem): ZenContentData {
+    const raw = item.raw as WikiArticleRaw
+    const mins = Math.max(1, Math.ceil((raw.extract || '').split(/\s+/).filter(Boolean).length / 200))
+    return {
+      primary: raw.displaytitle,
+      secondary: raw.extract,
+      imageUrl: raw.thumbnail?.source,
+      metaNode: (
+        <span className="inline-flex items-center gap-1.5">
+          <ClockIcon className="w-3 h-3" strokeWidth={2} />
+          {mins} min read
+        </span>
+      ),
+      accent: '#5e7a96',
+      accentText: '#4a6480',
+      sourceLabel: 'Wikipedia',
     }
   },
 }

@@ -25,6 +25,28 @@ export interface LikePreview {
   titleHoverClass: string
 }
 
+// Returned by getZenContent — ZenMode uses this for its shared layout.
+// The adapter provides all source-specific data; ZenMode owns the surrounding
+// chrome (navigation, theme, idle fade) so the layout stays consistent.
+export interface ZenContentData {
+  /** Main display text: article title, headline, or full note */
+  primary: string
+  /** Optional secondary text shown below the title (e.g. article extract) */
+  secondary?: string
+  /** Optional hero image URL */
+  imageUrl?: string
+  /** Metadata row (read time, score, tags, etc.) rendered as a ReactNode */
+  metaNode: ReactNode
+  /** Font weight for primary text; defaults to 500 */
+  primaryWeight?: number
+  /** Muted accent colour for the source indicator dot and horizontal rule */
+  accent: string
+  /** Text colour for the source label above the rule */
+  accentText: string
+  /** Human-readable source name shown above the rule */
+  sourceLabel: string
+}
+
 export interface SourceConfigField {
   key: string
   label: string
@@ -52,6 +74,8 @@ export interface SourceAdapter {
   renderCard(item: DiscoveryItem, props: CardRenderProps): ReactNode
   /** Provide display data for the Likes modal entry */
   getLikePreview(item: DiscoveryItem): LikePreview
+  /** Provide content data for the Zen mode reading view */
+  getZenContent(item: DiscoveryItem): ZenContentData
   /** Return text used for search filtering in LikesModal */
   getSearchText(item: DiscoveryItem): string
   /** Return a plain object for JSON export */

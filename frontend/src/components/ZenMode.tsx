@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon, Clock as ClockIcon, MessageSquare as MessageSquareIcon, Calendar as CalendarIcon } from 'lucide-react'
+import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon } from 'lucide-react'
 import { useLikedArticles } from '../contexts/LikedArticlesContext'
 import { useToast } from '../contexts/ToastContext'
 import { useI18n } from '../hooks/useI18n'
-import type { HNArticleRaw } from '../sources/hackernews'
-import type { MemoRaw } from '../sources/memos'
-import type { WikiArticleRaw } from '../sources/wikipedia'
+import { getAdapter } from '../sources/registry'
 import type { DiscoveryItem } from '../types/DiscoveryItem'
 import { ZEN_THEMES } from '../utils/zenThemes'
 import { AboutModal } from './AboutModal'
 import { LikesModal } from './LikesModal'
 import { SourcesModal } from './SourcesModal'
-import { getDomain, formatRelativeTime } from './TextCard'
 
 interface ZenModeProps {
   isOpen: boolean
@@ -22,12 +19,6 @@ interface ZenModeProps {
   onNearEnd?: () => void
 }
 
-const SOURCE_TOKENS = {
-  wikipedia:  { label: 'Wikipedia',    accent: '#5e7a96', accentText: '#4a6480' },
-  hackernews: { label: 'Hacker News',  accent: '#b3764e', accentText: '#9c603a' },
-  memos:      { label: 'Memos',        accent: '#867b9a', accentText: '#6e6383' },
-} as const
-
 function primarySize(len: number): string {
   if (len <= 36)  return 'clamp(30px, 4.2vw, 48px)'
   if (len <= 90)  return 'clamp(25px, 3vw, 38px)'
@@ -35,114 +26,33 @@ function primarySize(len: number): string {
   return 'clamp(19px, 2vw, 26px)'
 }
 
-function formatDate(isoString: string): string {
-  try {
-    return new Date(isoString).toLocaleDateString('en-US', {
-      month: 'long', day: 'numeric', year: 'numeric',
-    })
-  } catch { return '' }
-}
-
-function stripHashtagLines(content: string): string {
-  return content
-    .split('\n')
-    .filter((line) => {
-      const t = line.trim()
-      if (!t) return true
-      return !t.split(/\s+/).every((tok) => tok.startsWith('#'))
-    })
-    .join('\n')
-    .trim()
-}
-
 function ZenContent({ item }: { item: DiscoveryItem }) {
-  const token = SOURCE_TOKENS[item.source]
-
-  const sourceLabel = (
-    <div
-      className="inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.18em]"
-      style={{ color: token.accentText }}
-    >
-      <span aria-hidden className="w-1 h-1 rounded-full" style={{ backgroundColor: token.accent }} />
-      {token.label}
-    </div>
-  )
-
-  const rule = (
-    <div
-      aria-hidden
-      className="mx-auto h-[2px] w-10 rounded-full"
-      style={{ backgroundColor: token.accent, opacity: 0.5 }}
-    />
-  )
-
-  let primary = ''
-  let secondary: string | null = null
-  let meta: React.ReactNode = null
-  let image: string | undefined
-
-  if (item.source === 'wikipedia') {
-    const raw = item.raw as WikiArticleRaw
-    primary = raw.displaytitle
-    secondary = raw.extract
-    image = raw.thumbnail?.source
-    const mins = Math.max(1, Math.ceil((raw.extract || '').split(/\s+/).filter(Boolean).length / 200))
-    meta = (
-      <span className="inline-flex items-center gap-1.5">
-        <ClockIcon className="w-3 h-3" strokeWidth={2} />
-        {mins} min read
-      </span>
-    )
-  } else if (item.source === 'hackernews') {
-    const raw = item.raw as HNArticleRaw
-    const domain = getDomain(item.url)
-    primary = item.title
-    meta = (
-      <span className="inline-flex items-center flex-wrap justify-center gap-x-2 gap-y-1">
-        {domain && <span className="font-mono text-slate-500">{domain}</span>}
-        {domain && <span className="text-slate-300">·</span>}
-        <span><span className="font-medium text-slate-600">{raw.score}</span> points</span>
-        <span className="text-slate-300">·</span>
-        <span className="inline-flex items-center gap-1">
-          <MessageSquareIcon className="w-3 h-3" strokeWidth={2} />
-          <span className="font-medium text-slate-600">{raw.commentCount}</span>
-        </span>
-        <span className="text-slate-300">·</span>
-        <span>{raw.author}</span>
-        <span className="text-slate-300">·</span>
-        <span>{formatRelativeTime(raw.time)}</span>
-      </span>
-    )
-  } else {
-    const raw = item.raw as MemoRaw
-    primary = stripHashtagLines(raw.content)
-    meta = (
-      <span className="inline-flex items-center gap-3">
-        <span className="inline-flex items-center gap-1.5">
-          <CalendarIcon className="w-3 h-3" strokeWidth={2} />
-          {formatDate(raw.displayTime)}
-        </span>
-        {raw.tags.length > 0 && (
-          <>
-            <span className="w-1 h-1 rounded-full bg-slate-300" />
-            <span className="font-mono">{raw.tags.slice(0, 4).map((t) => `#${t}`).join('  ')}</span>
-          </>
-        )}
-      </span>
-    )
-  }
+  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, accent, accentText, sourceLabel } =
+    getAdapter(item.source).getZenContent(item)
 
   return (
     <article className="text-center flex flex-col items-center">
-      {image && (
+      {imageUrl && (
         <img
-          src={image}
+          src={imageUrl}
           alt=""
           className="w-[120px] h-[120px] object-cover rounded-full shadow-[0_8px_28px_rgba(15,23,42,0.12)] ring-4 ring-white/60 mb-8"
         />
       )}
-      <div className="mb-6">{sourceLabel}</div>
-      <div className="mb-7">{rule}</div>
+      <div className="mb-6">
+        <div
+          className="inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.18em]"
+          style={{ color: accentText }}
+        >
+          <span aria-hidden className="w-1 h-1 rounded-full" style={{ backgroundColor: accent }} />
+          {sourceLabel}
+        </div>
+      </div>
+      <div
+        aria-hidden
+        className="mx-auto mb-7 h-[2px] w-10 rounded-full"
+        style={{ backgroundColor: accent, opacity: 0.5 }}
+      />
       <a href={item.url} target="_blank" rel="noopener noreferrer">
         <p
           className="font-serif-display text-slate-900 whitespace-pre-line mx-auto max-w-[680px] hover:opacity-80 transition-opacity"
@@ -150,7 +60,7 @@ function ZenContent({ item }: { item: DiscoveryItem }) {
             fontSize: primarySize(primary.length),
             lineHeight: 1.5,
             letterSpacing: '-0.005em',
-            fontWeight: item.source === 'memos' ? 400 : 500,
+            fontWeight: primaryWeight,
           }}
         >
           {primary}
@@ -164,7 +74,7 @@ function ZenContent({ item }: { item: DiscoveryItem }) {
           {secondary}
         </p>
       )}
-      <div className="mt-9 text-[12px] text-slate-400">{meta}</div>
+      <div className="mt-9 text-[12px] text-slate-400">{metaNode}</div>
     </article>
   )
 }
