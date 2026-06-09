@@ -1,11 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import {
-  ChevronLeftIcon, ChevronRightIcon,
-  HeartIcon, Share2Icon,
-  LayersIcon, PaletteIcon, InfoIcon,
-  CheckIcon, ClockIcon, MessageSquareIcon, CalendarIcon,
-} from 'lucide-react'
+import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon, Clock as ClockIcon, MessageSquare as MessageSquareIcon, Calendar as CalendarIcon } from 'lucide-react'
 import { useLikedArticles } from '../contexts/LikedArticlesContext'
 import { useToast } from '../contexts/ToastContext'
 import { useI18n } from '../hooks/useI18n'
@@ -257,17 +252,29 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
 
   if (!isOpen) return null
 
-  // Loading / not-ready state — show background only to prevent flash
+  // Loading / not-ready state
   if (items.length === 0 || index < 0 || index >= items.length) {
     return (
       <div
-        className="fixed inset-0 z-[200]"
+        className="fixed inset-0 z-[200] flex items-center justify-center"
         style={{ background: theme.surface }}
         role="dialog"
         aria-modal="true"
         aria-label="Zen mode loading"
       >
         <Backdrop />
+        <div className="relative z-10 flex flex-col items-center gap-4">
+          <span className="text-[15px] font-bold tracking-tight text-slate-600">Wikinote</span>
+          <div className="flex gap-1.5">
+            {[0, 1, 2].map((i) => (
+              <span
+                key={i}
+                className="w-1.5 h-1.5 rounded-full bg-slate-400/60"
+                style={{ animation: `zen-dot-pulse 1.2s ease-in-out ${i * 0.2}s infinite` }}
+              />
+            ))}
+          </div>
+        </div>
       </div>
     )
   }
