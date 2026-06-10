@@ -1,6 +1,7 @@
 import type { DiscoveryItem } from "../types/DiscoveryItem"
 import type { CardRenderProps, LikePreview, SourceAdapter, ZenContentData } from "./adapter"
-import { TextCard, formatRelativeTime } from "../components/TextCard"
+import { TextCard } from "../components/TextCard"
+import { getDomain, formatRelativeTime } from "../utils/formatting"
 import { MessageSquare as MessageSquareIcon } from "lucide-react"
 
 // ─── Raw API shape — internal to this adapter ─────────────────
@@ -37,10 +38,6 @@ function pickRandom<T>(arr: T[], count: number): T[] {
     ;[copy[i], copy[j]] = [copy[j], copy[i]]
   }
   return copy.slice(0, count)
-}
-
-function getDomain(url: string): string {
-  try { return new URL(url).hostname.replace(/^www\./, "") } catch { return "" }
 }
 
 function stringToHue(str: string): number {

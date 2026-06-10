@@ -2,6 +2,7 @@ import type { DiscoveryItem } from "../types/DiscoveryItem"
 import type { CardRenderProps, FetchConfig, LikePreview, SourceAdapter, ZenContentData } from "./adapter"
 import { MemoCard } from "../components/MemoCard"
 import { Calendar as CalendarIcon } from "lucide-react"
+import { formatDateLong } from "../utils/formatting"
 
 // ─── Raw shape — internal to this adapter ─────────────────────
 export interface MemoRaw {
@@ -157,14 +158,6 @@ function stripHashtagLines(content: string): string {
     .trim()
 }
 
-function formatDate(isoString: string): string {
-  try {
-    return new Date(isoString).toLocaleDateString('en-US', {
-      month: 'long', day: 'numeric', year: 'numeric',
-    })
-  } catch { return '' }
-}
-
 // ─── Gradient helpers (same as TextCard / HN) ─────────────────
 function stringToHue(str: string): number {
   let hash = 0
@@ -266,7 +259,7 @@ export const memosAdapter: SourceAdapter = {
         <span className="inline-flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5">
             <CalendarIcon className="w-3 h-3" strokeWidth={2} />
-            {formatDate(raw.displayTime)}
+            {formatDateLong(raw.displayTime)}
           </span>
           {raw.tags.length > 0 && (
             <>

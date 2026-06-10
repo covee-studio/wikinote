@@ -4,6 +4,7 @@ import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart
 import { useLikedArticles } from '../contexts/LikedArticlesContext'
 import { useToast } from '../contexts/ToastContext'
 import { useI18n } from '../hooks/useI18n'
+import { useFocusTrap } from '../hooks/useFocusTrap'
 import { getAdapter } from '../sources/registry'
 import type { DiscoveryItem } from '../types/DiscoveryItem'
 import { ZEN_THEMES } from '../utils/zenThemes'
@@ -113,10 +114,13 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
   const [modal, setModal] = useState<ModalKey>(null)
   const [idle, setIdle] = useState(false)
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   const { toggleLike, isLiked } = useLikedArticles()
   const { showToast } = useToast()
   const { t } = useI18n()
+
+  useFocusTrap(isOpen && !modal && !themeOpen, containerRef)
 
   const theme = ZEN_THEMES.find((th) => th.id === themeId) ?? ZEN_THEMES[0]
   const Backdrop = theme.Backdrop
@@ -135,6 +139,11 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
     wakeUp()
     return () => { if (idleTimer.current) clearTimeout(idleTimer.current) }
   }, [wakeUp])
+
+  // Keep chrome visible while a modal or theme picker is open
+  useEffect(() => {
+    if (modal) wakeUp()
+  }, [modal, wakeUp])
 
   const next = useCallback(() => {
     const newIdx = (index + 1) % Math.max(1, items.length)
@@ -208,6 +217,7 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
 
   return (
     <div
+      ref={containerRef}
       className="fixed inset-0 z-[200] overflow-hidden"
       style={{ background: theme.surface }}
       role="dialog"

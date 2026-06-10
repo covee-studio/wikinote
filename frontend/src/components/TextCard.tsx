@@ -7,21 +7,13 @@ import type { HNArticleRaw } from "../sources/hackernews"
 import "../styles/TextCard.css"
 import "../styles/WikiCard.css"
 import type { DiscoveryItem } from "../types/DiscoveryItem"
+import { formatRelativeTime, getDomain } from "../utils/formatting"
+
+export { formatRelativeTime, getDomain }
 
 interface TextCardProps {
   item: DiscoveryItem
   priority?: boolean
-}
-
-export function formatRelativeTime(timestamp: number): string {
-  const diff = Math.floor(Date.now() / 1000) - timestamp
-  if (diff < 3600) return `${Math.floor(diff / 60)}m ago`
-  if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`
-  return `${Math.floor(diff / 86400)}d ago`
-}
-
-export function getDomain(url: string): string {
-  try { return new URL(url).hostname.replace(/^www\./, "") } catch { return "" }
 }
 
 export function TextCard({ item }: TextCardProps) {

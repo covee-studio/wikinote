@@ -7,24 +7,11 @@ import type { MemoRaw } from "../sources/memos"
 import "../styles/TextCard.css"
 import "../styles/WikiCard.css"
 import type { DiscoveryItem } from "../types/DiscoveryItem"
+import { formatDateLong, formatDateShort } from "../utils/formatting"
 
 interface MemoCardProps {
   item: DiscoveryItem
   priority?: boolean
-}
-
-function formatDate(isoString: string): string {
-  try {
-    const d = new Date(isoString)
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-  } catch { return "" }
-}
-
-function formatDateLong(isoString: string): string {
-  try {
-    const d = new Date(isoString)
-    return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })
-  } catch { return "" }
 }
 
 export function MemoCard({ item, priority = false }: MemoCardProps) {
@@ -56,7 +43,7 @@ export function MemoCard({ item, priority = false }: MemoCardProps) {
     setTimeout(() => setShareSuccess(false), 2000)
   }
 
-  const dateShort = formatDate(memo.displayTime)
+  const dateShort = formatDateShort(memo.displayTime)
   const dateLong = formatDateLong(memo.displayTime)
 
   return (
