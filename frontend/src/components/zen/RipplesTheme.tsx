@@ -82,3 +82,18 @@ export function RipplesTheme() {
     </div>
   )
 }
+
+export function RipplesPreview() {
+  return (
+    <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #eef3f1 0%, #dde7e2 100%)' }}>
+      {[0, 1, 2].map((i) => (
+        <span key={i} className="absolute left-1/2 top-1/2 rounded-full border" style={{
+          width: 16 + i * 16, height: 16 + i * 16,
+          marginLeft: -(16 + i * 16) / 2, marginTop: -(16 + i * 16) / 2,
+          borderColor: `rgba(86,108,98,${0.3 - i * 0.08})`, borderWidth: 1,
+        }} />
+      ))}
+      <span className="absolute left-1/2 top-1/2 w-1.5 h-1.5 -ml-[3px] -mt-[3px] rounded-full bg-white/90 shadow-[0_0_3px_rgba(255,255,255,0.9)]" />
+    </div>
+  )
+}
