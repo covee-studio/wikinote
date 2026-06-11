@@ -31,6 +31,6 @@
     }
   },
   "content_security_policy": {
-    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://*.wikipedia.org https://en.wikipedia.org https://upload.wikimedia.org https://hacker-news.firebaseio.com https:; img-src 'self' data: https://*; style-src 'self' 'unsafe-inline' data:;"
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'; connect-src 'self' https://*.wikipedia.org https://en.wikipedia.org https://upload.wikimedia.org https://hacker-news.firebaseio.com https:; img-src 'self' data: https://*; style-src 'self' 'unsafe-inline' data: https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com;"
   }
 }

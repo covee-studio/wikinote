@@ -13,19 +13,26 @@ function WaveLayer({ d, fill, duration, bobDuration, delay = 0, bobDelay = 0 }: 
       className="absolute bottom-0 left-0"
       style={{
         width: '200%',
-        animation: `zen-wave-drift ${duration}s linear infinite, zen-wave-bob ${bobDuration}s ease-in-out infinite`,
-        animationDelay: `${delay}s, ${bobDelay}s`,
+        animation: `zen-wave-drift ${duration}s linear infinite`,
+        animationDelay: `${delay}s`,
         willChange: 'transform',
       }}
     >
-      <svg
-        viewBox="0 0 2880 360"
-        preserveAspectRatio="none"
-        className="w-full"
-        style={{ height: '40vh', minHeight: 240, display: 'block' }}
+      <div
+        style={{
+          animation: `zen-wave-bob ${bobDuration}s ease-in-out infinite`,
+          animationDelay: `${bobDelay}s`,
+        }}
       >
-        <path d={d} fill={fill} />
-      </svg>
+        <svg
+          viewBox="0 0 2880 360"
+          preserveAspectRatio="none"
+          className="w-full"
+          style={{ height: '38vh', minHeight: 220, display: 'block' }}
+        >
+          <path d={d} fill={fill} />
+        </svg>
+      </div>
     </div>
   )
 }
@@ -46,10 +53,10 @@ export function WavesTheme() {
         className="absolute -top-40 left-1/2 -translate-x-1/2 w-[900px] h-[900px] rounded-full opacity-[0.35]"
         style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 60%)' }}
       />
-      <WaveLayer d={WAVE_FAR}  fill="rgba(148,163,184,0.15)" duration={28} bobDuration={12} delay={-4}  bobDelay={-2} />
-      <WaveLayer d={WAVE_MID}  fill="rgba(120,140,130,0.16)" duration={22} bobDuration={10} delay={-9}  bobDelay={-5} />
-      <WaveLayer d={WAVE_NEAR} fill="rgba(110,130,122,0.18)" duration={16} bobDuration={8}  delay={-3}  bobDelay={-1} />
-      <WaveLayer d={WAVE_FRONT} fill="rgba(96,118,110,0.22)" duration={12} bobDuration={6.5} delay={-7} bobDelay={-3} />
+      <WaveLayer d={WAVE_FAR}   fill="rgba(148,163,184,0.15)" duration={28}  bobDuration={12}  delay={-4}  bobDelay={-2} />
+      <WaveLayer d={WAVE_MID}   fill="rgba(120,140,130,0.16)" duration={22}  bobDuration={10}  delay={-9}  bobDelay={-5} />
+      <WaveLayer d={WAVE_NEAR}  fill="rgba(110,130,122,0.18)" duration={16}  bobDuration={8}   delay={-3}  bobDelay={-1} />
+      <WaveLayer d={WAVE_FRONT} fill="rgba(96,118,110,0.22)"  duration={12}  bobDuration={6.5} delay={-7}  bobDelay={-3} />
       <div
         className="absolute inset-0 opacity-[0.04] mix-blend-multiply"
         style={{

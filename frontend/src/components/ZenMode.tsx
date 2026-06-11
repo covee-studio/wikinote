@@ -92,7 +92,10 @@ type ModalKey = 'sources' | 'likes' | 'about' | null
 
 export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: ZenModeProps) {
   const [index, setIndex] = useState(initialIndex < 0 ? 0 : initialIndex)
-  const [themeId, setThemeId] = useState(ZEN_THEMES[0].id)
+  const [themeId, setThemeId] = useState(() => {
+    const saved = localStorage.getItem('zen-theme-id')
+    return (saved && ZEN_THEMES.some((t) => t.id === saved)) ? saved : ZEN_THEMES[0].id
+  })
   const [themeOpen, setThemeOpen] = useState(false)
   const [modal, setModal] = useState<ModalKey>(null)
   const [idle, setIdle] = useState(false)
@@ -213,11 +216,6 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
         >
           Wikinote
         </button>
-        <span className="text-[11px] font-mono tabular-nums tracking-tight text-slate-400">
-          {String(index + 1).padStart(2, '0')}
-          <span className={`mx-1 ${isDark ? 'text-slate-600' : 'text-slate-300'}`}>/</span>
-          {String(items.length).padStart(2, '0')}
-        </span>
       </motion.div>
 
       {/* Top-right: icon buttons + theme picker */}
@@ -262,7 +260,7 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
                         <button
                           key={th.id}
                           type="button"
-                          onClick={() => { setThemeId(th.id); setThemeOpen(false) }}
+                          onClick={() => { setThemeId(th.id); localStorage.setItem('zen-theme-id', th.id); setThemeOpen(false) }}
                           className="group flex flex-col items-center gap-1.5"
                           aria-pressed={sel}
                         >
