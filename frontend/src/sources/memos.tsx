@@ -272,6 +272,7 @@ export const memosAdapter: SourceAdapter = {
       accent: '#867b9a',
       accentText: '#6e6383',
       sourceLabel: 'Memos',
+      noLink: true,
     }
   },
 }

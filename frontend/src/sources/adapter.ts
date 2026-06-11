@@ -45,6 +45,8 @@ export interface ZenContentData {
   accentText: string
   /** Human-readable source name shown above the rule */
   sourceLabel: string
+  /** When true, no external link is rendered (e.g. Memos, where URLs are private/invalid) */
+  noLink?: boolean
 }
 
 export interface SourceConfigField {

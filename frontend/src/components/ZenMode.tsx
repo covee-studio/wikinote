@@ -28,33 +28,19 @@ function primarySize(len: number): string {
 }
 
 function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
-  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, accent, accentText, sourceLabel } =
+  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, accent, accentText, sourceLabel, noLink } =
     getAdapter(item.source).getZenContent(item)
 
-  return (
-    <article className="text-center flex flex-col items-center">
-      {imageUrl && (
-        <img
-          src={imageUrl}
-          alt=""
-          className={`w-[120px] h-[120px] object-cover rounded-full shadow-[0_8px_28px_rgba(15,23,42,0.12)] ring-4 mb-8 ${dark ? 'ring-white/20' : 'ring-white/60'}`}
-        />
-      )}
-      <div className="mb-6">
-        <div className="inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: accentText }}>
-          <span aria-hidden className="w-1 h-1 rounded-full" style={{ backgroundColor: accent }} />
-          {sourceLabel}
-        </div>
-      </div>
-      <div aria-hidden className="mx-auto mb-7 h-[2px] w-10 rounded-full" style={{ backgroundColor: accent, opacity: 0.5 }} />
-      <a href={item.url} target="_blank" rel="noopener noreferrer">
-        <p
-          className={`font-serif-display whitespace-pre-line mx-auto max-w-[680px] hover:opacity-80 transition-opacity ${dark ? 'text-slate-50' : 'text-slate-900'}`}
-          style={{ fontSize: primarySize(primary.length), lineHeight: 1.5, letterSpacing: '-0.005em', fontWeight: primaryWeight }}
-        >
-          {primary}
-        </p>
-      </a>
+  const linkProps = !noLink ? { href: item.url, target: '_blank' as const, rel: 'noopener noreferrer' } : null
+
+  const textBlock = (
+    <>
+      <p
+        className={`font-serif-display whitespace-pre-line mx-auto max-w-[680px] ${dark ? 'text-slate-50' : 'text-slate-900'}`}
+        style={{ fontSize: primarySize(primary.length), lineHeight: 1.5, letterSpacing: '-0.005em', fontWeight: primaryWeight }}
+      >
+        {primary}
+      </p>
       {secondary && (
         <p
           className={`font-serif-display leading-[1.75] mx-auto max-w-[600px] mt-6 line-clamp-4 ${dark ? 'text-slate-300' : 'text-slate-500'}`}
@@ -63,6 +49,40 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
           {secondary}
         </p>
       )}
+    </>
+  )
+
+  return (
+    <article className="text-center flex flex-col items-center">
+      {imageUrl && (
+        linkProps ? (
+          <a {...linkProps} className="hover:opacity-80 transition-opacity mb-8">
+            <img
+              src={imageUrl}
+              alt=""
+              className={`w-[120px] h-[120px] object-cover rounded-full shadow-[0_8px_28px_rgba(15,23,42,0.12)] ring-4 ${dark ? 'ring-white/20' : 'ring-white/60'}`}
+            />
+          </a>
+        ) : (
+          <img
+            src={imageUrl}
+            alt=""
+            className={`w-[120px] h-[120px] object-cover rounded-full shadow-[0_8px_28px_rgba(15,23,42,0.12)] ring-4 mb-8 ${dark ? 'ring-white/20' : 'ring-white/60'}`}
+          />
+        )
+      )}
+      <div className="mb-6">
+        <div className="inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: accentText }}>
+          <span aria-hidden className="w-1 h-1 rounded-full" style={{ backgroundColor: accent }} />
+          {sourceLabel}
+        </div>
+      </div>
+      <div aria-hidden className="mx-auto mb-7 h-[2px] w-10 rounded-full" style={{ backgroundColor: accent, opacity: 0.5 }} />
+      {linkProps ? (
+        <a {...linkProps} className="flex flex-col items-center hover:opacity-80 transition-opacity">
+          {textBlock}
+        </a>
+      ) : textBlock}
       <div className="mt-9 text-[12px] text-slate-400">{metaNode}</div>
     </article>
   )
@@ -91,7 +111,14 @@ function ChromeButton({
 type ModalKey = 'sources' | 'likes' | 'about' | null
 
 export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: ZenModeProps) {
-  const [index, setIndex] = useState(initialIndex < 0 ? 0 : initialIndex)
+  const [currentItemId, setCurrentItemId] = useState<string | null>(null)
+  // Derived: find current item's position each time items is rebuilt.
+  // Stable ID means the user stays on the same article when more data loads.
+  const index = useMemo(() => {
+    if (!currentItemId || items.length === 0) return 0
+    const idx = items.findIndex((it) => it.id === currentItemId)
+    return idx === -1 ? 0 : idx
+  }, [currentItemId, items])
   const [themeId, setThemeId] = useState(() => {
     const saved = localStorage.getItem('zen-theme-id')
     return (saved && (saved === 'random' || ZEN_THEMES.some((t) => t.id === saved))) ? saved : ZEN_THEMES[0].id
@@ -116,9 +143,13 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
   const Backdrop = theme.Backdrop
   const isDark = !!theme.dark
 
+  // Set the anchor item once: when items arrive and a valid initialIndex is known.
+  // Guard on currentItemId===null ensures we never overwrite the user's navigation.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
-    if (isOpen) setIndex(initialIndex < 0 ? 0 : initialIndex)
-  }, [isOpen, initialIndex])
+    if (!isOpen || currentItemId !== null || initialIndex < 0 || items.length === 0) return
+    setCurrentItemId(items[Math.min(initialIndex, items.length - 1)].id)
+  }, [isOpen, initialIndex, items.length])
 
   const wakeUp = useCallback(() => {
     setIdle(false)
@@ -136,16 +167,19 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
   }, [modal, wakeUp])
 
   const next = useCallback(() => {
-    const newIdx = (index + 1) % Math.max(1, items.length)
-    setIndex(newIdx)
+    if (items.length === 0) return
+    const newIdx = (index + 1) % items.length
+    setCurrentItemId(items[newIdx].id)
     wakeUp()
     if (onNearEnd && items.length - newIdx <= 5) onNearEnd()
-  }, [index, items.length, wakeUp, onNearEnd])
+  }, [index, items, wakeUp, onNearEnd])
 
   const prev = useCallback(() => {
-    setIndex((i) => (i - 1 + Math.max(1, items.length)) % Math.max(1, items.length))
+    if (items.length === 0) return
+    const newIdx = (index - 1 + items.length) % items.length
+    setCurrentItemId(items[newIdx].id)
     wakeUp()
-  }, [items.length, wakeUp])
+  }, [index, items, wakeUp])
 
   useEffect(() => {
     if (!isOpen) return
@@ -161,7 +195,7 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
 
   if (!isOpen) return null
 
-  if (items.length === 0 || index < 0 || index >= items.length) {
+  if (items.length === 0 || currentItemId === null) {
     return (
       <div className="fixed inset-0 z-[200] flex items-center justify-center"
         style={{ background: theme.surface }} role="dialog" aria-modal="true" aria-label="Zen mode loading">
