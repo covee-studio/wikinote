@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon } from 'lucide-react'
+import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon, Shuffle as ShuffleIcon } from 'lucide-react'
 import { useLikedArticles } from '../contexts/LikedArticlesContext'
 import { useToast } from '../contexts/ToastContext'
 import { useI18n } from '../hooks/useI18n'
@@ -94,8 +94,12 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
   const [index, setIndex] = useState(initialIndex < 0 ? 0 : initialIndex)
   const [themeId, setThemeId] = useState(() => {
     const saved = localStorage.getItem('zen-theme-id')
-    return (saved && ZEN_THEMES.some((t) => t.id === saved)) ? saved : ZEN_THEMES[0].id
+    return (saved && (saved === 'random' || ZEN_THEMES.some((t) => t.id === saved))) ? saved : ZEN_THEMES[0].id
   })
+  const resolvedThemeId = useMemo(() => {
+    if (themeId !== 'random') return themeId
+    return ZEN_THEMES[Math.floor(Math.random() * ZEN_THEMES.length)].id
+  }, [themeId])
   const [themeOpen, setThemeOpen] = useState(false)
   const [modal, setModal] = useState<ModalKey>(null)
   const [idle, setIdle] = useState(false)
@@ -108,7 +112,7 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
 
   useFocusTrap(isOpen && !modal && !themeOpen, containerRef)
 
-  const theme = ZEN_THEMES.find((th) => th.id === themeId) ?? ZEN_THEMES[0]
+  const theme = ZEN_THEMES.find((th) => th.id === resolvedThemeId) ?? ZEN_THEMES[0]
   const Backdrop = theme.Backdrop
   const isDark = !!theme.dark
 
@@ -253,6 +257,25 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
                   <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400 px-1 pb-2">
                     Appearance
                   </div>
+                  {/* Random / auto option */}
+                  <button
+                    type="button"
+                    onClick={() => { setThemeId('random'); localStorage.setItem('zen-theme-id', 'random'); setThemeOpen(false) }}
+                    className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg mb-2 transition-colors ${themeId === 'random' ? 'bg-slate-100' : 'hover:bg-slate-50'}`}
+                    aria-pressed={themeId === 'random'}
+                  >
+                    <span className="w-7 h-7 rounded-md bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 inline-flex items-center justify-center flex-shrink-0">
+                      <ShuffleIcon className="w-3.5 h-3.5 text-slate-500" strokeWidth={2} />
+                    </span>
+                    <span className="text-[12px] text-slate-700 font-medium">Auto</span>
+                    <span className="text-[11px] text-slate-400 ml-0.5">— different each tab</span>
+                    {themeId === 'random' && (
+                      <span className="ml-auto w-4 h-4 rounded-full bg-slate-800 text-white inline-flex items-center justify-center flex-shrink-0">
+                        <CheckIcon className="w-2.5 h-2.5" strokeWidth={3} />
+                      </span>
+                    )}
+                  </button>
+                  <div className="h-px bg-slate-100 mb-2" />
                   <div className="grid grid-cols-4 gap-2">
                     {ZEN_THEMES.map((th) => {
                       const sel = th.id === themeId
