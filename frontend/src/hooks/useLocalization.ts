@@ -3,13 +3,30 @@ import { LANGUAGES } from "../languages"
 import type { Language } from "../types/ArticleProps"
 import { StorageAdapter } from "../utils/environment"
 
+// Read from localStorage synchronously so the first render already has the
+// correct language. Without this, the async StorageAdapter.get resolves a
+// microtask later, leaving currentLanguage='en' on render #1, which causes
+// the English cache to be loaded as initialData even when the user set Chinese.
+function getStoredLanguageSync(): Language {
+  try {
+    const raw = localStorage.getItem("lang")
+    if (raw) {
+      const id = JSON.parse(raw) as string
+      return LANGUAGES.find((l) => l.id === id) ?? LANGUAGES[0]
+    }
+  } catch {}
+  return LANGUAGES[0]
+}
+
 export function useLocalization() {
   const getInitialLanguage = useCallback(async (): Promise<Language> => {
     const savedLanguageId = await StorageAdapter.get("lang")
     return LANGUAGES.find((lang) => lang.id === savedLanguageId) || LANGUAGES[0]
   }, [])
 
-  const [currentLanguage, setCurrentLanguage] = useState<Language>(LANGUAGES[0])
+  // Synchronous init: correct language is available on the very first render.
+  // The async effect below runs afterward to reconcile chrome.storage in extension builds.
+  const [currentLanguage, setCurrentLanguage] = useState<Language>(getStoredLanguageSync)
   const [ready, setReady] = useState<boolean>(false)
 
   // Initialize language from storage when mounted
