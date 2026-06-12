@@ -112,13 +112,19 @@ type ModalKey = 'sources' | 'likes' | 'about' | null
 
 export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: ZenModeProps) {
   const [currentItemId, setCurrentItemId] = useState<string | null>(null)
-  // Derived: find current item's position each time items is rebuilt.
-  // Stable ID means the user stays on the same article when more data loads.
+  // When items is rebuilt with a completely different random batch (Wikipedia uses
+  // generator=random so each fetch returns new article IDs), currentItemId may not
+  // exist in the new array. We keep the last found item in a ref so the display
+  // stays stable — no jump — until the user deliberately navigates.
+  const anchoredItemRef = useRef<DiscoveryItem | null>(null)
   const index = useMemo(() => {
-    if (!currentItemId || items.length === 0) return 0
-    const idx = items.findIndex((it) => it.id === currentItemId)
-    return idx === -1 ? 0 : idx
+    if (!currentItemId || items.length === 0) return -1
+    return items.findIndex((it) => it.id === currentItemId)
   }, [currentItemId, items])
+  // Keep anchor up-to-date whenever the item is present in the current batch.
+  useEffect(() => {
+    if (index !== -1 && items[index]) anchoredItemRef.current = items[index]
+  }, [index, items])
   const [themeId, setThemeId] = useState(() => {
     const saved = localStorage.getItem('zen-theme-id')
     return (saved && (saved === 'random' || ZEN_THEMES.some((t) => t.id === saved))) ? saved : ZEN_THEMES[0].id
@@ -168,7 +174,8 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
 
   const next = useCallback(() => {
     if (items.length === 0) return
-    const newIdx = (index + 1) % items.length
+    const base = index !== -1 ? index : 0
+    const newIdx = (base + 1) % items.length
     setCurrentItemId(items[newIdx].id)
     wakeUp()
     if (onNearEnd && items.length - newIdx <= 5) onNearEnd()
@@ -176,7 +183,8 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
 
   const prev = useCallback(() => {
     if (items.length === 0) return
-    const newIdx = (index - 1 + items.length) % items.length
+    const base = index !== -1 ? index : 0
+    const newIdx = (base - 1 + items.length) % items.length
     setCurrentItemId(items[newIdx].id)
     wakeUp()
   }, [index, items, wakeUp])
@@ -195,7 +203,7 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
 
   if (!isOpen) return null
 
-  if (items.length === 0 || currentItemId === null) {
+  if (items.length === 0 || currentItemId === null || !anchoredItemRef.current) {
     return (
       <div className="fixed inset-0 z-[200] flex items-center justify-center"
         style={{ background: theme.surface }} role="dialog" aria-modal="true" aria-label="Zen mode loading">
@@ -215,7 +223,7 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
     )
   }
 
-  const item = items[index]
+  const item = index !== -1 ? items[index] : anchoredItemRef.current!
   const liked = isLiked(item)
   const chromeVisible = !idle || themeOpen || !!modal
 
