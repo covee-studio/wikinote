@@ -204,39 +204,21 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
   if (!isOpen) return null
 
   if (items.length === 0 || currentItemId === null || !anchoredItemRef.current) {
-    const s = isDark ? 'shimmer-d' : 'shimmer-l'
-    const delays = [0, 80, 130, 190, 250, 310, 370, 430, 490, 550].map(d => ({ animationDelay: `${d}ms` }))
     return (
       <div className="fixed inset-0 z-[200]" style={{ background: theme.surface }}
         role="dialog" aria-modal="true" aria-label="Zen mode loading">
         <Backdrop />
-        {/* Brand — identical position to the loaded UI so there's no layout jump */}
         <div className="absolute top-0 left-0 px-8 pt-6 z-20">
-          <span className={`text-[15px] font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-700'} opacity-50`}>
+          <span className={`text-[15px] font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-700'} opacity-40`}>
             Wikinote
           </span>
         </div>
-        {/* Skeleton mirrors ZenContent layout exactly */}
-        <div className="absolute inset-0 flex items-center justify-center px-8 pt-16 pb-32">
-          <div className="zen-skeleton-enter w-full max-w-[820px] flex flex-col items-center">
-            {/* Circular image */}
-            <div className={`w-[120px] h-[120px] rounded-full mb-8 ${s}`} style={delays[0]} />
-            {/* Source label pill */}
-            <div className={`h-3 w-16 rounded-full mb-6 ${s}`} style={delays[1]} />
-            {/* Decorative line */}
-            <div className={`h-0.5 w-10 rounded-full mb-7 ${s}`} style={delays[2]} />
-            {/* Title line 1 */}
-            <div className={`h-9 rounded-xl mb-3 ${s}`} style={{ width: '72%', ...delays[3] }} />
-            {/* Title line 2 */}
-            <div className={`h-9 rounded-xl mb-10 ${s}`} style={{ width: '50%', ...delays[4] }} />
-            {/* Body text lines */}
-            <div className={`h-[17px] rounded-full mb-2.5 ${s}`} style={{ width: '100%', ...delays[5] }} />
-            <div className={`h-[17px] rounded-full mb-2.5 ${s}`} style={{ width: '93%', ...delays[6] }} />
-            <div className={`h-[17px] rounded-full mb-2.5 ${s}`} style={{ width: '86%', ...delays[7] }} />
-            <div className={`h-[17px] rounded-full mb-10 ${s}`} style={{ width: '62%', ...delays[8] }} />
-            {/* Meta */}
-            <div className={`h-3 w-20 rounded-full ${s}`} style={delays[9]} />
-          </div>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div style={{
+            width: 40, height: 40, borderRadius: '50%',
+            border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.18)'}`,
+            animation: 'zen-breathe 2.6s ease-in-out infinite',
+          }} />
         </div>
       </div>
     )

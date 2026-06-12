@@ -1,4 +1,4 @@
-import { X } from 'lucide-react'
+import { Info, X } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { useI18n } from '../hooks/useI18n'
 import { useKeyboardNavigation } from '../hooks/useKeyboardNavigation'
@@ -26,7 +26,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           role="dialog"
           aria-modal="true"
         >
@@ -35,67 +35,66 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="modern-card z-[41] p-8 rounded-2xl max-w-md relative"
+            className="z-[41] p-6 rounded-2xl w-full max-w-md flex flex-col relative"
+            style={{
+              background: '#ffffff',
+              boxShadow: '0 8px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
+            }}
             role="document"
             ref={containerRef}
           >
-            <button
-              onClick={onClose}
-              className="absolute top-4 right-4 text-slate-500 hover:text-slate-700 w-8 h-8 rounded-full button-glass flex items-center justify-center transition-all duration-300"
-              aria-label={t('common.close')}
-            >
-              <X className="w-4 h-4" />
-            </button>
+            {/* Header */}
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Info className="w-5 h-5 text-white" />
+                </div>
+                <h2 className="text-xl font-bold text-slate-800">{t('about.title')}</h2>
+              </div>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-all"
+                aria-label={t('common.close')}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-            <h2 className="text-2xl font-bold mb-6 text-glow">
-              {t('about.title')}
-            </h2>
-
-            <p className="mb-4 leading-relaxed text-slate-700 text-sm">
-              {t('about.description')}
-            </p>
-
-            <div className="space-y-4 text-sm">
-              <p className="text-slate-600">
-                {t('about.madeWith')}{" "}
+            <div className="flex flex-col gap-3 text-sm text-slate-600 leading-relaxed">
+              <p>{t('about.description')}</p>
+              <p>
+                {t('about.madeWith')}{' '}
                 <a
                   href="https://github.com/Exploreryer"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-700 transition-colors hover:underline"
+                  className="text-blue-600 hover:text-blue-700 hover:underline transition-colors"
                 >
                   Exploreryer
                 </a>
               </p>
-
-              <p className="text-slate-600">
-                {t('about.specialThanks')}
-              </p>
-
-              <p className="text-slate-600">
-                {t('about.checkCode')}{" "}
+              <p>{t('about.specialThanks')}</p>
+              <p>
+                {t('about.checkCode')}{' '}
                 <a
                   href="https://github.com/Exploreryer/wikinote"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-700 transition-colors hover:underline"
+                  className="text-blue-600 hover:text-blue-700 hover:underline transition-colors"
                 >
                   GitHub
                 </a>
               </p>
-
-              <div className="pt-4 border-t border-slate-200">
-                <p className="text-slate-600 mb-4 text-center">
-                  {t('about.support')}
-                </p>
+              <div className="pt-4 border-t border-slate-100 mt-1">
+                <p className="text-xs text-slate-400 mb-4 text-center">{t('about.support')}</p>
                 <div className="flex justify-center">
                   <a
                     href="https://buymeacoffee.com/exploreryer"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-white rounded-lg transition-all duration-200 font-medium shadow-sm hover:shadow-md"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-colors text-sm font-medium"
                   >
-                    <span className="text-xl">☕</span>
+                    <span>☕</span>
                     {t('about.buyMeCoffee')}
                   </a>
                 </div>

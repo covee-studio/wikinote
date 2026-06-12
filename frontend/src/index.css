@@ -135,31 +135,10 @@ html, body {
   color: #1e293b;
 }
 
-/* Skeleton shimmer loading animation */
-@keyframes shimmer-sweep {
-  0%   { background-position: -300% center; }
-  100% { background-position: 300% center; }
-}
-@keyframes zen-skeleton-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.shimmer-l {
-  background: linear-gradient(90deg, #dde3ea 25%, #edf1f5 50%, #dde3ea 75%);
-  background-size: 300% 100%;
-  animation: shimmer-sweep 2s ease-in-out infinite;
-}
-.shimmer-d {
-  background: linear-gradient(90deg,
-    rgba(255,255,255,0.07) 25%,
-    rgba(255,255,255,0.15) 50%,
-    rgba(255,255,255,0.07) 75%
-  );
-  background-size: 300% 100%;
-  animation: shimmer-sweep 2s ease-in-out infinite;
-}
-.zen-skeleton-enter {
-  animation: zen-skeleton-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+/* Loading — gentle breathing ring */
+@keyframes zen-breathe {
+  0%, 100% { opacity: 0.25; transform: scale(0.88); }
+  50%       { opacity: 0.55; transform: scale(1); }
 }
 
 /* High-performance fade-in animation */
