@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Wikinote",
   "version": "1.0.3",
-  "description": "Discover random Wikipedia articles on every new tab",
+  "description": "A new tab for discovering articles from Wikipedia, Hacker News, and your own notes.",
   "permissions": ["storage", "unlimitedStorage"],
   "host_permissions": [
     "https://*.wikipedia.org/*",
