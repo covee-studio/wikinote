@@ -1,20 +1,21 @@
 # Wikinote
 
-A RedNote-style masonry feed for discovering content from multiple open sources. Inspired by [IsaacGemal/wikitok](https://github.com/IsaacGemal/wikitok), enhanced with a waterfall layout suited for web browsing.
+A new tab that puts something there — one article, quietly chosen at random. Wikipedia, Hacker News, or your own notes.
+
+Built as a fork of [IsaacGemal/wikitok](https://github.com/IsaacGemal/wikitok), shaped along the way with ideas from [几枝](https://github.com/liminalpurr/jizhi).
 
 All built-in sources use fully public APIs — no OAuth, no backend proxy, no token required to get started.
 
 ## Features
 
-- Masonry waterfall layout for comfortable web browsing
-- Three content sources out of the box: Wikipedia, Hacker News, and self-hosted Memos
-- 14 languages for Wikipedia (English, Spanish, French, German, Chinese, Japanese, and more)
-- Article and story cards with images, titles, and excerpts
+- Scrollable card feed mixing content from multiple sources
+- Three sources out of the box: Wikipedia, Hacker News, and self-hosted Memos
+- 14 languages for Wikipedia articles
+- Zen mode for distraction-free reading with animated themes
+- Liked articles saved locally, with export
 - Share articles or copy links
-- Liked articles saved locally
-- Zen mode for distraction-free reading
-- Responsive design for mobile and desktop
 - Chrome Extension (new-tab override) and Progressive Web App (PWA)
+- Responsive design for mobile and desktop
 
 ## Tech Stack
 
@@ -75,11 +76,7 @@ On Vercel / Netlify:
 
 Memos requires a self-hosted instance URL and API token, configured in the Sources panel inside the app. Wikipedia and Hacker News work immediately with no setup.
 
-New sources must use a fully public API — no OAuth, no backend proxy. This keeps the app deployable without a server.
-
-## Roadmap
-
-This project intentionally does not include export, tagging, sync, user accounts, or closed-platform integrations (e.g. Product Hunt) in the current roadmap.
+New sources should use a fully public API — no OAuth, no backend proxy. This keeps the app deployable without a server.
 
 ## Support
 
