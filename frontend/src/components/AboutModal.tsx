@@ -60,44 +60,68 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               </button>
             </div>
 
-            <div className="flex flex-col gap-3 text-sm text-slate-600 leading-relaxed">
-              <p>{t('about.description')}</p>
+            {/* Body */}
+            <div className="flex flex-col gap-2.5 text-sm text-slate-600 leading-relaxed">
+              <p>A new tab is usually just a moment between things.</p>
               <p>
-                {t('about.madeWith')}{' '}
+                Wikinote puts something there — one article, quietly chosen at random.
+                Wikipedia, Hacker News, or your own notes.
+              </p>
+              <p>You can skip it. Or you can stay a while.</p>
+              <p>Either way, it's a chance to meet something you didn't know you were curious about.</p>
+
+              <p className="text-slate-300 select-none">—</p>
+
+              <p>
+                This started as a fork of{' '}
                 <a
-                  href="https://github.com/Exploreryer"
+                  href="https://github.com/IsaacGemal/wikitok"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                  className="text-slate-800 font-medium hover:underline"
                 >
-                  Exploreryer
+                  wikitok
                 </a>
+                {' '}by{' '}
+                <a
+                  href="https://github.com/IsaacGemal"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-800 font-medium hover:underline"
+                >
+                  IsaacGemal
+                </a>
+                , and was shaped along the way by{' '}
+                <a
+                  href="https://github.com/liminalpurr/jizhi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-800 font-medium hover:underline"
+                >
+                  几枝
+                </a>
+                . They made me think harder about what a new tab could be.
               </p>
-              <p>{t('about.specialThanks')}</p>
-              <p>
-                {t('about.checkCode')}{' '}
+              <p>Hope you enjoy it.</p>
+
+              <div className="pt-4 border-t border-slate-100 mt-1 flex items-center gap-4">
                 <a
                   href="https://github.com/Exploreryer/wikinote"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-600 hover:text-blue-700 hover:underline transition-colors"
+                  className="text-slate-500 hover:text-slate-800 transition-colors font-medium"
                 >
                   GitHub
                 </a>
-              </p>
-              <div className="pt-4 border-t border-slate-100 mt-1">
-                <p className="text-xs text-slate-400 mb-4 text-center">{t('about.support')}</p>
-                <div className="flex justify-center">
-                  <a
-                    href="https://buymeacoffee.com/exploreryer"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl transition-colors text-sm font-medium"
-                  >
-                    <span>☕</span>
-                    {t('about.buyMeCoffee')}
-                  </a>
-                </div>
+                <span className="text-slate-200 select-none">·</span>
+                <a
+                  href="https://buymeacoffee.com/exploreryer"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-slate-500 hover:text-slate-800 transition-colors font-medium"
+                >
+                  {t('about.buyMeCoffee')} ☕
+                </a>
               </div>
             </div>
           </motion.div>
