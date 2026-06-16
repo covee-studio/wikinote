@@ -19,14 +19,29 @@ export function ConstellationTheme() {
 
   useEffect(() => {
     let idCounter = 0
+    let cancelled = false
+    const timers: ReturnType<typeof setTimeout>[] = []
+
+    const schedule = (fn: () => void, delay: number) => {
+      const timer = setTimeout(fn, delay)
+      timers.push(timer)
+    }
+
     const spawnMeteor = () => {
+      if (cancelled) return
       const m = { id: idCounter++, top: Math.random() * 30, left: 10 + Math.random() * 50 }
       setMeteors((prev) => [...prev, m])
-      setTimeout(() => setMeteors((prev) => prev.filter((x) => x.id !== m.id)), 2500)
-      setTimeout(spawnMeteor, 3000 + Math.random() * 3000)
+      schedule(() => {
+        if (!cancelled) setMeteors((prev) => prev.filter((x) => x.id !== m.id))
+      }, 2500)
+      schedule(spawnMeteor, 3000 + Math.random() * 3000)
     }
-    const t = setTimeout(spawnMeteor, 1500)
-    return () => clearTimeout(t)
+
+    schedule(spawnMeteor, 1500)
+    return () => {
+      cancelled = true
+      timers.forEach(clearTimeout)
+    }
   }, [])
 
   return (
