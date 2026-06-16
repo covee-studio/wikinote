@@ -4,29 +4,58 @@ export function OceanTheme() {
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
       <div className="absolute inset-0" style={{
-        background: 'linear-gradient(180deg, #eef3f3 0%, #f2f5f3 40%, #e9f0ef 54%, #dcebe9 66%, #c8dddb 88%, #bcd4d2 100%)',
+        background: 'linear-gradient(180deg, #edf4f5 0%, #f4f6f2 38%, #e3eeec 58%, #c9dfdd 78%, #a9c8c5 100%)',
       }} />
       <motion.div
+        className="absolute inset-x-0"
+        style={{
+          bottom: 0,
+          height: '34%',
+          background:
+            'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(205,228,226,0.92) 34%, rgba(159,196,194,1) 100%)',
+        }}
+        animate={{ y: [0, -8, 0] }}
+        transition={{ duration: 16, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
+        className="absolute inset-x-[-10%]"
+        style={{
+          bottom: '20%',
+          height: 56,
+          background:
+            'repeating-linear-gradient(0deg, rgba(255,255,255,0.38) 0px, rgba(255,255,255,0.38) 1px, rgba(255,255,255,0) 1px, rgba(255,255,255,0) 10px)',
+          filter: 'blur(1px)',
+          rotate: '-1deg',
+        }}
+        animate={{ x: ['-2%', '2%', '-2%'] }}
+        transition={{ duration: 18, repeat: Infinity, ease: 'easeInOut' }}
+      />
+      <motion.div
         className="absolute left-1/2"
-        style={{ top: '60%', width: 520, height: 220, marginLeft: -260,
-          background: 'radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0) 70%)',
-          filter: 'blur(8px)' }}
-        animate={{ x: [-40, 40, -40], opacity: [0.5, 0.8, 0.5] }}
+        style={{
+          top: '55%',
+          width: 620,
+          height: 220,
+          marginLeft: -310,
+          background: 'radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.58) 0%, rgba(255,255,255,0) 70%)',
+          filter: 'blur(10px)',
+        }}
+        animate={{ x: [-36, 36, -36], opacity: [0.55, 0.86, 0.55] }}
         transition={{ duration: 14, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
         className="absolute"
-        style={{ right: '25%', bottom: '35%', width: 60, height: 30 }}
-        animate={{ x: [-15, 15, -15], y: [0, -4, 0] }}
+        style={{ right: '18%', bottom: '27%', width: 82, height: 40 }}
+        animate={{ x: [-18, 18, -18], y: [0, -5, 0] }}
         transition={{
           x: { duration: 24, repeat: Infinity, ease: 'easeInOut' },
           y: { duration: 7, repeat: Infinity, ease: 'easeInOut' },
         }}
       >
-        <svg viewBox="0 0 60 30" className="w-full h-full opacity-40" preserveAspectRatio="xMidYMid meet">
-          <path d="M5,20 Q20,28 50,20 L55,18 Q30,25 2,18 Z" fill="rgba(70,96,98,0.8)" />
-          <line x1="25" y1="20" x2="25" y2="4" stroke="rgba(70,96,98,0.7)" strokeWidth="1.5" />
-          <path d="M25,4 L40,14 L25,16 Z" fill="rgba(70,96,98,0.5)" />
+        <svg viewBox="0 0 82 40" className="w-full h-full opacity-55" preserveAspectRatio="xMidYMid meet">
+          <path d="M8,27 Q28,36 68,27 L76,24 Q42,32 4,24 Z" fill="rgba(60,88,91,0.78)" />
+          <line x1="36" y1="27" x2="36" y2="5" stroke="rgba(60,88,91,0.7)" strokeWidth="1.8" />
+          <path d="M36,5 L58,18 L36,21 Z" fill="rgba(60,88,91,0.46)" />
         </svg>
       </motion.div>
     </div>
@@ -36,11 +65,15 @@ export function OceanTheme() {
 export function OceanPreview() {
   return (
     <div className="absolute inset-0" style={{
-      background: 'linear-gradient(180deg, #eef3f3 0%, #e9f0ef 54%, #c8dddb 88%, #bcd4d2 100%)',
+      background: 'linear-gradient(180deg, #edf4f5 0%, #e3eeec 58%, #a9c8c5 100%)',
     }}>
-      <div className="absolute left-1/2 top-[58%] w-8 h-5 -ml-4" style={{
-        background: 'radial-gradient(ellipse, rgba(255,255,255,0.6), transparent 70%)',
-        filter: 'blur(2px)',
+      <div className="absolute inset-x-0 bottom-0 h-[34%]" style={{
+        background: 'linear-gradient(180deg, transparent 0%, rgba(159,196,194,1) 100%)',
+      }} />
+      <div className="absolute inset-x-[-10%] bottom-[21%] h-5" style={{
+        background:
+          'repeating-linear-gradient(0deg, rgba(255,255,255,0.42) 0px, rgba(255,255,255,0.42) 1px, rgba(255,255,255,0) 1px, rgba(255,255,255,0) 7px)',
+        filter: 'blur(0.7px)',
       }} />
     </div>
   )

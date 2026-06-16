@@ -1,7 +1,6 @@
 import type { FC } from 'react'
 import { WavesTheme } from '../components/zen/WavesTheme'
 import { MistTheme } from '../components/zen/MistTheme'
-import { DawnTheme } from '../components/zen/DawnTheme'
 import { ConstellationTheme, ConstellationPreview } from '../components/zen/ConstellationTheme'
 import { PaperTheme } from '../components/zen/PaperTheme'
 import { RipplesTheme, RipplesPreview } from '../components/zen/RipplesTheme'
@@ -9,7 +8,7 @@ import { MountainsTheme, MountainsPreview } from '../components/zen/MountainsThe
 import { BambooTheme, BambooPreview } from '../components/zen/BambooTheme'
 import { OceanTheme, OceanPreview } from '../components/zen/OceanTheme'
 import { RainbowTheme, RainbowPreview } from '../components/zen/RainbowTheme'
-import { SunriseTheme, SunrisePreview } from '../components/zen/SunriseTheme'
+import { SolarTheme, SolarPreview } from '../components/zen/SolarTheme'
 import { SnowTheme, SnowPreview } from '../components/zen/SnowTheme'
 
 export interface ZenTheme {
@@ -45,11 +44,11 @@ export const ZEN_THEMES: ZenTheme[] = [
     Backdrop: MistTheme,
   },
   {
-    id: 'dawn',
-    name: 'Dawn',
-    surface: '#f3eee9',
-    swatch: 'linear-gradient(180deg, #eef0f3 0%, #f6e8de 70%, #f4ddd0 100%)',
-    Backdrop: DawnTheme,
+    id: 'solar',
+    name: 'Solar',
+    surface: 'linear-gradient(180deg, #e9edf3 0%, #f1e4de 58%, #f6d0a8 100%)',
+    Preview: SolarPreview,
+    Backdrop: SolarTheme,
   },
   {
     id: 'constellation',
@@ -93,13 +92,6 @@ export const ZEN_THEMES: ZenTheme[] = [
     surface: 'linear-gradient(180deg, #eaeef1 0%, #f1f0ec 70%, #e9ebe7 100%)',
     Preview: RainbowPreview,
     Backdrop: RainbowTheme,
-  },
-  {
-    id: 'sunrise',
-    name: 'Sunrise',
-    surface: 'linear-gradient(180deg, #e7ecf1 0%, #f3ede4 55%, #f6e4cd 100%)',
-    Preview: SunrisePreview,
-    Backdrop: SunriseTheme,
   },
   {
     id: 'snow',

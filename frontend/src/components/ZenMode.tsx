@@ -126,6 +126,10 @@ export function ZenMode({ isOpen, items, initialIndex, onNearEnd }: ZenModeProps
   }, [index, items])
   const [themeId, setThemeId] = useState(() => {
     const saved = localStorage.getItem('zen-theme-id')
+    if (saved === 'dawn' || saved === 'sunrise') {
+      localStorage.setItem('zen-theme-id', 'solar')
+      return 'solar'
+    }
     return (saved && (saved === 'random' || ZEN_THEMES.some((t) => t.id === saved))) ? saved : ZEN_THEMES[0].id
   })
   const resolvedThemeId = useMemo(() => {
