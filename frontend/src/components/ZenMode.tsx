@@ -31,6 +31,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
     getAdapter(item.source).getZenContent(item)
 
   const linkProps = !noLink ? { href: item.url, target: '_blank' as const, rel: 'noopener noreferrer' } : null
+  const imageStyle = { width: 120, height: 120, objectFit: 'cover' as const, flexShrink: 0 }
 
   const textBlock = (
     <>
@@ -60,6 +61,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
               src={imageUrl}
               alt=""
               className={`w-[120px] h-[120px] object-cover rounded-full shadow-[0_8px_28px_rgba(15,23,42,0.12)] ring-4 ${dark ? 'ring-white/20' : 'ring-white/60'}`}
+              style={imageStyle}
             />
           </a>
         ) : (
@@ -67,6 +69,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
             src={imageUrl}
             alt=""
             className={`w-[120px] h-[120px] object-cover rounded-full shadow-[0_8px_28px_rgba(15,23,42,0.12)] ring-4 mb-8 ${dark ? 'ring-white/20' : 'ring-white/60'}`}
+            style={imageStyle}
           />
         )
       )}
