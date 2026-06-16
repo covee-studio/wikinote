@@ -42,13 +42,13 @@ function getSolarPhase(date = new Date()): SolarPhase {
   if (hour < 16) {
     return {
       name: 'day',
-      sky: ['#eef3f5', '#f4f3ed', '#e7edf1'],
-      upperGlow: 'rgba(147,174,207,0.12)',
-      lowerGlow: 'rgba(246,214,157,0.18)',
-      horizon: 'rgba(214,226,229,0.72)',
-      sunX: '50%',
-      sunY: '48%',
-      sunOpacity: 0.28,
+      sky: ['#dfeaf4', '#f5f8f6', '#e3edf0'],
+      upperGlow: 'rgba(122,166,214,0.2)',
+      lowerGlow: 'rgba(238,218,170,0.14)',
+      horizon: 'rgba(202,221,225,0.66)',
+      sunX: '58%',
+      sunY: '42%',
+      sunOpacity: 0.22,
     }
   }
   if (hour < 19) {
