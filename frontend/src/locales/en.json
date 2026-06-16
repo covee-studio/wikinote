@@ -28,7 +28,9 @@
     "close": "Close",
     "share": "Share",
     "like": "Like",
-    "copied": "Link copied to clipboard!"
+    "copied": "Link copied to clipboard!",
+    "copiedShort": "Link copied",
+    "copyFailed": "Couldn't copy link"
   },
   "errors": {
     "fetchFailed": "Failed to load articles",

@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 // Manages which sources are enabled and their per-source config (API keys, etc.).
 // Source definitions (label, color, fetch, render) live in the adapter registry —
 // this context handles only enabled/disabled state + user config + localStorage.

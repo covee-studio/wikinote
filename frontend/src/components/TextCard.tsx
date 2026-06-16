@@ -9,8 +9,6 @@ import "../styles/WikiCard.css"
 import type { DiscoveryItem } from "../types/DiscoveryItem"
 import { formatRelativeTime, getDomain } from "../utils/formatting"
 
-export { formatRelativeTime, getDomain }
-
 interface TextCardProps {
   item: DiscoveryItem
   priority?: boolean

@@ -19,8 +19,10 @@ export default defineConfig({
         entryFileNames: "[name].js",
         chunkFileNames: "[name].js",
         assetFileNames: "[name].[ext]",
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
+        manualChunks(id) {
+          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
+            return "vendor";
+          }
         },
       },
     },
@@ -36,4 +38,4 @@ export default defineConfig({
   },
   publicDir: resolve(__dirname, "../../public"),
   root: resolve(__dirname, "../.."),
-}); 
+});

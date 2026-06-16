@@ -16,7 +16,6 @@ interface ZenModeProps {
   isOpen: boolean
   items: DiscoveryItem[]
   initialIndex: number
-  onClose: () => void
   onNearEnd?: () => void
 }
 
@@ -102,7 +101,7 @@ function ChromeButton({
     : active ? 'bg-white text-slate-900 shadow-[0_2px_8px_rgba(15,23,42,0.08)]' : 'text-slate-500 hover:text-slate-900 hover:bg-white/60'
   return (
     <button type="button" onClick={onClick} aria-label={label} title={label}
-      className={`w-10 h-10 inline-flex items-center justify-center rounded-full transition-colors ${cls}`}>
+      className={`relative z-20 w-10 h-10 inline-flex items-center justify-center rounded-full transition-colors ${cls}`}>
       {children}
     </button>
   )
@@ -110,7 +109,7 @@ function ChromeButton({
 
 type ModalKey = 'sources' | 'likes' | 'about' | null
 
-export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: ZenModeProps) {
+export function ZenMode({ isOpen, items, initialIndex, onNearEnd }: ZenModeProps) {
   const [currentItemId, setCurrentItemId] = useState<string | null>(null)
   // When items is rebuilt with a completely different random batch (Wikipedia uses
   // generator=random so each fetch returns new article IDs), currentItemId may not
@@ -136,7 +135,9 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
   const [themeOpen, setThemeOpen] = useState(false)
   const [modal, setModal] = useState<ModalKey>(null)
   const [idle, setIdle] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const shareTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
   const { toggleLike, isLiked } = useLikedArticles()
@@ -151,11 +152,10 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
 
   // Set the anchor item once: when items arrive and a valid initialIndex is known.
   // Guard on currentItemId===null ensures we never overwrite the user's navigation.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (!isOpen || currentItemId !== null || initialIndex < 0 || items.length === 0) return
     setCurrentItemId(items[Math.min(initialIndex, items.length - 1)].id)
-  }, [isOpen, initialIndex, items.length])
+  }, [isOpen, currentItemId, initialIndex, items])
 
   const wakeUp = useCallback(() => {
     setIdle(false)
@@ -165,7 +165,10 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
 
   useEffect(() => {
     wakeUp()
-    return () => { if (idleTimer.current) clearTimeout(idleTimer.current) }
+    return () => {
+      if (idleTimer.current) clearTimeout(idleTimer.current)
+      if (shareTimer.current) clearTimeout(shareTimer.current)
+    }
   }, [wakeUp])
 
   useEffect(() => {
@@ -192,14 +195,18 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
   useEffect(() => {
     if (!isOpen) return
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && themeOpen) {
+        e.preventDefault()
+        setThemeOpen(false)
+        return
+      }
       if (modal || themeOpen) return
       if (e.key === 'ArrowLeft') prev()
       else if (e.key === 'ArrowRight') next()
-      else if (e.key === 'Escape') onClose()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [isOpen, modal, themeOpen, prev, next, onClose])
+  }, [isOpen, modal, themeOpen, prev, next])
 
   if (!isOpen) return null
 
@@ -229,16 +236,15 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
   const chromeVisible = !idle || themeOpen || !!modal
 
   const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: item.title, url: item.url })
-        return
-      } catch (err) {
-        if ((err as Error).name === 'AbortError') return
-      }
+    try {
+      await navigator.clipboard.writeText(item.url)
+      setShareCopied(true)
+      wakeUp()
+      if (shareTimer.current) clearTimeout(shareTimer.current)
+      shareTimer.current = setTimeout(() => setShareCopied(false), 1600)
+    } catch {
+      showToast(t('common.copyFailed'))
     }
-    await navigator.clipboard.writeText(item.url)
-    showToast(t('common.copied'))
   }
 
   return (
@@ -251,18 +257,15 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
     >
       <Backdrop />
 
-      {/* Top-left: brand + counter */}
+      {/* Top-left: brand */}
       <motion.div
         animate={{ opacity: chromeVisible ? 1 : 0, y: chromeVisible ? 0 : -6 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="absolute top-0 left-0 px-8 pt-6 z-20 flex items-center gap-4"
       >
-        <button
-          onClick={onClose}
-          className={`text-[15px] font-bold tracking-tight hover:opacity-70 transition-opacity ${isDark ? 'text-slate-100' : 'text-slate-700'}`}
-        >
+        <span className={`text-[15px] font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-700'}`}>
           Wikinote
-        </button>
+        </span>
       </motion.div>
 
       {/* Top-right: icon buttons + theme picker */}
@@ -271,13 +274,13 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
         transition={{ duration: 0.4, ease: 'easeOut' }}
         className="absolute top-0 right-0 px-7 pt-5 z-30 flex items-center gap-1"
       >
-        <ChromeButton label="About" onClick={() => setModal('about')} dark={isDark}>
+        <ChromeButton label="About" onClick={() => { setThemeOpen(false); setModal('about') }} dark={isDark}>
           <InfoIcon className="w-[18px] h-[18px]" strokeWidth={2} />
         </ChromeButton>
-        <ChromeButton label="Sources" onClick={() => setModal('sources')} dark={isDark}>
+        <ChromeButton label="Sources" onClick={() => { setThemeOpen(false); setModal('sources') }} dark={isDark}>
           <LayersIcon className="w-[18px] h-[18px]" strokeWidth={2} />
         </ChromeButton>
-        <ChromeButton label="Liked" onClick={() => setModal('likes')} dark={isDark}>
+        <ChromeButton label="Liked" onClick={() => { setThemeOpen(false); setModal('likes') }} dark={isDark}>
           <HeartIcon className="w-[18px] h-[18px]" strokeWidth={2} />
         </ChromeButton>
 
@@ -381,7 +384,7 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
         type="button" onClick={prev} aria-label="Previous"
         animate={{ opacity: chromeVisible ? 1 : 0, x: chromeVisible ? 0 : -8 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
-        className={`absolute left-6 md:left-10 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full backdrop-blur-md border transition-all inline-flex items-center justify-center shadow-[0_4px_16px_rgba(15,23,42,0.06)] z-20 ${
+        className={`absolute left-6 md:left-10 bottom-24 md:bottom-auto md:top-1/2 md:-translate-y-1/2 w-11 h-11 rounded-full backdrop-blur-md border transition-all inline-flex items-center justify-center shadow-[0_4px_16px_rgba(15,23,42,0.06)] z-20 ${
           isDark ? 'bg-white/10 border-white/20 text-slate-200 hover:bg-white/20 hover:text-white' : 'bg-white/40 border-white/60 text-slate-500 hover:bg-white hover:text-slate-900 hover:scale-105'
         }`}
       >
@@ -391,7 +394,7 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
         type="button" onClick={next} aria-label="Next"
         animate={{ opacity: chromeVisible ? 1 : 0, x: chromeVisible ? 0 : 8 }}
         transition={{ duration: 0.4, ease: 'easeOut' }}
-        className={`absolute right-6 md:right-10 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full backdrop-blur-md border transition-all inline-flex items-center justify-center shadow-[0_4px_16px_rgba(15,23,42,0.06)] z-20 ${
+        className={`absolute right-6 md:right-10 bottom-24 md:bottom-auto md:top-1/2 md:-translate-y-1/2 w-11 h-11 rounded-full backdrop-blur-md border transition-all inline-flex items-center justify-center shadow-[0_4px_16px_rgba(15,23,42,0.06)] z-20 ${
           isDark ? 'bg-white/10 border-white/20 text-slate-200 hover:bg-white/20 hover:text-white' : 'bg-white/40 border-white/60 text-slate-500 hover:bg-white hover:text-slate-900 hover:scale-105'
         }`}
       >
@@ -420,16 +423,34 @@ export function ZenMode({ isOpen, items, initialIndex, onClose, onNearEnd }: Zen
             <HeartIcon className="w-[15px] h-[15px]" strokeWidth={2} fill={liked ? 'currentColor' : 'none'} />
           </button>
           <span className={`w-px h-4 ${isDark ? 'bg-white/20' : 'bg-slate-200'}`} />
-          <button
-            type="button"
-            onClick={handleShare}
-            aria-label={t('common.share')}
-            className={`w-9 h-9 inline-flex items-center justify-center rounded-full transition-colors ${
-              isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
-            }`}
-          >
-            <Share2Icon className="w-[15px] h-[15px]" strokeWidth={2} />
-          </button>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={handleShare}
+              aria-label={t('common.share')}
+              className={`w-9 h-9 inline-flex items-center justify-center rounded-full transition-colors ${
+                isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+              }`}
+            >
+              <Share2Icon className="w-[15px] h-[15px]" strokeWidth={2} />
+            </button>
+            <AnimatePresence>
+              {shareCopied && (
+                <motion.div
+                  initial={{ opacity: 0, y: 4, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 4, scale: 0.96 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  role="status"
+                  className={`pointer-events-none absolute left-1/2 bottom-[calc(100%+10px)] z-30 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1.5 text-[12px] font-medium shadow-[0_8px_24px_rgba(15,23,42,0.12)] ${
+                    isDark ? 'bg-white/90 text-slate-900' : 'bg-slate-900 text-white'
+                  }`}
+                >
+                  {t('common.copiedShort')}
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </motion.div>
 

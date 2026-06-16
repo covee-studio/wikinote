@@ -14,7 +14,9 @@ function getStoredLanguageSync(): Language {
       const id = JSON.parse(raw) as string
       return LANGUAGES.find((l) => l.id === id) ?? LANGUAGES[0]
     }
-  } catch {}
+  } catch {
+    // Ignore unavailable localStorage or legacy invalid JSON.
+  }
   return LANGUAGES[0]
 }
 

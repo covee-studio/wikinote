@@ -50,8 +50,6 @@ function configFingerprint(adapter: SourceAdapter, config: Record<string, string
   return JSON.stringify(normalized)
 }
 
-const ZEN_OPEN_KEY = "zen_open"
-
 function App() {
   const [extraItemsBySource, setExtraItemsBySource] = useState<ItemsBySource>({})
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -157,18 +155,11 @@ function App() {
     }
   }
 
-  const handleClose = () => {
-    localStorage.removeItem(ZEN_OPEN_KEY)
-    // Reload to get a fresh random article on next open
-    window.location.reload()
-  }
-
   return (
     <ZenMode
       isOpen={true}
       items={articles}
       initialIndex={zenIndex}
-      onClose={handleClose}
       onNearEnd={loadMore}
     />
   )
