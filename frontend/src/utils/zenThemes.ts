@@ -46,7 +46,7 @@ export const ZEN_THEMES: ZenTheme[] = [
   {
     id: 'solar',
     name: 'Solar',
-    surface: 'linear-gradient(180deg, #e9edf3 0%, #f1e4de 58%, #f6d0a8 100%)',
+    surface: 'linear-gradient(180deg, #c9def4 0%, #f2f7f6 72%, #dce9ed 100%)',
     Preview: SolarPreview,
     Backdrop: SolarTheme,
   },
