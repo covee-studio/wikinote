@@ -71,6 +71,8 @@ function App() {
 
   useEffect(() => {
     setExtraItemsBySource({})
+    setZenIndex(-1)
+    zenRestorePendingRef.current = true
   }, [activeSourceKey])
 
   const queryResults = useQueries({
@@ -113,7 +115,7 @@ function App() {
     if (articles.length === 0) return
     zenRestorePendingRef.current = false
     setZenIndex(Math.floor(Math.random() * articles.length))
-  }, [articles.length])
+  }, [articles])
 
   // Load more when user navigates near the end
   const loadMore = async () => {
@@ -158,6 +160,7 @@ function App() {
   return (
     <ZenMode
       isOpen={true}
+      feedKey={activeSourceKey}
       items={articles}
       initialIndex={zenIndex}
       onNearEnd={loadMore}

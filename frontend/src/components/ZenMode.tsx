@@ -14,6 +14,7 @@ import { SourcesModal } from './SourcesModal'
 
 interface ZenModeProps {
   isOpen: boolean
+  feedKey: string
   items: DiscoveryItem[]
   initialIndex: number
   onNearEnd?: () => void
@@ -112,7 +113,7 @@ function ChromeButton({
 
 type ModalKey = 'sources' | 'likes' | 'about' | null
 
-export function ZenMode({ isOpen, items, initialIndex, onNearEnd }: ZenModeProps) {
+export function ZenMode({ isOpen, feedKey, items, initialIndex, onNearEnd }: ZenModeProps) {
   const [currentItemId, setCurrentItemId] = useState<string | null>(null)
   // When items is rebuilt with a completely different random batch (Wikipedia uses
   // generator=random so each fetch returns new article IDs), currentItemId may not
@@ -156,6 +157,11 @@ export function ZenMode({ isOpen, items, initialIndex, onNearEnd }: ZenModeProps
   const theme = ZEN_THEMES.find((th) => th.id === resolvedThemeId) ?? ZEN_THEMES[0]
   const Backdrop = theme.Backdrop
   const isDark = !!theme.dark
+
+  useEffect(() => {
+    setCurrentItemId(null)
+    anchoredItemRef.current = null
+  }, [feedKey])
 
   // Set the anchor item once: when items arrive and a valid initialIndex is known.
   // Guard on currentItemId===null ensures we never overwrite the user's navigation.
@@ -217,7 +223,9 @@ export function ZenMode({ isOpen, items, initialIndex, onNearEnd }: ZenModeProps
 
   if (!isOpen) return null
 
-  if (items.length === 0 || currentItemId === null || !anchoredItemRef.current) {
+  const item = index !== -1 ? items[index] : anchoredItemRef.current
+
+  if (items.length === 0 || currentItemId === null || !item) {
     return (
       <div className="fixed inset-0 z-[200]" style={{ background: theme.surface }}
         role="dialog" aria-modal="true" aria-label="Zen mode loading">
@@ -238,7 +246,6 @@ export function ZenMode({ isOpen, items, initialIndex, onNearEnd }: ZenModeProps
     )
   }
 
-  const item = index !== -1 ? items[index] : anchoredItemRef.current!
   const liked = isLiked(item)
   const chromeVisible = !idle || themeOpen || !!modal
 

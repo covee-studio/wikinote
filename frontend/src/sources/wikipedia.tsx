@@ -35,7 +35,11 @@ const EN_FALLBACK: Language = {
   article: "https://en.wikipedia.org/wiki/",
 }
 
-async function fetchArticles(language: Language): Promise<DiscoveryItem[]> {
+const RANDOM_BATCH_SIZE = "50"
+const MIN_ARTICLES = 12
+const MAX_RANDOM_ATTEMPTS = 3
+
+async function fetchArticleBatch(language: Language): Promise<DiscoveryItem[]> {
   const response = await fetchWithCORS(
     language.api +
       new URLSearchParams({
@@ -45,7 +49,7 @@ async function fetchArticles(language: Language): Promise<DiscoveryItem[]> {
         grnnamespace: "0",
         prop: "extracts|info|pageimages|categories",
         inprop: "url|varianttitles",
-        grnlimit: "30",
+        grnlimit: RANDOM_BATCH_SIZE,
         exintro: "1",
         exlimit: "max",
         exsentences: "5",
@@ -73,7 +77,7 @@ async function fetchArticles(language: Language): Promise<DiscoveryItem[]> {
       thumbnail: page.thumbnail,
       url: page.canonicalurl,
     }))
-    .filter((raw) => raw.thumbnail?.source && raw.url && raw.extract)
+    .filter((raw) => raw.url && raw.extract)
     .map((raw): DiscoveryItem => ({
       id: `wiki-${raw.pageid}`,
       source: "wikipedia",
@@ -81,6 +85,22 @@ async function fetchArticles(language: Language): Promise<DiscoveryItem[]> {
       url: raw.url,
       raw,
     }))
+}
+
+async function fetchArticles(language: Language): Promise<DiscoveryItem[]> {
+  const seen = new Set<string>()
+  const articles: DiscoveryItem[] = []
+
+  for (let attempt = 0; attempt < MAX_RANDOM_ATTEMPTS && articles.length < MIN_ARTICLES; attempt++) {
+    const batch = await fetchArticleBatch(language)
+    for (const item of batch) {
+      if (seen.has(item.id)) continue
+      seen.add(item.id)
+      articles.push(item)
+    }
+  }
+
+  return articles
 }
 
 export const wikipediaAdapter: SourceAdapter = {
