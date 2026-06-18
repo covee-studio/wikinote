@@ -7,9 +7,6 @@ type SolarPhase = {
   upperGlow: string
   lowerGlow: string
   horizon: string
-  sunX: string
-  sunY: string
-  sunOpacity: number
 }
 
 function getSolarPhase(date = new Date()): SolarPhase {
@@ -22,9 +19,6 @@ function getSolarPhase(date = new Date()): SolarPhase {
       upperGlow: 'rgba(106,122,171,0.22)',
       lowerGlow: 'rgba(232,191,154,0.22)',
       horizon: 'rgba(235,204,178,0.68)',
-      sunX: '30%',
-      sunY: '72%',
-      sunOpacity: 0.24,
     }
   }
   if (hour < 8) {
@@ -34,9 +28,6 @@ function getSolarPhase(date = new Date()): SolarPhase {
       upperGlow: 'rgba(108,139,204,0.18)',
       lowerGlow: 'rgba(255,180,98,0.36)',
       horizon: 'rgba(247,195,145,0.78)',
-      sunX: '38%',
-      sunY: '64%',
-      sunOpacity: 0.44,
     }
   }
   if (hour < 16) {
@@ -46,9 +37,6 @@ function getSolarPhase(date = new Date()): SolarPhase {
       upperGlow: 'rgba(122,166,214,0.2)',
       lowerGlow: 'rgba(238,218,170,0.14)',
       horizon: 'rgba(202,221,225,0.66)',
-      sunX: '58%',
-      sunY: '42%',
-      sunOpacity: 0.22,
     }
   }
   if (hour < 19) {
@@ -58,9 +46,6 @@ function getSolarPhase(date = new Date()): SolarPhase {
       upperGlow: 'rgba(103,112,184,0.22)',
       lowerGlow: 'rgba(255,160,72,0.42)',
       horizon: 'rgba(242,178,117,0.78)',
-      sunX: '62%',
-      sunY: '60%',
-      sunOpacity: 0.46,
     }
   }
   return {
@@ -69,9 +54,6 @@ function getSolarPhase(date = new Date()): SolarPhase {
     upperGlow: 'rgba(80,92,151,0.26)',
     lowerGlow: 'rgba(238,146,92,0.32)',
     horizon: 'rgba(225,177,143,0.7)',
-    sunX: '68%',
-    sunY: '70%',
-    sunOpacity: 0.32,
   }
 }
 
@@ -109,20 +91,6 @@ export function SolarTheme() {
           mixBlendMode: phase.name === 'day' ? 'normal' : 'multiply',
         }}
         animate={{ opacity: [0.82, 1, 0.82] }}
-        transition={{ duration: 24, repeat: Infinity, ease: 'easeInOut' }}
-      />
-      <motion.div
-        className="absolute rounded-full"
-        style={{
-          width: 260,
-          height: 260,
-          left: phase.sunX,
-          top: phase.sunY,
-          marginLeft: -130,
-          marginTop: -130,
-          background: `radial-gradient(circle, rgba(255,246,224,${phase.sunOpacity}) 0%, ${phase.lowerGlow} 38%, rgba(255,255,255,0) 72%)`,
-        }}
-        animate={{ x: [-24, 24, -24], scale: [1, 1.05, 1] }}
         transition={{ duration: 24, repeat: Infinity, ease: 'easeInOut' }}
       />
       <motion.div
