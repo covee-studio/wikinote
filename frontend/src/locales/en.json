@@ -7,11 +7,6 @@
   },
   "about": {
     "title": "About Wikinote",
-    "description": "A RedNote-inspired interface for exploring random Wikipedia articles. This project builds upon IsaacGemal's wikitok, enhancing it for a more immersive web browsing experience.",
-    "madeWith": "Made with ❤️ by",
-    "specialThanks": "Special thanks to IsaacGemal for the original inspiration and foundational work.",
-    "checkCode": "Check out the code on",
-    "support": "If you enjoy Wikinote, consider buying me a coffee :)",
     "buyMeCoffee": "Buy me a coffee"
   },
   "likes": {
@@ -33,7 +28,9 @@
     "close": "Close",
     "share": "Share",
     "like": "Like",
-    "copied": "Link copied to clipboard!"
+    "copied": "Link copied to clipboard!",
+    "copiedShort": "Link copied",
+    "copyFailed": "Couldn't copy link"
   },
   "errors": {
     "fetchFailed": "Failed to load articles",

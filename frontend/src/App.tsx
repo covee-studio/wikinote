@@ -50,8 +50,6 @@ function configFingerprint(adapter: SourceAdapter, config: Record<string, string
   return JSON.stringify(normalized)
 }
 
-const ZEN_OPEN_KEY = "zen_open"
-
 function App() {
   const [extraItemsBySource, setExtraItemsBySource] = useState<ItemsBySource>({})
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -73,6 +71,8 @@ function App() {
 
   useEffect(() => {
     setExtraItemsBySource({})
+    setZenIndex(-1)
+    zenRestorePendingRef.current = true
   }, [activeSourceKey])
 
   const queryResults = useQueries({
@@ -115,7 +115,7 @@ function App() {
     if (articles.length === 0) return
     zenRestorePendingRef.current = false
     setZenIndex(Math.floor(Math.random() * articles.length))
-  }, [articles.length])
+  }, [articles])
 
   // Load more when user navigates near the end
   const loadMore = async () => {
@@ -157,18 +157,12 @@ function App() {
     }
   }
 
-  const handleClose = () => {
-    localStorage.removeItem(ZEN_OPEN_KEY)
-    // Reload to get a fresh random article on next open
-    window.location.reload()
-  }
-
   return (
     <ZenMode
       isOpen={true}
+      feedKey={activeSourceKey}
       items={articles}
       initialIndex={zenIndex}
-      onClose={handleClose}
       onNearEnd={loadMore}
     />
   )

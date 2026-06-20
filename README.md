@@ -1,27 +1,28 @@
 # Wikinote
 
-A RedNote-style masonry feed for discovering content from multiple open sources. Inspired by [IsaacGemal/wikitok](https://github.com/IsaacGemal/wikitok), enhanced with a waterfall layout suited for web browsing.
+A new tab that puts one thing in front of you — a single article, quietly chosen at random.
 
-All built-in sources use fully public APIs — no OAuth, no backend proxy, no token required to get started.
+Wikipedia, Hacker News, or your own Memos. A quiet window in the moment between tabs.
 
-## Features
+Built as a fork of [IsaacGemal/wikitok](https://github.com/IsaacGemal/wikitok), shaped along the way with ideas from [几枝](https://github.com/liminalpurr/jizhi).
 
-- Masonry waterfall layout for comfortable web browsing
-- Three content sources out of the box: Wikipedia, Hacker News, and self-hosted Memos
-- 14 languages for Wikipedia (English, Spanish, French, German, Chinese, Japanese, and more)
-- Article and story cards with images, titles, and excerpts
+Wikipedia and Hacker News use public APIs. Memos connects directly to your own instance — no OAuth or backend proxy required.
+
+## What it does
+
+- One article per new tab, refreshed each time
+- Three content sources: Wikipedia, Hacker News, and self-hosted Memos
+- 40 Wikipedia languages
+- 11 visual themes: Waves, Ripples, Mist, Solar, Stars, Paper, Mountains, Bamboo, Ocean, Rainbow, and Snow
+- Time-aware Solar theme that shifts from morning to day, evening, and night
+- Likes saved locally, with export
 - Share articles or copy links
-- Liked articles saved locally
-- Zen mode for distraction-free reading
-- Responsive design for mobile and desktop
-- Chrome Extension (new-tab override) and Progressive Web App (PWA)
+- Chrome Extension new-tab override and Progressive Web App
+- No backend required
 
 ## Tech Stack
 
-- React 18 + TypeScript
-- Tailwind CSS v4
-- Vite
-- No backend required
+React 18 + TypeScript · Tailwind CSS v4 · Vite · Chrome Extension MV3 · PWA
 
 ## Development
 
@@ -35,32 +36,27 @@ npm run dev
 
 The app runs at `http://localhost:5173` by default.
 
-## Building
+## Build
 
 ```bash
-# Web app only
-npm run build:web
-
-# Chrome Extension only
-npm run build:extension
-
-# Both at once
-npm run build:all
+npm run build:web        # web app
+npm run build:extension  # Chrome extension
+npm run build:all        # both
 ```
 
 Output directories (relative to `frontend/`):
+
 - Web: `dist/web/`
 - Extension: `dist/extension/`
 
-## Chrome Extension
+## Install extension (dev)
 
 1. Run `npm run build:extension` in `frontend/`
 2. Open `chrome://extensions/` and enable Developer Mode
 3. Click "Load unpacked" and select `frontend/dist/extension/`
 
-## Deploying the Web App
+## Deploy (Vercel / Netlify)
 
-On Vercel / Netlify:
 - Root directory: `frontend`
 - Build command: `npm run build` (delegates to `build:web`)
 - Output directory: `dist/web`
@@ -69,17 +65,13 @@ On Vercel / Netlify:
 
 | Source | Auth | Notes |
 |--------|------|-------|
-| Wikipedia | None | Random articles across 14 languages |
+| Wikipedia | None | Random articles across 40 languages |
 | Hacker News | None | Top stories via the public HN Firebase API |
 | Memos | API token (your own instance) | Self-hosted [Memos](https://github.com/usememos/memos) personal notes |
 
 Memos requires a self-hosted instance URL and API token, configured in the Sources panel inside the app. Wikipedia and Hacker News work immediately with no setup.
 
-New sources must use a fully public API — no OAuth, no backend proxy. This keeps the app deployable without a server.
-
-## Roadmap
-
-This project intentionally does not include export, tagging, sync, user accounts, or closed-platform integrations (e.g. Product Hunt) in the current roadmap.
+New sources should use a fully public API — no OAuth, no backend proxy. This keeps the app deployable without a server.
 
 ## Support
 

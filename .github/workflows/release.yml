@@ -31,10 +31,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Bump version (push to main → patch)
-        if: github.event_name == 'push'
-        run: node scripts/auto-bump.js
-
       - name: Bump version (PR → beta)
         if: github.event_name == 'pull_request'
         run: node scripts/beta-bump.js

@@ -33,12 +33,14 @@ export default defineConfig({
     }),
   ],
   build: {
-    outDir: "../../dist/web",
+    outDir: resolve(__dirname, "../../dist/web"),
     emptyOutDir: true,
     rollupOptions: {
       output: {
-        manualChunks: {
-          vendor: ['react', 'react-dom'],
+        manualChunks(id) {
+          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
+            return "vendor";
+          }
         },
       },
     },
@@ -55,4 +57,4 @@ export default defineConfig({
     port: 5000,
     allowedHosts: true,
   },
-}); 
+});

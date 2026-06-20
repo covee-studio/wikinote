@@ -135,6 +135,12 @@ html, body {
   color: #1e293b;
 }
 
+/* Loading — gentle breathing ring */
+@keyframes zen-breathe {
+  0%, 100% { opacity: 0.25; transform: scale(0.88); }
+  50%       { opacity: 0.55; transform: scale(1); }
+}
+
 /* High-performance fade-in animation */
 .fade-in {
   animation: fadeIn 0.15s ease-out forwards;

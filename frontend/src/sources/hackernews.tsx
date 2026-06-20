@@ -1,6 +1,8 @@
 import type { DiscoveryItem } from "../types/DiscoveryItem"
-import type { CardRenderProps, LikePreview, SourceAdapter } from "./adapter"
+import type { CardRenderProps, LikePreview, SourceAdapter, ZenContentData } from "./adapter"
 import { TextCard } from "../components/TextCard"
+import { getDomain, formatRelativeTime } from "../utils/formatting"
+import { MessageSquare as MessageSquareIcon } from "lucide-react"
 
 // ─── Raw API shape — internal to this adapter ─────────────────
 export interface HNArticleRaw {
@@ -36,10 +38,6 @@ function pickRandom<T>(arr: T[], count: number): T[] {
     ;[copy[i], copy[j]] = [copy[j], copy[i]]
   }
   return copy.slice(0, count)
-}
-
-function getDomain(url: string): string {
-  try { return new URL(url).hostname.replace(/^www\./, "") } catch { return "" }
 }
 
 function stringToHue(str: string): number {
@@ -133,6 +131,33 @@ export const hackerNewsAdapter: SourceAdapter = {
       url: item.url,
       source: "hackernews",
       score: raw.score,
+    }
+  },
+
+  getZenContent(item: DiscoveryItem): ZenContentData {
+    const raw = item.raw as HNArticleRaw
+    const domain = getDomain(item.url)
+    return {
+      primary: item.title,
+      metaNode: (
+        <span className="inline-flex items-center flex-wrap justify-center gap-x-2 gap-y-1">
+          {domain && <span className="font-mono text-slate-500">{domain}</span>}
+          {domain && <span className="text-slate-300">·</span>}
+          <span><span className="font-medium text-slate-600">{raw.score}</span> points</span>
+          <span className="text-slate-300">·</span>
+          <span className="inline-flex items-center gap-1">
+            <MessageSquareIcon className="w-3 h-3" strokeWidth={2} />
+            <span className="font-medium text-slate-600">{raw.commentCount}</span>
+          </span>
+          <span className="text-slate-300">·</span>
+          <span>{raw.author}</span>
+          <span className="text-slate-300">·</span>
+          <span>{formatRelativeTime(raw.time)}</span>
+        </span>
+      ),
+      accent: '#b3764e',
+      accentText: '#9c603a',
+      sourceLabel: 'Hacker News',
     }
   },
 }

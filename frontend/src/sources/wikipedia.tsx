@@ -2,8 +2,9 @@ import type { Language } from "../types/ArticleProps"
 import type { DiscoveryItem } from "../types/DiscoveryItem"
 import { isSafeArticle } from "../utils/contentSafety"
 import { fetchWithCORS } from "../utils/environment"
-import type { CardRenderProps, FetchConfig, LikePreview, SourceAdapter } from "./adapter"
+import type { CardRenderProps, FetchConfig, LikePreview, SourceAdapter, ZenContentData } from "./adapter"
 import { WikiCard } from "../components/WikiCard"
+import { Clock as ClockIcon } from "lucide-react"
 
 // ─── Raw API shape — internal to this adapter ─────────────────
 // Only this adapter and WikiCard (via cast) ever read these fields.
@@ -34,7 +35,11 @@ const EN_FALLBACK: Language = {
   article: "https://en.wikipedia.org/wiki/",
 }
 
-async function fetchArticles(language: Language): Promise<DiscoveryItem[]> {
+const RANDOM_BATCH_SIZE = "50"
+const MIN_ARTICLES = 12
+const MAX_RANDOM_ATTEMPTS = 3
+
+async function fetchArticleBatch(language: Language): Promise<DiscoveryItem[]> {
   const response = await fetchWithCORS(
     language.api +
       new URLSearchParams({
@@ -44,7 +49,7 @@ async function fetchArticles(language: Language): Promise<DiscoveryItem[]> {
         grnnamespace: "0",
         prop: "extracts|info|pageimages|categories",
         inprop: "url|varianttitles",
-        grnlimit: "30",
+        grnlimit: RANDOM_BATCH_SIZE,
         exintro: "1",
         exlimit: "max",
         exsentences: "5",
@@ -72,7 +77,7 @@ async function fetchArticles(language: Language): Promise<DiscoveryItem[]> {
       thumbnail: page.thumbnail,
       url: page.canonicalurl,
     }))
-    .filter((raw) => raw.thumbnail?.source && raw.url && raw.extract)
+    .filter((raw) => raw.url && raw.extract)
     .map((raw): DiscoveryItem => ({
       id: `wiki-${raw.pageid}`,
       source: "wikipedia",
@@ -80,6 +85,22 @@ async function fetchArticles(language: Language): Promise<DiscoveryItem[]> {
       url: raw.url,
       raw,
     }))
+}
+
+async function fetchArticles(language: Language): Promise<DiscoveryItem[]> {
+  const seen = new Set<string>()
+  const articles: DiscoveryItem[] = []
+
+  for (let attempt = 0; attempt < MAX_RANDOM_ATTEMPTS && articles.length < MIN_ARTICLES; attempt++) {
+    const batch = await fetchArticleBatch(language)
+    for (const item of batch) {
+      if (seen.has(item.id)) continue
+      seen.add(item.id)
+      articles.push(item)
+    }
+  }
+
+  return articles
 }
 
 export const wikipediaAdapter: SourceAdapter = {
@@ -127,6 +148,25 @@ export const wikipediaAdapter: SourceAdapter = {
       source: "wikipedia",
       extract: raw.extract,
       thumbnail: raw.thumbnail?.source ?? null,
+    }
+  },
+
+  getZenContent(item: DiscoveryItem): ZenContentData {
+    const raw = item.raw as WikiArticleRaw
+    const mins = Math.max(1, Math.ceil((raw.extract || '').split(/\s+/).filter(Boolean).length / 200))
+    return {
+      primary: raw.displaytitle,
+      secondary: raw.extract,
+      imageUrl: raw.thumbnail?.source,
+      metaNode: (
+        <span className="inline-flex items-center gap-1.5">
+          <ClockIcon className="w-3 h-3" strokeWidth={2} />
+          {mins} min read
+        </span>
+      ),
+      accent: '#5e7a96',
+      accentText: '#4a6480',
+      sourceLabel: 'Wikipedia',
     }
   },
 }

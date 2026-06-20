@@ -1,17 +1,24 @@
 import type { FC } from 'react'
 import { WavesTheme } from '../components/zen/WavesTheme'
 import { MistTheme } from '../components/zen/MistTheme'
-import { DawnTheme } from '../components/zen/DawnTheme'
-import { ConstellationTheme } from '../components/zen/ConstellationTheme'
+import { ConstellationTheme, ConstellationPreview } from '../components/zen/ConstellationTheme'
 import { PaperTheme } from '../components/zen/PaperTheme'
-import { RipplesTheme } from '../components/zen/RipplesTheme'
+import { RipplesTheme, RipplesPreview } from '../components/zen/RipplesTheme'
+import { MountainsTheme, MountainsPreview } from '../components/zen/MountainsTheme'
+import { BambooTheme, BambooPreview } from '../components/zen/BambooTheme'
+import { OceanTheme, OceanPreview } from '../components/zen/OceanTheme'
+import { RainbowTheme, RainbowPreview } from '../components/zen/RainbowTheme'
+import { SolarTheme, SolarPreview } from '../components/zen/SolarTheme'
+import { SnowTheme, SnowPreview } from '../components/zen/SnowTheme'
 
 export interface ZenTheme {
   id: string
   name: string
   surface: string
-  swatch: string
+  swatch?: string
+  Preview?: FC
   Backdrop: FC
+  dark?: boolean
 }
 
 export const ZEN_THEMES: ZenTheme[] = [
@@ -23,6 +30,13 @@ export const ZEN_THEMES: ZenTheme[] = [
     Backdrop: WavesTheme,
   },
   {
+    id: 'ripples',
+    name: 'Ripples',
+    surface: '#eef2f0',
+    Preview: RipplesPreview,
+    Backdrop: RipplesTheme,
+  },
+  {
     id: 'mist',
     name: 'Mist',
     surface: '#f5f5f4',
@@ -30,18 +44,19 @@ export const ZEN_THEMES: ZenTheme[] = [
     Backdrop: MistTheme,
   },
   {
-    id: 'dawn',
-    name: 'Dawn',
-    surface: '#f3eee9',
-    swatch: 'linear-gradient(180deg, #eef0f3 0%, #f6e8de 70%, #f4ddd0 100%)',
-    Backdrop: DawnTheme,
+    id: 'solar',
+    name: 'Solar',
+    surface: 'linear-gradient(180deg, #c9def4 0%, #f2f7f6 72%, #dce9ed 100%)',
+    Preview: SolarPreview,
+    Backdrop: SolarTheme,
   },
   {
     id: 'constellation',
-    name: 'Constellation',
-    surface: '#f6f6f5',
-    swatch: 'radial-gradient(rgba(100,116,139,0.4) 1.2px, #f3f3f2 1.2px)',
+    name: 'Stars',
+    surface: 'linear-gradient(180deg, #0e1320 0%, #1b2236 50%, #161a28 100%)',
+    Preview: ConstellationPreview,
     Backdrop: ConstellationTheme,
+    dark: true,
   },
   {
     id: 'paper',
@@ -51,11 +66,38 @@ export const ZEN_THEMES: ZenTheme[] = [
     Backdrop: PaperTheme,
   },
   {
-    id: 'ripples',
-    name: 'Ripples',
-    surface: '#eef2f0',
-    swatch:
-      'radial-gradient(circle, transparent 30%, rgba(86,108,98,0.45) 31%, transparent 34%, transparent 52%, rgba(86,108,98,0.32) 53%, transparent 56%, transparent 72%, rgba(86,108,98,0.22) 73%, transparent 76%)',
-    Backdrop: RipplesTheme,
+    id: 'mountains',
+    name: 'Mountains',
+    surface: 'linear-gradient(180deg, #f3ede0 0%, #e9e1cf 100%)',
+    Preview: MountainsPreview,
+    Backdrop: MountainsTheme,
+  },
+  {
+    id: 'bamboo',
+    name: 'Bamboo',
+    surface: 'linear-gradient(180deg, #d9e0dc 0%, #dbe2dd 100%)',
+    Preview: BambooPreview,
+    Backdrop: BambooTheme,
+  },
+  {
+    id: 'ocean',
+    name: 'Ocean',
+    surface: 'linear-gradient(180deg, #e7eef0 0%, #aec6c5 100%)',
+    Preview: OceanPreview,
+    Backdrop: OceanTheme,
+  },
+  {
+    id: 'rainbow',
+    name: 'Rainbow',
+    surface: 'linear-gradient(180deg, #eaeef1 0%, #f1f0ec 70%, #e9ebe7 100%)',
+    Preview: RainbowPreview,
+    Backdrop: RainbowTheme,
+  },
+  {
+    id: 'snow',
+    name: 'Snow',
+    surface: 'linear-gradient(180deg, #e8edf1 0%, #eef1f3 100%)',
+    Preview: SnowPreview,
+    Backdrop: SnowTheme,
   },
 ]

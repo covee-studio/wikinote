@@ -1,6 +1,8 @@
 import type { DiscoveryItem } from "../types/DiscoveryItem"
-import type { CardRenderProps, FetchConfig, LikePreview, SourceAdapter } from "./adapter"
+import type { CardRenderProps, FetchConfig, LikePreview, SourceAdapter, ZenContentData } from "./adapter"
 import { MemoCard } from "../components/MemoCard"
+import { Calendar as CalendarIcon } from "lucide-react"
+import { formatDateLong } from "../utils/formatting"
 
 // ─── Raw shape — internal to this adapter ─────────────────────
 export interface MemoRaw {
@@ -143,6 +145,19 @@ async function fetchMemos(endpoint: string, token: string): Promise<DiscoveryIte
   return shuffleArray(items)
 }
 
+// ─── Zen mode helpers ─────────────────────────────────────────
+function stripHashtagLines(content: string): string {
+  return content
+    .split('\n')
+    .filter((line) => {
+      const t = line.trim()
+      if (!t) return true
+      return !t.split(/\s+/).every((tok) => tok.startsWith('#'))
+    })
+    .join('\n')
+    .trim()
+}
+
 // ─── Gradient helpers (same as TextCard / HN) ─────────────────
 function stringToHue(str: string): number {
   let hash = 0
@@ -231,6 +246,33 @@ export const memosAdapter: SourceAdapter = {
       content: raw.content,
       tags: raw.tags,
       displayTime: raw.displayTime,
+    }
+  },
+
+  getZenContent(item: DiscoveryItem): ZenContentData {
+    const raw = item.raw as MemoRaw
+    const primary = stripHashtagLines(raw.content)
+    return {
+      primary,
+      primaryWeight: 400,
+      metaNode: (
+        <span className="inline-flex items-center gap-3">
+          <span className="inline-flex items-center gap-1.5">
+            <CalendarIcon className="w-3 h-3" strokeWidth={2} />
+            {formatDateLong(raw.displayTime)}
+          </span>
+          {raw.tags.length > 0 && (
+            <>
+              <span className="w-1 h-1 rounded-full bg-slate-300" />
+              <span className="font-mono">{raw.tags.slice(0, 4).map((t) => `#${t}`).join('  ')}</span>
+            </>
+          )}
+        </span>
+      ),
+      accent: '#867b9a',
+      accentText: '#6e6383',
+      sourceLabel: 'Memos',
+      noLink: true,
     }
   },
 }
