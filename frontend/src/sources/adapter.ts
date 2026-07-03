@@ -47,6 +47,9 @@ export interface ZenContentData {
   sourceLabel: string
   /** When true, no external link is rendered (e.g. Memos, where URLs are private/invalid) */
   noLink?: boolean
+  /** When true, the primary text block is rendered in a scrollable container with a max height.
+   *  Use for sources like Memos where content can be arbitrarily long. */
+  scrollable?: boolean
 }
 
 export interface SourceConfigField {
