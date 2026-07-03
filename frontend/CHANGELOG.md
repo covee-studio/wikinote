@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v2.0.1 - 2026-07-03
+
+- Fixed: Long Memos entries now scroll inside Zen mode instead of overflowing the viewport.
+- Fixed: Memos batches now cycle through non-overlapping windows and refresh the displayed Zen item after each new batch.
+- Release: Web app and Chrome extension versions are synchronized at 2.0.1.
+
 ## v2.0.0 - 2026-06-15
 
 - Added: Zen mode is now the primary new-tab experience, with animated visual themes and an automatic theme option.
