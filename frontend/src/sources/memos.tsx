@@ -226,6 +226,7 @@ export const memosAdapter: SourceAdapter = {
   // even within the global feed-cache TTL window. initialData still shows
   // cached cards instantly; the background refetch swaps in the next window.
   cacheTtlMs: 0,
+  replaceAnchorOnRefetch: true,
   configSchema: [
     {
       key: "endpoint",
