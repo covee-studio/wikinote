@@ -79,34 +79,82 @@ function shuffleArray<T>(arr: T[]): T[] {
   return arr
 }
 
+// ── Window-cycling cursor ─────────────────────────────────────
+// Divides the full history into non-overlapping PAGE_SIZE windows and
+// cycles through them in order. This guarantees every note is surfaced
+// before any repeats, regardless of totalSize.
+interface MemosCursor {
+  windowIndex: number   // which window we'll fetch NEXT
+  totalWindows: number  // how many windows exist for the current totalSize
+  totalSize: number     // snapshot of totalSize when cursor was written
+}
+
+function cursorKey(endpointHash: string): string {
+  return `wikinote-memos-cursor-${endpointHash}`
+}
+
+function endpointHash(base: string): string {
+  let h = 5381
+  for (let i = 0; i < base.length; i++) h = (h * 33) ^ base.charCodeAt(i)
+  return (h >>> 0).toString(36)
+}
+
+function readCursor(key: string): MemosCursor | null {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as MemosCursor) : null
+  } catch { return null }
+}
+
+function writeCursor(key: string, cursor: MemosCursor): void {
+  try { localStorage.setItem(key, JSON.stringify(cursor)) } catch { /* quota */ }
+}
+
 async function fetchMemos(endpoint: string, token: string): Promise<DiscoveryItem[]> {
   const base = endpoint.replace(/\/$/, "")
   const headers = { Authorization: `Bearer ${token}` }
   const PAGE_SIZE = 30
 
-  // ── Step 1: lightweight probe to discover total note count ──────────────
-  // Memos v0.22+ returns { memos: [...], totalSize: N } when pageSize=1.
-  // If the field is absent (older instances), we fall back gracefully.
-  let randomOffset = 0
+  // ── Step 1: probe for total note count ──────────────────────────────────
+  let totalSize = 0
   try {
     const probeResp = await fetch(`${base}/api/v1/memos?pageSize=1`, { headers })
     if (probeResp.ok) {
       const probeData = await probeResp.json()
-      const totalSize: number = typeof probeData.totalSize === "number" ? probeData.totalSize : 0
-      if (totalSize > PAGE_SIZE) {
-        // Pick a random starting position anywhere in the full history
-        randomOffset = Math.floor(Math.random() * (totalSize - PAGE_SIZE + 1))
-      }
+      totalSize = typeof probeData.totalSize === "number" ? probeData.totalSize : 0
     }
-  } catch {
-    // probe failed — continue with offset 0 (most recent notes)
+  } catch { /* probe failed — offset stays 0 */ }
+
+  // ── Step 2: pick the next non-overlapping window ─────────────────────────
+  // If totalSize is known, cycle through all windows; otherwise fall back to
+  // a random offset so at least different sessions see different notes.
+  let offset = 0
+  if (totalSize > PAGE_SIZE) {
+    const ck = cursorKey(endpointHash(base))
+    const totalWindows = Math.ceil(totalSize / PAGE_SIZE)
+    const saved = readCursor(ck)
+
+    // Reset cursor if totalSize changed significantly (user added/deleted notes)
+    const stale = saved && Math.abs(saved.totalSize - totalSize) > PAGE_SIZE
+    const windowIndex = (!saved || stale) ? 0 : saved.windowIndex
+
+    offset = windowIndex * PAGE_SIZE
+    // Clamp in case totalSize shrank
+    if (offset + PAGE_SIZE > totalSize) offset = Math.max(0, totalSize - PAGE_SIZE)
+
+    // Advance and wrap for next call
+    writeCursor(ck, {
+      windowIndex: (windowIndex + 1) % totalWindows,
+      totalWindows,
+      totalSize,
+    })
+  } else if (totalSize > 0) {
+    // Fewer notes than one page — random offset within the available range
+    offset = Math.floor(Math.random() * Math.max(1, totalSize - PAGE_SIZE + 1))
   }
 
-  // ── Step 2: fetch the actual page from the random position ──────────────
-  const url = randomOffset > 0
-    ? `${base}/api/v1/memos?pageSize=${PAGE_SIZE}&offset=${randomOffset}`
-    : `${base}/api/v1/memos?pageSize=${PAGE_SIZE}`
-
+  // ── Step 3: fetch the window ─────────────────────────────────────────────
+  const url = `${base}/api/v1/memos?pageSize=${PAGE_SIZE}&offset=${offset}`
   const resp = await fetch(url, { headers })
   if (!resp.ok) throw new Error(`Memos API error: ${resp.status}`)
 
@@ -141,7 +189,7 @@ async function fetchMemos(endpoint: string, token: string): Promise<DiscoveryIte
       }
     })
 
-  // Shuffle so every page load surfaces different notes across time, not just the newest
+  // Shuffle within the window so notes don't always appear in chronological order
   return shuffleArray(items)
 }
 
@@ -255,6 +303,7 @@ export const memosAdapter: SourceAdapter = {
     return {
       primary,
       primaryWeight: 400,
+      scrollable: true,
       metaNode: (
         <span className="inline-flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5">
