@@ -126,21 +126,21 @@ async function fetchMemos(endpoint: string, token: string): Promise<DiscoveryIte
   } catch { /* probe failed — offset stays 0 */ }
 
   // ── Step 2: pick the next non-overlapping window ─────────────────────────
-  // If totalSize is known, cycle through all windows; otherwise fall back to
-  // a random offset so at least different sessions see different notes.
+  // Divides history into ceil(totalSize / PAGE_SIZE) windows. The last window
+  // may return fewer than PAGE_SIZE items — that's fine and avoids overlap.
+  // Never clamp the offset to totalSize - PAGE_SIZE (that would cause the last
+  // two windows to overlap by up to PAGE_SIZE - 1 items).
   let offset = 0
-  if (totalSize > PAGE_SIZE) {
+  if (totalSize > 0) {
     const ck = cursorKey(endpointHash(base))
     const totalWindows = Math.ceil(totalSize / PAGE_SIZE)
     const saved = readCursor(ck)
 
-    // Reset cursor if totalSize changed significantly (user added/deleted notes)
-    const stale = saved && Math.abs(saved.totalSize - totalSize) > PAGE_SIZE
-    const windowIndex = (!saved || stale) ? 0 : saved.windowIndex
+    // Reset cursor whenever totalSize changed at all — Memos is time-ordered,
+    // so even one new note shifts all offset boundaries.
+    const windowIndex = (!saved || saved.totalSize !== totalSize) ? 0 : saved.windowIndex
 
     offset = windowIndex * PAGE_SIZE
-    // Clamp in case totalSize shrank
-    if (offset + PAGE_SIZE > totalSize) offset = Math.max(0, totalSize - PAGE_SIZE)
 
     // Advance and wrap for next call
     writeCursor(ck, {
@@ -148,9 +148,6 @@ async function fetchMemos(endpoint: string, token: string): Promise<DiscoveryIte
       totalWindows,
       totalSize,
     })
-  } else if (totalSize > 0) {
-    // Fewer notes than one page — random offset within the available range
-    offset = Math.floor(Math.random() * Math.max(1, totalSize - PAGE_SIZE + 1))
   }
 
   // ── Step 3: fetch the window ─────────────────────────────────────────────
@@ -225,6 +222,10 @@ export const memosAdapter: SourceAdapter = {
   description: "Your personal notes from a self-hosted Memos instance.",
   color: "#8b5cf6",
   requiresConfig: true,
+  // Always refetch on mount so the window cursor advances on every new tab,
+  // even within the global feed-cache TTL window. initialData still shows
+  // cached cards instantly; the background refetch swaps in the next window.
+  cacheTtlMs: 0,
   configSchema: [
     {
       key: "endpoint",
@@ -303,7 +304,7 @@ export const memosAdapter: SourceAdapter = {
     return {
       primary,
       primaryWeight: 400,
-      scrollable: true,
+      primaryScrollable: { maxHeightVh: 55 },
       metaNode: (
         <span className="inline-flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5">
