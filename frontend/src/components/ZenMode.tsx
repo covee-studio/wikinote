@@ -28,20 +28,31 @@ function primarySize(len: number): string {
 }
 
 function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
-  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, accent, accentText, sourceLabel, noLink } =
+  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, accent, accentText, sourceLabel, noLink, scrollable } =
     getAdapter(item.source).getZenContent(item)
 
   const linkProps = !noLink ? { href: item.url, target: '_blank' as const, rel: 'noopener noreferrer' } : null
   const imageStyle = { width: 120, height: 120, objectFit: 'cover' as const, flexShrink: 0 }
 
+  const primaryEl = (
+    <p
+      className={`font-serif-display whitespace-pre-line mx-auto max-w-[680px] ${dark ? 'text-slate-50' : 'text-slate-900'}`}
+      style={{ fontSize: primarySize(primary.length), lineHeight: 1.5, letterSpacing: '-0.005em', fontWeight: primaryWeight }}
+    >
+      {primary}
+    </p>
+  )
+
   const textBlock = (
     <>
-      <p
-        className={`font-serif-display whitespace-pre-line mx-auto max-w-[680px] ${dark ? 'text-slate-50' : 'text-slate-900'}`}
-        style={{ fontSize: primarySize(primary.length), lineHeight: 1.5, letterSpacing: '-0.005em', fontWeight: primaryWeight }}
-      >
-        {primary}
-      </p>
+      {scrollable ? (
+        <div
+          className={`overflow-y-auto w-full max-w-[680px] mx-auto text-left rounded-lg px-2 ${dark ? 'scrollbar-dark' : ''}`}
+          style={{ maxHeight: '55vh' }}
+        >
+          {primaryEl}
+        </div>
+      ) : primaryEl}
       {secondary && (
         <p
           className={`font-serif-display leading-[1.75] mx-auto max-w-[600px] mt-6 line-clamp-4 ${dark ? 'text-slate-300' : 'text-slate-500'}`}
@@ -54,7 +65,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
   )
 
   return (
-    <article className="text-center flex flex-col items-center">
+    <article className="text-center flex flex-col items-center w-full">
       {imageUrl && (
         linkProps ? (
           <a {...linkProps} className="hover:opacity-80 transition-opacity mb-8">
@@ -82,7 +93,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
       </div>
       <div aria-hidden className="mx-auto mb-7 h-[2px] w-10 rounded-full" style={{ backgroundColor: accent, opacity: 0.5 }} />
       {linkProps ? (
-        <a {...linkProps} className="flex flex-col items-center hover:opacity-80 transition-opacity">
+        <a {...linkProps} className="flex flex-col items-center hover:opacity-80 transition-opacity w-full">
           {textBlock}
         </a>
       ) : textBlock}
