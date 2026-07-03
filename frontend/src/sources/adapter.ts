@@ -76,6 +76,12 @@ export interface SourceAdapter {
    *  Set to 0 to always refetch on mount while still showing cached data instantly.
    *  Defaults to the global CACHE_TTL_MS when absent. */
   readonly cacheTtlMs?: number
+  /** When true, ZenMode replaces the initial anchor item after a background refetch
+   *  completes with new data. Use for sources like Memos where each refetch returns a
+   *  deliberately different window — the user should see the new batch, not stay pinned
+   *  to a cached item that no longer exists in the current list.
+   *  Leave false/absent for sources like Wikipedia where anchor stability is preferred. */
+  readonly replaceAnchorOnRefetch?: boolean
 
   /** Fetch a batch of items for the feed */
   fetch(config?: FetchConfig): Promise<DiscoveryItem[]>
