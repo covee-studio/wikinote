@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v2.0.2 - 2026-07-03
+
+- Chore: 1 task(s)
+
+
 ## v2.0.1 - 2026-07-03
 
 - Fixed: Long Memos entries now scroll inside Zen mode instead of overflowing the viewport.

@@ -1,9 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Wikinote",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "A new tab for discovering articles from Wikipedia, Hacker News, and your own notes.",
-  "permissions": ["storage", "unlimitedStorage"],
+  "permissions": [
+    "storage",
+    "unlimitedStorage"
+  ],
   "host_permissions": [
     "https://*.wikipedia.org/*",
     "https://hacker-news.firebaseio.com/*"
