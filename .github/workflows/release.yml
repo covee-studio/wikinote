@@ -38,6 +38,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
 
+      - name: Bump version (push to main)
+        if: github.event_name == 'push'
+        run: node scripts/auto-bump.js
+
       - name: Build extension
         run: npm run build:extension
 
@@ -59,6 +63,12 @@ jobs:
 
       - name: Rename artifact with version
         run: mv dist/wikinote-extension.zip dist/wikinote-extension-v${{ steps.version.outputs.version }}.zip
+
+      - name: Push release commit and tag
+        if: github.event_name == 'push'
+        run: |
+          git push origin HEAD:${GITHUB_REF_NAME}
+          git push origin --tags
 
       - name: Create release (push to main)
         if: github.event_name == 'push'

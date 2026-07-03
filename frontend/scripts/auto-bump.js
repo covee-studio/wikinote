@@ -10,11 +10,27 @@ function incPatch(version) {
   return `${Number(major)}.${Number(minor)}.${Number(patch) + 1}`;
 }
 
-function getLastTag() {
+function tagName(version) {
+  return `v${version}`;
+}
+
+function tagExists(tag) {
   try {
-    return execSync('git describe --tags --abbrev=0', { stdio: ['ignore', 'pipe', 'ignore'] })
-      .toString()
-      .trim();
+    execSync(`git rev-parse --verify --quiet refs/tags/${tag}`, { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function getLastStableTag() {
+  try {
+    const out = execSync('git tag --list "v*" --sort=-v:refname', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString();
+    return out
+      .split('\n')
+      .map((s) => s.trim())
+      .find((tag) => /^v\d+\.\d+\.\d+$/.test(tag)) ?? null;
   } catch {
     return null;
   }
@@ -33,6 +49,26 @@ function getCommitsSince(ref) {
   } catch {
     return [];
   }
+}
+
+function hasChangelogEntry(content, version) {
+  return new RegExp(`^## v${version.replace(/\./g, '\\.')}\\b`, 'm').test(content);
+}
+
+function writeChangelogEntry(changelogPath, version, summary) {
+  const date = new Date().toISOString().slice(0, 10);
+  const entry = `\n## v${version} - ${date}\n\n${summary}\n`;
+  let existing = '';
+  if (existsSync(changelogPath)) {
+    existing = readFileSync(changelogPath, 'utf8');
+  } else {
+    existing = '# Changelog\n\nAll notable changes to this project will be documented in this file.\n';
+  }
+  if (hasChangelogEntry(existing, version)) return;
+  const updated = existing.startsWith('# Changelog')
+    ? existing.replace(/^(# Changelog[^\n]*\n(\n[^\n]*\n)?)/, `$1${entry}\n`)
+    : `# Changelog\n\n${entry}\n${existing}`;
+  writeFileSync(changelogPath, updated.trim() + '\n', 'utf8');
 }
 
 function summarizeCommitsEnglish(subjects) {
@@ -88,42 +124,46 @@ function main() {
 
   const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
   const oldVersion = pkg.version;
-  const newVersion = incPatch(oldVersion);
+  // If the current version already has a stable tag, this push contains new
+  // changes and should get a patch bump. If the current version is untagged,
+  // respect it (for example a PR that intentionally bumped minor/major).
+  const newVersion = tagExists(tagName(oldVersion)) ? incPatch(oldVersion) : oldVersion;
 
   // Analyze commits
-  const lastTag = getLastTag();
+  const lastTag = getLastStableTag();
   const subjects = getCommitsSince(lastTag);
   const summary = summarizeCommitsEnglish(subjects);
 
   // Update package.json
-  pkg.version = newVersion;
-  writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+  if (pkg.version !== newVersion) {
+    pkg.version = newVersion;
+    writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf8');
+  }
 
   // Update manifest.json
   const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
-  manifest.version = newVersion;
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
-
-  // Update CHANGELOG.md (prepend English-only entry)
-  const date = new Date().toISOString().slice(0, 10);
-  const entry = `\n## v${newVersion} - ${date}\n\n${summary}\n`;
-  let existing = '';
-  if (existsSync(changelogPath)) {
-    existing = readFileSync(changelogPath, 'utf8');
-  } else {
-    existing = '# Changelog\n\nAll notable changes to this project will be documented in this file.\n';
+  if (manifest.version !== newVersion) {
+    manifest.version = newVersion;
+    writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n', 'utf8');
   }
-  const updated = existing.startsWith('# Changelog')
-    ? existing.replace(/^(# Changelog[^\n]*\n(\n[^\n]*\n)?)/, `$1${entry}\n`)
-    : `# Changelog\n\n${entry}\n${existing}`;
-  writeFileSync(changelogPath, updated.trim() + '\n', 'utf8');
+
+  // Update CHANGELOG.md (prepend English-only entry if missing)
+  writeChangelogEntry(changelogPath, newVersion, summary);
 
   // Git commit and tag (with [skip ci])
   execSync('git config user.name "github-actions[bot]"');
   execSync('git config user.email "github-actions[bot]@users.noreply.github.com"');
-  execSync('git add -A', { stdio: 'inherit' });
-  execSync(`git commit -m "chore(release): v${newVersion} [skip ci]"`, { stdio: 'inherit' });
-  execSync(`git tag v${newVersion}`, { stdio: 'inherit' });
+  const changed = execSync('git status --short', { stdio: ['ignore', 'pipe', 'ignore'] })
+    .toString()
+    .trim();
+  if (changed) {
+    execSync('git add -A', { stdio: 'inherit' });
+    execSync(`git commit -m "chore(release): v${newVersion} [skip ci]"`, { stdio: 'inherit' });
+  }
+  const releaseTag = tagName(newVersion);
+  if (!tagExists(releaseTag)) {
+    execSync(`git tag ${releaseTag}`, { stdio: 'inherit' });
+  }
 
   console.log(`Bumped to v${newVersion}`);
 }
