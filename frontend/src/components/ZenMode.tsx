@@ -28,7 +28,7 @@ function primarySize(len: number): string {
 }
 
 function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
-  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, accent, accentText, sourceLabel, noLink, scrollable } =
+  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, accent, accentText, sourceLabel, noLink, primaryScrollable } =
     getAdapter(item.source).getZenContent(item)
 
   const linkProps = !noLink ? { href: item.url, target: '_blank' as const, rel: 'noopener noreferrer' } : null
@@ -45,10 +45,10 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
 
   const textBlock = (
     <>
-      {scrollable ? (
+      {primaryScrollable ? (
         <div
           className={`overflow-y-auto w-full max-w-[680px] mx-auto text-left rounded-lg px-2 ${dark ? 'scrollbar-dark' : ''}`}
-          style={{ maxHeight: '55vh' }}
+          style={{ maxHeight: `${primaryScrollable.maxHeightVh}vh` }}
         >
           {primaryEl}
         </div>
