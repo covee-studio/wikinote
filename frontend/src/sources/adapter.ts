@@ -47,9 +47,9 @@ export interface ZenContentData {
   sourceLabel: string
   /** When true, no external link is rendered (e.g. Memos, where URLs are private/invalid) */
   noLink?: boolean
-  /** When true, the primary text block is rendered in a scrollable container with a max height.
-   *  Use for sources like Memos where content can be arbitrarily long. */
-  scrollable?: boolean
+  /** When set, the primary text block is rendered in a scrollable container capped at this
+   *  viewport-height fraction. Use for sources like Memos where content is arbitrarily long. */
+  primaryScrollable?: { maxHeightVh: number }
 }
 
 export interface SourceConfigField {
@@ -72,6 +72,10 @@ export interface SourceAdapter {
   /** If true, source requires config before it can return data.
    *  These sources are excluded from the default-enabled set. */
   readonly requiresConfig?: boolean
+  /** Override the feed cache stale time (ms) for this source.
+   *  Set to 0 to always refetch on mount while still showing cached data instantly.
+   *  Defaults to the global CACHE_TTL_MS when absent. */
+  readonly cacheTtlMs?: number
 
   /** Fetch a batch of items for the feed */
   fetch(config?: FetchConfig): Promise<DiscoveryItem[]>
