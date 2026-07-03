@@ -47,6 +47,9 @@ export interface ZenContentData {
   sourceLabel: string
   /** When true, no external link is rendered (e.g. Memos, where URLs are private/invalid) */
   noLink?: boolean
+  /** When set, the primary text block is rendered in a scrollable container capped at this
+   *  viewport-height fraction. Use for sources like Memos where content is arbitrarily long. */
+  primaryScrollable?: { maxHeightVh: number }
 }
 
 export interface SourceConfigField {
@@ -69,6 +72,16 @@ export interface SourceAdapter {
   /** If true, source requires config before it can return data.
    *  These sources are excluded from the default-enabled set. */
   readonly requiresConfig?: boolean
+  /** Override the feed cache stale time (ms) for this source.
+   *  Set to 0 to always refetch on mount while still showing cached data instantly.
+   *  Defaults to the global CACHE_TTL_MS when absent. */
+  readonly cacheTtlMs?: number
+  /** When true, ZenMode replaces the initial anchor item after a background refetch
+   *  completes with new data. Use for sources like Memos where each refetch returns a
+   *  deliberately different window — the user should see the new batch, not stay pinned
+   *  to a cached item that no longer exists in the current list.
+   *  Leave false/absent for sources like Wikipedia where anchor stability is preferred. */
+  readonly replaceAnchorOnRefetch?: boolean
 
   /** Fetch a batch of items for the feed */
   fetch(config?: FetchConfig): Promise<DiscoveryItem[]>

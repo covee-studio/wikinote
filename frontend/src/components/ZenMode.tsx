@@ -15,6 +15,12 @@ import { SourcesModal } from './SourcesModal'
 interface ZenModeProps {
   isOpen: boolean
   feedKey: string
+  /** Incremented by App when a replaceAnchorOnRefetch source gets a new batch.
+   *  Resets the anchor independently of feedKey — feedKey handles full source
+   *  config resets (which also clear extraItems); anchorKey handles only the
+   *  displayed item so the user sees the new Memos window without losing
+   *  any loaded-more content. */
+  anchorKey: number
   items: DiscoveryItem[]
   initialIndex: number
   onNearEnd?: () => void
@@ -28,20 +34,31 @@ function primarySize(len: number): string {
 }
 
 function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
-  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, accent, accentText, sourceLabel, noLink } =
+  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, accent, accentText, sourceLabel, noLink, primaryScrollable } =
     getAdapter(item.source).getZenContent(item)
 
   const linkProps = !noLink ? { href: item.url, target: '_blank' as const, rel: 'noopener noreferrer' } : null
   const imageStyle = { width: 120, height: 120, objectFit: 'cover' as const, flexShrink: 0 }
 
+  const primaryEl = (
+    <p
+      className={`font-serif-display whitespace-pre-line mx-auto max-w-[680px] ${dark ? 'text-slate-50' : 'text-slate-900'}`}
+      style={{ fontSize: primarySize(primary.length), lineHeight: 1.5, letterSpacing: '-0.005em', fontWeight: primaryWeight }}
+    >
+      {primary}
+    </p>
+  )
+
   const textBlock = (
     <>
-      <p
-        className={`font-serif-display whitespace-pre-line mx-auto max-w-[680px] ${dark ? 'text-slate-50' : 'text-slate-900'}`}
-        style={{ fontSize: primarySize(primary.length), lineHeight: 1.5, letterSpacing: '-0.005em', fontWeight: primaryWeight }}
-      >
-        {primary}
-      </p>
+      {primaryScrollable ? (
+        <div
+          className={`overflow-y-auto w-full max-w-[680px] mx-auto text-left rounded-lg px-2 ${dark ? 'scrollbar-dark' : ''}`}
+          style={{ maxHeight: `${primaryScrollable.maxHeightVh}vh` }}
+        >
+          {primaryEl}
+        </div>
+      ) : primaryEl}
       {secondary && (
         <p
           className={`font-serif-display leading-[1.75] mx-auto max-w-[600px] mt-6 line-clamp-4 ${dark ? 'text-slate-300' : 'text-slate-500'}`}
@@ -54,7 +71,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
   )
 
   return (
-    <article className="text-center flex flex-col items-center">
+    <article className="text-center flex flex-col items-center w-full">
       {imageUrl && (
         linkProps ? (
           <a {...linkProps} className="hover:opacity-80 transition-opacity mb-8">
@@ -82,7 +99,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
       </div>
       <div aria-hidden className="mx-auto mb-7 h-[2px] w-10 rounded-full" style={{ backgroundColor: accent, opacity: 0.5 }} />
       {linkProps ? (
-        <a {...linkProps} className="flex flex-col items-center hover:opacity-80 transition-opacity">
+        <a {...linkProps} className="flex flex-col items-center hover:opacity-80 transition-opacity w-full">
           {textBlock}
         </a>
       ) : textBlock}
@@ -113,7 +130,7 @@ function ChromeButton({
 
 type ModalKey = 'sources' | 'likes' | 'about' | null
 
-export function ZenMode({ isOpen, feedKey, items, initialIndex, onNearEnd }: ZenModeProps) {
+export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNearEnd }: ZenModeProps) {
   const [currentItemId, setCurrentItemId] = useState<string | null>(null)
   // When items is rebuilt with a completely different random batch (Wikipedia uses
   // generator=random so each fetch returns new article IDs), currentItemId may not
@@ -162,6 +179,15 @@ export function ZenMode({ isOpen, feedKey, items, initialIndex, onNearEnd }: Zen
     setCurrentItemId(null)
     anchoredItemRef.current = null
   }, [feedKey])
+
+  // anchorKey is incremented by App when a replaceAnchorOnRefetch source (e.g. Memos)
+  // delivers a new batch. Reset anchor so the initialIndex effect below picks up the
+  // new batch's starting item. anchorKey=0 is the initial value — skip it.
+  useEffect(() => {
+    if (anchorKey === 0) return
+    setCurrentItemId(null)
+    anchoredItemRef.current = null
+  }, [anchorKey])
 
   // Set the anchor item once: when items arrive and a valid initialIndex is known.
   // Guard on currentItemId===null ensures we never overwrite the user's navigation.
