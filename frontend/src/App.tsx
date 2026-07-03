@@ -1,5 +1,5 @@
 import { useQueries } from "@tanstack/react-query"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ZenMode } from "./components/ZenMode"
 import { useSources } from "./contexts/SourcesContext"
 import { useToast } from "./contexts/ToastContext"
@@ -54,12 +54,18 @@ function App() {
   const [extraItemsBySource, setExtraItemsBySource] = useState<ItemsBySource>({})
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [zenIndex, setZenIndex] = useState(-1)
+  // Incremented each time a replaceAnchorOnRefetch source gets fresh data.
+  // Passed to ZenMode so it can reset the anchor independently of feedKey.
+  const [anchorKey, setAnchorKey] = useState(0)
 
   const { currentLanguage, ready } = useLocalization()
   const { enabledSources, getSourceConfig } = useSources()
   const { showToast } = useToast()
 
   const zenRestorePendingRef = useRef(true)
+  // Tracks the last-seen dataUpdatedAt per adapter so we can detect genuine
+  // refetches (dataUpdatedAt changed from a previously recorded non-zero value).
+  const prevDataUpdatedAtRef = useRef<Partial<Record<SourceId, number>>>({})
 
   const activeAdapters = ADAPTER_LIST.filter((a) => enabledSources.has(a.id))
   const activeSourceKey = activeAdapters
@@ -73,6 +79,8 @@ function App() {
     setExtraItemsBySource({})
     setZenIndex(-1)
     zenRestorePendingRef.current = true
+    // Reset per-adapter dataUpdatedAt tracking when source config changes
+    prevDataUpdatedAtRef.current = {}
   }, [activeSourceKey])
 
   const queryResults = useQueries({
@@ -111,6 +119,36 @@ function App() {
       ])
     )
   )
+
+  // Detect when a replaceAnchorOnRefetch adapter gets genuinely new data.
+  // This effect is declared BEFORE the articles→zenIndex effect so that within
+  // the same render batch where queryResults change, we set
+  // zenRestorePendingRef.current=true first — then the articles effect below
+  // sees it and picks a fresh zenIndex from the new batch.
+  const dataUpdatedAtKey = activeAdapters
+    .map((a, i) => `${a.id}:${queryResults[i]?.dataUpdatedAt ?? 0}`)
+    .join(',')
+  // useCallback to avoid stale closure over activeAdapters/queryResults
+  const detectRefetch = useCallback(() => {
+    activeAdapters.forEach((adapter, i) => {
+      if (!adapter.replaceAnchorOnRefetch) return
+      const result = queryResults[i]
+      if (!result || result.isFetching) return
+      const current = result.dataUpdatedAt ?? 0
+      if (current === 0) return
+      const prev = prevDataUpdatedAtRef.current[adapter.id] ?? 0
+      if (current !== prev) {
+        const isGenuineRefetch = prev > 0 // prev=0 means very first load; >0 means real refetch
+        prevDataUpdatedAtRef.current[adapter.id] = current
+        if (isGenuineRefetch) {
+          zenRestorePendingRef.current = true
+          setAnchorKey((k) => k + 1)
+        }
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dataUpdatedAtKey])
+  useEffect(() => { detectRefetch() }, [detectRefetch])
 
   // Pick a random starting index once articles arrive
   useEffect(() => {
@@ -164,6 +202,7 @@ function App() {
     <ZenMode
       isOpen={true}
       feedKey={activeSourceKey}
+      anchorKey={anchorKey}
       items={articles}
       initialIndex={zenIndex}
       onNearEnd={loadMore}
