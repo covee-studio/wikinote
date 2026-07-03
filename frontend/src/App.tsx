@@ -95,7 +95,10 @@ function App() {
         retry: 1,
         initialData: cached?.items,
         initialDataUpdatedAt: cached?.timestamp ?? 0,
-        staleTime: CACHE_TTL_MS,
+        // Per-adapter override: Memos sets cacheTtlMs=0 so every mount triggers
+        // a refetch (advancing the window cursor) while still showing cached
+        // items instantly via initialData. Other sources use the global TTL.
+        staleTime: adapter.cacheTtlMs ?? CACHE_TTL_MS,
       }
     }),
   })
