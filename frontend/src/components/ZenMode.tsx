@@ -15,6 +15,12 @@ import { SourcesModal } from './SourcesModal'
 interface ZenModeProps {
   isOpen: boolean
   feedKey: string
+  /** Incremented by App when a replaceAnchorOnRefetch source gets a new batch.
+   *  Resets the anchor independently of feedKey — feedKey handles full source
+   *  config resets (which also clear extraItems); anchorKey handles only the
+   *  displayed item so the user sees the new Memos window without losing
+   *  any loaded-more content. */
+  anchorKey: number
   items: DiscoveryItem[]
   initialIndex: number
   onNearEnd?: () => void
@@ -124,7 +130,7 @@ function ChromeButton({
 
 type ModalKey = 'sources' | 'likes' | 'about' | null
 
-export function ZenMode({ isOpen, feedKey, items, initialIndex, onNearEnd }: ZenModeProps) {
+export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNearEnd }: ZenModeProps) {
   const [currentItemId, setCurrentItemId] = useState<string | null>(null)
   // When items is rebuilt with a completely different random batch (Wikipedia uses
   // generator=random so each fetch returns new article IDs), currentItemId may not
@@ -173,6 +179,15 @@ export function ZenMode({ isOpen, feedKey, items, initialIndex, onNearEnd }: Zen
     setCurrentItemId(null)
     anchoredItemRef.current = null
   }, [feedKey])
+
+  // anchorKey is incremented by App when a replaceAnchorOnRefetch source (e.g. Memos)
+  // delivers a new batch. Reset anchor so the initialIndex effect below picks up the
+  // new batch's starting item. anchorKey=0 is the initial value — skip it.
+  useEffect(() => {
+    if (anchorKey === 0) return
+    setCurrentItemId(null)
+    anchoredItemRef.current = null
+  }, [anchorKey])
 
   // Set the anchor item once: when items arrive and a valid initialIndex is known.
   // Guard on currentItemId===null ensures we never overwrite the user's navigation.
