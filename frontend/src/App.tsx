@@ -50,6 +50,12 @@ function configFingerprint(adapter: SourceAdapter, config: Record<string, string
   return JSON.stringify(normalized)
 }
 
+/** Returns true only when every required config field has a non-empty value. */
+function isFullyConfigured(adapter: SourceAdapter, config: Record<string, string>): boolean {
+  if (!adapter.requiresConfig || !adapter.configSchema) return true
+  return adapter.configSchema.every((f) => config[f.key]?.trim())
+}
+
 function App() {
   const [extraItemsBySource, setExtraItemsBySource] = useState<ItemsBySource>({})
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -71,7 +77,15 @@ function App() {
   const activeSourceKey = activeAdapters
     .map((adapter) => {
       const langId = adapter.id === "wikipedia" ? currentLanguage.id : ""
-      return `${adapter.id}:${langId}:${configFingerprint(adapter, getSourceConfig(adapter.id))}`
+      const config = getSourceConfig(adapter.id)
+      // Use a stable placeholder while the user is mid-typing so that
+      // activeSourceKey (and therefore zenIndex / zenRestorePendingRef) don't
+      // thrash on every keystroke. The real fingerprint is only included once
+      // ALL required fields have non-empty values.
+      const cfgStr = isFullyConfigured(adapter, config)
+        ? configFingerprint(adapter, config)
+        : "__unconfigured__"
+      return `${adapter.id}:${langId}:${cfgStr}`
     })
     .join("|")
 
@@ -87,7 +101,11 @@ function App() {
     queries: activeAdapters.map((adapter) => {
       const langId = adapter.id === "wikipedia" ? currentLanguage.id : ""
       const config = getSourceConfig(adapter.id)
-      const configStr = configFingerprint(adapter, config)
+      // Mirror the same placeholder logic used in activeSourceKey so the
+      // queryKey is stable while the user is mid-typing in the config form.
+      const configStr = isFullyConfigured(adapter, config)
+        ? configFingerprint(adapter, config)
+        : "__unconfigured__"
       const cacheKey = feedCache.key(adapter.id, langId, configStr)
       const cached = feedCache.getSync(cacheKey)
 
