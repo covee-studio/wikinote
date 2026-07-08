@@ -58,6 +58,10 @@ export interface SourceConfigField {
   placeholder: string
   secret?: boolean
   hint?: string
+  /** Marks this field as a base URL (e.g. a self-hosted instance address).
+   *  Used to normalize the value (auto-add https://) and to request the
+   *  Chrome extension host permission needed to fetch it. */
+  isUrl?: boolean
 }
 
 export interface SourceAdapter {

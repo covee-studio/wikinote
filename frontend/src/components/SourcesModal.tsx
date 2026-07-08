@@ -34,7 +34,7 @@ function Toggle({ checked, onChange, id }: { checked: boolean; onChange: () => v
 }
 
 export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
-  const { enabledSources, toggleSource, getSourceConfig, updateSourceConfig } = useSources()
+  const { enabledSources, toggleSource, getSourceConfig, updateSourceConfig, ensureHostPermission } = useSources()
   const { currentLanguage, setLanguage } = useLocalization()
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -184,6 +184,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                               placeholder={field.placeholder}
                               value={cfg[field.key] ?? ""}
                               onChange={(e) => updateSourceConfig(adapter.id, field.key, e.target.value)}
+                              onBlur={() => { if (field.isUrl) ensureHostPermission(adapter.id) }}
                               className="mt-0.5 w-full text-slate-800 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 placeholder-slate-400"
                               autoComplete="off"
                               spellCheck={false}
