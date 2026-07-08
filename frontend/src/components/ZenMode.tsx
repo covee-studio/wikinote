@@ -261,6 +261,12 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
             Wikinote
           </span>
         </div>
+        {/* Sources button — always visible so user can escape a stuck loading screen */}
+        <div className="absolute top-0 right-0 px-7 pt-5 z-30">
+          <ChromeButton label="Sources" onClick={() => setModal('sources')} dark={isDark}>
+            <LayersIcon className="w-[18px] h-[18px]" strokeWidth={2} />
+          </ChromeButton>
+        </div>
         <div className="absolute inset-0 flex items-center justify-center">
           <div style={{
             width: 40, height: 40, borderRadius: '50%',
@@ -268,6 +274,7 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
             animation: 'zen-breathe 2.6s ease-in-out infinite',
           }} />
         </div>
+        <SourcesModal isOpen={modal === 'sources'} onClose={() => setModal(null)} />
       </div>
     )
   }
