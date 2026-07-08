@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v2.0.3 - 2026-07-08
+
+- Fixed: 1 issue(s)
+- Changed: 1 update(s)
+
+
 ## v2.0.2 - 2026-07-03
 
 - Chore: 1 task(s)
