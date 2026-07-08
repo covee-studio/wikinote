@@ -1,3 +1,0 @@
-- [Source Adapter Pattern](source-adapter-pattern.md) — how to add new data sources; add one line to registry.ts, zero other files change.
-- [Icon legibility at small sizes](icon-small-size-legibility.md) — always render-test candidate logos at 16/32px before adopting as a favicon/toolbar icon.
-- [GitHub integration lacks workflow OAuth scope](github-workflow-scope-limitation.md) — re-authorizing Replit's GitHub connection does not add `workflow` scope; verified twice, use a separate PAT instead.
