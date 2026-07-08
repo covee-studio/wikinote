@@ -50,6 +50,51 @@ function configFingerprint(adapter: SourceAdapter, config: Record<string, string
   return JSON.stringify(normalized)
 }
 
+/** Returns true only when every required config field has a non-empty value. */
+function isFullyConfigured(adapter: SourceAdapter, config: Record<string, string>): boolean {
+  if (!adapter.requiresConfig || !adapter.configSchema) return true
+  return adapter.configSchema.every((f) => config[f.key]?.trim())
+}
+
+// How long the user must pause typing in a source's config form before that
+// config is considered "settled" and allowed to affect fingerprints/queryKeys.
+// Without this, every keystroke in a secret field (e.g. an API token) changes
+// its hash and re-triggers fetches/Zen resets for the whole time the user is
+// typing a valid value, not just while the config is incomplete.
+const CONFIG_SETTLE_DELAY_MS = 600
+
+/**
+ * Debounces a map of per-adapter configs so consumers only see a new value
+ * once the user has paused editing for CONFIG_SETTLE_DELAY_MS. Config
+ * objects that haven't changed keep the exact same reference across renders.
+ */
+function useSettledConfigs(
+  activeAdapters: SourceAdapter[],
+  getSourceConfig: (id: SourceId) => Record<string, string>
+): Record<string, Record<string, string>> {
+  const rawConfigs = activeAdapters.reduce<Record<string, Record<string, string>>>((acc, a) => {
+    acc[a.id] = getSourceConfig(a.id)
+    return acc
+  }, {})
+  const rawConfigsKey = JSON.stringify(rawConfigs)
+
+  const [settledConfigs, setSettledConfigs] = useState(rawConfigs)
+  const settledKeyRef = useRef(rawConfigsKey)
+
+  useEffect(() => {
+    if (rawConfigsKey === settledKeyRef.current) return
+    const handle = setTimeout(() => {
+      settledKeyRef.current = rawConfigsKey
+      setSettledConfigs(rawConfigs)
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, CONFIG_SETTLE_DELAY_MS)
+    return () => clearTimeout(handle)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rawConfigsKey])
+
+  return settledKeyRef.current === rawConfigsKey ? rawConfigs : settledConfigs
+}
+
 function App() {
   const [extraItemsBySource, setExtraItemsBySource] = useState<ItemsBySource>({})
   const [isLoadingMore, setIsLoadingMore] = useState(false)
@@ -68,10 +113,25 @@ function App() {
   const prevDataUpdatedAtRef = useRef<Partial<Record<SourceId, number>>>({})
 
   const activeAdapters = ADAPTER_LIST.filter((a) => enabledSources.has(a.id))
+  // Only reflects config values once the user has paused typing for
+  // CONFIG_SETTLE_DELAY_MS — see useSettledConfigs for why this is needed
+  // on top of the isFullyConfigured() placeholder below.
+  const settledConfigs = useSettledConfigs(activeAdapters, getSourceConfig)
   const activeSourceKey = activeAdapters
     .map((adapter) => {
       const langId = adapter.id === "wikipedia" ? currentLanguage.id : ""
-      return `${adapter.id}:${langId}:${configFingerprint(adapter, getSourceConfig(adapter.id))}`
+      const config = settledConfigs[adapter.id] ?? {}
+      // Use a stable placeholder while the user is mid-typing so that
+      // activeSourceKey (and therefore zenIndex / zenRestorePendingRef) don't
+      // thrash on every keystroke. The real fingerprint is only included once
+      // ALL required fields have non-empty values AND the user has paused
+      // typing (config is "settled") — otherwise entering e.g. a token
+      // character-by-character keeps re-triggering fetches/resets the whole
+      // time even though the field is technically "non-empty" already.
+      const cfgStr = isFullyConfigured(adapter, config)
+        ? configFingerprint(adapter, config)
+        : "__unconfigured__"
+      return `${adapter.id}:${langId}:${cfgStr}`
     })
     .join("|")
 
@@ -86,8 +146,15 @@ function App() {
   const queryResults = useQueries({
     queries: activeAdapters.map((adapter) => {
       const langId = adapter.id === "wikipedia" ? currentLanguage.id : ""
-      const config = getSourceConfig(adapter.id)
-      const configStr = configFingerprint(adapter, config)
+      // Use the settled (debounced) config here too so the queryKey — and the
+      // config actually passed to adapter.fetch — stay in lockstep with
+      // activeSourceKey instead of re-firing on every keystroke.
+      const config = settledConfigs[adapter.id] ?? {}
+      // Mirror the same placeholder logic used in activeSourceKey so the
+      // queryKey is stable while the user is mid-typing in the config form.
+      const configStr = isFullyConfigured(adapter, config)
+        ? configFingerprint(adapter, config)
+        : "__unconfigured__"
       const cacheKey = feedCache.key(adapter.id, langId, configStr)
       const cached = feedCache.getSync(cacheKey)
 

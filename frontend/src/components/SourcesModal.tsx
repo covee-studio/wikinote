@@ -155,11 +155,15 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                     {/* Config fields (e.g. Memos URL + token) */}
                     {adapter.configSchema && (
                       <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-3">
-                        {!isConfigured && (
-                          <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-                            Configure below, then enable this source.
-                          </p>
-                        )}
+                        {/* Always rendered to keep layout stable; fades out when configured */}
+                        <p
+                          aria-hidden={isConfigured}
+                          className={`text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 transition-opacity duration-200 ${
+                            isConfigured ? 'opacity-0 pointer-events-none select-none' : 'opacity-100'
+                          }`}
+                        >
+                          Configure below, then enable this source.
+                        </p>
                         {adapter.configSchema.map((field) => (
                           <div key={field.key}>
                             <label
