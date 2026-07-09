@@ -34,7 +34,7 @@ function Toggle({ checked, onChange, id }: { checked: boolean; onChange: () => v
 }
 
 export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
-  const { enabledSources, toggleSource, getSourceConfig, updateSourceConfig } = useSources()
+  const { enabledSources, toggleSource, getSourceConfig, updateSourceConfig, ensureHostPermission } = useSources()
   const { currentLanguage, setLanguage } = useLocalization()
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -188,6 +188,15 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                               autoComplete="off"
                               spellCheck={false}
                             />
+                            {field.isUrl && cfg[field.key]?.trim() && (
+                              <button
+                                type="button"
+                                onClick={() => ensureHostPermission(adapter.id)}
+                                className="mt-1.5 text-xs text-slate-500 hover:text-slate-800 underline underline-offset-2 transition-colors"
+                              >
+                                Grant extension access to this URL
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>

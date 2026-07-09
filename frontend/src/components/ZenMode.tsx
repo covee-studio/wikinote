@@ -175,9 +175,17 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
   const Backdrop = theme.Backdrop
   const isDark = !!theme.dark
 
+  // Note: we intentionally do NOT clear anchoredItemRef here. Clearing it
+  // made `item` (below) resolve to null the instant feedKey/anchorKey
+  // changed — e.g. toggling a source or finishing a Memos config edit —
+  // which forced the render into the "loading" branch (a different
+  // background/layout) for one paint before the new item was picked. That
+  // was the whole-window "flash". Keeping the last item visible via
+  // anchoredItemRef until a fresh one is chosen makes the transition
+  // seamless; the "keep anchor up-to-date" effect above will overwrite it
+  // as soon as the new batch resolves.
   useEffect(() => {
     setCurrentItemId(null)
-    anchoredItemRef.current = null
   }, [feedKey])
 
   // anchorKey is incremented by App when a replaceAnchorOnRefetch source (e.g. Memos)
@@ -186,13 +194,23 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
   useEffect(() => {
     if (anchorKey === 0) return
     setCurrentItemId(null)
-    anchoredItemRef.current = null
   }, [anchorKey])
 
   // Set the anchor item once: when items arrive and a valid initialIndex is known.
   // Guard on currentItemId===null ensures we never overwrite the user's navigation.
+  // If the previously visible item (anchoredItemRef) is still present in the new feed,
+  // restore it instead of jumping to the new random initialIndex — this prevents a
+  // visible reshuffle when source toggles or config changes while an article is shown.
   useEffect(() => {
-    if (!isOpen || currentItemId !== null || initialIndex < 0 || items.length === 0) return
+    if (!isOpen || currentItemId !== null || items.length === 0) return
+    if (anchoredItemRef.current) {
+      const stillPresent = items.findIndex((it) => it.id === anchoredItemRef.current!.id)
+      if (stillPresent !== -1) {
+        setCurrentItemId(anchoredItemRef.current.id)
+        return
+      }
+    }
+    if (initialIndex < 0) return
     setCurrentItemId(items[Math.min(initialIndex, items.length - 1)].id)
   }, [isOpen, currentItemId, initialIndex, items])
 
@@ -251,7 +269,12 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
 
   const item = index !== -1 ? items[index] : anchoredItemRef.current
 
-  if (items.length === 0 || currentItemId === null || !item) {
+  // Only fall back to the dedicated loading screen when we truly have
+  // nothing to show yet (first-ever load). Do NOT also gate on
+  // `currentItemId === null` here — that's transiently true on every
+  // feedKey/anchorKey reset even when `item` (via anchoredItemRef) is
+  // still valid, which used to force a jarring flash to this screen.
+  if (!item) {
     return (
       <div className="fixed inset-0 z-[200]" style={{ background: theme.surface }}
         role="dialog" aria-modal="true" aria-label="Zen mode loading">

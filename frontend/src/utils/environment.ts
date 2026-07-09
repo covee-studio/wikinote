@@ -121,9 +121,22 @@ export const fetchWithCORS = async (url: string, options?: RequestInit): Promise
   return fetch(url, options);
 };
 
+// Users often paste a self-hosted instance address without a scheme
+// (e.g. "memos.example.com"). Without a scheme, both `fetch()` and
+// `chrome.permissions.request()` treat it as a relative path against the
+// extension's own origin, which fails with a generic "Failed to fetch" /
+// silently skips requesting the host permission. Default to https:// so
+// these URLs resolve to the intended host.
+export function normalizeUrl(rawUrl: string): string {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return trimmed;
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
 export function hostPermissionPatternFromUrl(rawUrl: string): string | null {
   try {
-    const { origin, protocol } = new URL(rawUrl);
+    const { origin, protocol } = new URL(normalizeUrl(rawUrl));
     if (protocol !== 'https:' && protocol !== 'http:') return null;
     return `${origin}/*`;
   } catch {

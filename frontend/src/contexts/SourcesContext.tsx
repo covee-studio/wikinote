@@ -9,6 +9,11 @@ import type { SourceId } from "../types/DiscoveryItem"
 import { ADAPTER_LIST } from "../sources/registry"
 import { requestOptionalHostPermission } from "../utils/environment"
 
+function urlFieldKeys(id: SourceId): string[] {
+  const adapter = ADAPTER_LIST.find((a) => a.id === id)
+  return adapter?.configSchema?.filter((f) => f.isUrl).map((f) => f.key) ?? []
+}
+
 // ─── Types ────────────────────────────────────────────────────
 export type SourceConfigs = Partial<Record<SourceId, Record<string, string>>>
 
@@ -19,6 +24,12 @@ interface SourcesContextType {
   sourceConfigs: SourceConfigs
   updateSourceConfig: (id: SourceId, key: string, value: string) => void
   getSourceConfig: (id: SourceId) => Record<string, string>
+  /** Requests the Chrome extension host permission needed to fetch this
+   *  source's configured URL field(s), if any. Safe to call repeatedly —
+   *  no-ops once granted or outside the extension context. Call this from
+   *  a genuine user gesture (e.g. an input's onBlur), since
+   *  chrome.permissions.request requires one. */
+  ensureHostPermission: (id: SourceId) => void
 }
 
 const SourcesContext = createContext<SourcesContextType | undefined>(undefined)
@@ -82,10 +93,7 @@ export function SourcesProvider({ children }: { children: ReactNode }) {
     })
 
     if (!enabledSources.has(id) && adapter?.requiresConfig) {
-      const endpoint = sourceConfigs[id]?.endpoint
-      if (endpoint) {
-        void requestOptionalHostPermission(endpoint)
-      }
+      ensureHostPermission(id)
     }
   }
 
@@ -101,9 +109,22 @@ export function SourcesProvider({ children }: { children: ReactNode }) {
   const getSourceConfig = (id: SourceId): Record<string, string> =>
     sourceConfigs[id] ?? {}
 
+  // Requests the host permission for every configured URL field of this
+  // source. Also called whenever the user finishes editing a URL field
+  // (see SourcesModal's onBlur) — not just on enable — so changing an
+  // already-enabled source's instance URL doesn't keep failing with a
+  // silent CORS/"Failed to fetch" error because permission was only ever
+  // granted for the *previous* URL.
+  const ensureHostPermission = (id: SourceId) => {
+    for (const key of urlFieldKeys(id)) {
+      const value = sourceConfigs[id]?.[key]
+      if (value?.trim()) void requestOptionalHostPermission(value)
+    }
+  }
+
   return (
     <SourcesContext.Provider
-      value={{ enabledSources, toggleSource, isEnabled, sourceConfigs, updateSourceConfig, getSourceConfig }}
+      value={{ enabledSources, toggleSource, isEnabled, sourceConfigs, updateSourceConfig, getSourceConfig, ensureHostPermission }}
     >
       {children}
     </SourcesContext.Provider>

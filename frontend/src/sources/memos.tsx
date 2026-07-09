@@ -3,6 +3,7 @@ import type { CardRenderProps, FetchConfig, LikePreview, SourceAdapter, ZenConte
 import { MemoCard } from "../components/MemoCard"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { formatDateLong } from "../utils/formatting"
+import { normalizeUrl } from "../utils/environment"
 
 // ─── Raw shape — internal to this adapter ─────────────────────
 export interface MemoRaw {
@@ -111,7 +112,7 @@ function writeCursor(key: string, cursor: MemosCursor): void {
 }
 
 async function fetchMemos(endpoint: string, token: string): Promise<DiscoveryItem[]> {
-  const base = endpoint.replace(/\/$/, "")
+  const base = normalizeUrl(endpoint).replace(/\/$/, "")
   const headers = { Authorization: `Bearer ${token}` }
   const PAGE_SIZE = 30
 
@@ -233,6 +234,7 @@ export const memosAdapter: SourceAdapter = {
       label: "Instance URL",
       placeholder: "https://memos.example.com",
       hint: "The base URL of your Memos instance",
+      isUrl: true,
     },
     {
       key: "token",
