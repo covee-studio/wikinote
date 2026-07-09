@@ -184,11 +184,19 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                               placeholder={field.placeholder}
                               value={cfg[field.key] ?? ""}
                               onChange={(e) => updateSourceConfig(adapter.id, field.key, e.target.value)}
-                              onBlur={() => { if (field.isUrl) ensureHostPermission(adapter.id) }}
                               className="mt-0.5 w-full text-slate-800 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 placeholder-slate-400"
                               autoComplete="off"
                               spellCheck={false}
                             />
+                            {field.isUrl && cfg[field.key]?.trim() && (
+                              <button
+                                type="button"
+                                onClick={() => ensureHostPermission(adapter.id)}
+                                className="mt-1.5 text-xs text-slate-500 hover:text-slate-800 underline underline-offset-2 transition-colors"
+                              >
+                                Grant extension access to this URL
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>

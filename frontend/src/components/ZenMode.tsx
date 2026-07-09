@@ -198,8 +198,19 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
 
   // Set the anchor item once: when items arrive and a valid initialIndex is known.
   // Guard on currentItemId===null ensures we never overwrite the user's navigation.
+  // If the previously visible item (anchoredItemRef) is still present in the new feed,
+  // restore it instead of jumping to the new random initialIndex — this prevents a
+  // visible reshuffle when source toggles or config changes while an article is shown.
   useEffect(() => {
-    if (!isOpen || currentItemId !== null || initialIndex < 0 || items.length === 0) return
+    if (!isOpen || currentItemId !== null || items.length === 0) return
+    if (anchoredItemRef.current) {
+      const stillPresent = items.findIndex((it) => it.id === anchoredItemRef.current!.id)
+      if (stillPresent !== -1) {
+        setCurrentItemId(anchoredItemRef.current.id)
+        return
+      }
+    }
+    if (initialIndex < 0) return
     setCurrentItemId(items[Math.min(initialIndex, items.length - 1)].id)
   }, [isOpen, currentItemId, initialIndex, items])
 
