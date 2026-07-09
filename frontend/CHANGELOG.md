@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v2.0.4 - 2026-07-09
+
+- Fixed: 1 issue(s)
+
+
 ## v2.0.3 - 2026-07-08
 
 - Fixed: 1 issue(s)
