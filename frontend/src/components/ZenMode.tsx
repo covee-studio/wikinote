@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon, Shuffle as ShuffleIcon } from 'lucide-react'
+import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon, Shuffle as ShuffleIcon, PenLine as PenLineIcon, Quote as QuoteIcon } from 'lucide-react'
 import { useLikedArticles } from '../contexts/LikedArticlesContext'
 import { useToast } from '../contexts/ToastContext'
 import { useI18n } from '../hooks/useI18n'
@@ -168,18 +168,21 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
     <>
       {primaryLabel && (
         <div
-          className={`${readingColumnClass} mb-4 text-center text-[10px] font-bold uppercase tracking-[0.16em]`}
-          style={{ color: accentText }}
+          className={`${readingColumnClass} mb-4 text-left text-slate-400`}
         >
-          {primaryLabel}
+          {primaryLabel === 'Highlight' ? (
+            <span title={primaryLabel} aria-label={primaryLabel} role="img"><QuoteIcon className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" /></span>
+          ) : (
+            <span title={primaryLabel} aria-label={primaryLabel} role="img"><PenLineIcon className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" /></span>
+          )}
         </div>
       )}
       {primaryEl}
       {secondary && (
         <div className={contentKind === "body" ? `${readingColumnClass} mt-10 border-t border-slate-300/30 pt-7` : ""}>
           {secondaryLabel && (
-            <div className="mb-3 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
-              {secondaryLabel}
+            <div className="mb-3 text-left text-slate-400">
+              <span title={secondaryLabel} aria-label={secondaryLabel} role="img"><PenLineIcon className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" /></span>
             </div>
           )}
           <p

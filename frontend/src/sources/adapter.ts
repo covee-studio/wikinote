@@ -24,6 +24,8 @@ export interface CardRenderProps {
 export interface LikePreview {
   thumbnailNode: ReactNode
   descriptionText: string
+  /** Optional structured preview for sources with multiple content roles. */
+  descriptionNode?: ReactNode
   titleHoverClass: string
 }
 

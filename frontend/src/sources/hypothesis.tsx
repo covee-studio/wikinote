@@ -1,4 +1,4 @@
-import { Calendar, Highlighter, Tag } from "lucide-react"
+import { Calendar, Highlighter, PenLine, Quote, Tag } from "lucide-react"
 import { HypothesisCard } from "../components/HypothesisCard"
 import type { DiscoveryItem } from "../types/DiscoveryItem"
 import type { FetchConfig, LikePreview, SourceAdapter, ZenContentData } from "./adapter"
@@ -250,6 +250,22 @@ export const hypothesisAdapter: SourceAdapter = {
         </div>
       ),
       descriptionText: `${getDomain(item.url) || "Hypothesis"} · ${previewParts.join(" · ").slice(0, 180)}`,
+      descriptionNode: (
+        <div className="mt-0.5 line-clamp-2 space-y-1 text-sm leading-relaxed text-slate-400">
+          {quote && (
+            <div className="flex items-start gap-1.5">
+              <span className="mt-0.5 flex-shrink-0 text-slate-400" title="Highlight" aria-label="Highlight" role="img"><Quote className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" /></span>
+              <span>{quote}</span>
+            </div>
+          )}
+          {raw.text?.trim() && (
+            <div className="flex items-start gap-1.5 text-slate-500">
+              <span className="mt-0.5 flex-shrink-0 text-slate-400" title="Your note" aria-label="Your note" role="img"><PenLine className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" /></span>
+              <span>{text}</span>
+            </div>
+          )}
+        </div>
+      ),
       titleHoverClass: "hover:text-amber-700",
     }
   },

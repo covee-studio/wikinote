@@ -196,9 +196,11 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
                                 <X className="w-3.5 h-3.5" />
                               </button>
                             </div>
-                            <p className="text-sm text-slate-400 line-clamp-2 mt-0.5 leading-relaxed">
-                              {preview.descriptionText}
-                            </p>
+                            {preview.descriptionNode ?? (
+                              <p className="text-sm text-slate-400 line-clamp-2 mt-0.5 leading-relaxed">
+                                {preview.descriptionText}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
