@@ -51,8 +51,11 @@ if (/function primarySize/.test(zen) || !/contentKind === "body"/.test(zen) || !
 if (!/contentKind:\s*"body"/.test(memos) || !/contentKind:\s*"body"/.test(hypothesis)) {
   throw new Error("Body-oriented sources are not explicitly marked for reading typography")
 }
-if (!/contentKind === "body"[\s\S]*whitespace-pre-line[\s\S]*text-left/.test(zen) || !/contentKind === "body"[\s\S]*primaryStyle/.test(zen)) {
+if (!/contentKind === "body"[\s\S]*whitespace-pre-line/.test(zen) || !/contentKind === "body"[\s\S]*primaryStyle/.test(zen)) {
   throw new Error("Body secondary content does not preserve paragraph layout and typography")
+}
+if (!/isChineseBody/.test(zen) || !/textAlign: isChineseBody \? 'justify'/.test(zen) || !/secondaryTextAlign/.test(zen)) {
+  throw new Error("Chinese body text does not use language-aware justification")
 }
 
 // The language is a global content/translation preference, not a Wikipedia

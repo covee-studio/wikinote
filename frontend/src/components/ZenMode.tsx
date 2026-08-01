@@ -44,6 +44,14 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
 
   const linkProps = !noLink ? { href: item.url, target: '_blank' as const, rel: 'noopener noreferrer' } : null
   const imageStyle = { width: 120, height: 120, objectFit: 'cover' as const, flexShrink: 0 }
+  // Justify Chinese body copy, but keep English body copy left-aligned so
+  // browser justification does not create distracting word gaps. Use the
+  // actual content rather than the selected UI language because Memos and
+  // Hypothesis are not translated by the global language preference.
+  const bodyText = `${primary}\n${secondary ?? ''}`
+  const hasChineseText = (value: string) => /[\u3400-\u4dbf\u4e00-\u9fff]/.test(value)
+  const isChineseBody = contentKind === "body" && hasChineseText(bodyText)
+  const secondaryTextAlign = secondary ? (hasChineseText(secondary) ? 'justify' as const : 'left' as const) : undefined
 
   const primaryStyle = {
     // Keep the semantic hierarchy stable across sources. Wikipedia and HN
@@ -53,6 +61,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
     letterSpacing: '0.005em',
     fontWeight: contentKind === "body" ? 400 : primaryWeight,
     overflowWrap: 'anywhere' as const,
+    ...(contentKind === "body" ? { textAlign: isChineseBody ? 'justify' as const : 'left' as const } : {}),
   }
   const primaryEl = translation.state === 'pending' ? (
     <div
@@ -71,7 +80,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
     </div>
   ) : (
     <p
-      className={`font-serif-display whitespace-pre-line mx-auto max-w-[680px] ${contentKind === "body" ? 'text-left' : ''} ${dark ? 'text-slate-50' : 'text-slate-900'}`}
+      className={`font-serif-display whitespace-pre-line mx-auto max-w-[680px] ${dark ? 'text-slate-50' : 'text-slate-900'}`}
       style={primaryStyle}
       data-translation-engine={translation.engine}
     >
@@ -107,9 +116,11 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
       {secondary && (
         <p
           className={contentKind === "body"
-            ? `font-serif-display whitespace-pre-line mx-auto mt-8 w-full max-w-[680px] text-left ${dark ? 'text-slate-50' : 'text-slate-900'}`
+            ? `font-serif-display whitespace-pre-line mx-auto mt-8 w-full max-w-[680px] ${dark ? 'text-slate-50' : 'text-slate-900'}`
             : `font-serif-display mx-auto mt-6 max-w-[600px] line-clamp-4 ${dark ? 'text-slate-300' : 'text-slate-500'}`}
-          style={contentKind === "body" ? primaryStyle : { fontSize: 'clamp(15px, 1.3vw, 18px)', lineHeight: 1.8 }}
+          style={contentKind === "body"
+            ? primaryStyle
+            : { fontSize: 'clamp(15px, 1.3vw, 18px)', lineHeight: 1.8, textAlign: secondaryTextAlign }}
         >
           {secondary}
         </p>
