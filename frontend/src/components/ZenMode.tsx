@@ -31,13 +31,6 @@ interface ZenModeProps {
   onRetry?: () => void
 }
 
-function primarySize(len: number): string {
-  if (len <= 36)  return 'clamp(30px, 4.2vw, 48px)'
-  if (len <= 90)  return 'clamp(25px, 3vw, 38px)'
-  if (len <= 160) return 'clamp(22px, 2.4vw, 31px)'
-  return 'clamp(19px, 2vw, 26px)'
-}
-
 function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
   const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, accent, accentText, sourceLabel, noLink, primaryScrollable } =
     getAdapter(item.source).getZenContent(item)
@@ -53,9 +46,12 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
   const imageStyle = { width: 120, height: 120, objectFit: 'cover' as const, flexShrink: 0 }
 
   const primaryStyle = {
-    fontSize: primarySize(Math.max(primary.length, translatedPrimary.length)),
-    lineHeight: 1.5,
-    letterSpacing: '-0.005em',
+    // Keep the reading scale stable across sources. Long content gets a
+    // scrollable region rather than silently shrinking into a different type
+    // hierarchy.
+    fontSize: 'clamp(30px, 3.1vw, 48px)',
+    lineHeight: 1.62,
+    letterSpacing: '0.005em',
     fontWeight: primaryWeight,
     overflowWrap: 'anywhere' as const,
   }
@@ -111,8 +107,8 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
       ) : primaryEl}
       {secondary && (
         <p
-          className={`font-serif-display leading-[1.75] mx-auto max-w-[600px] mt-6 line-clamp-4 ${dark ? 'text-slate-300' : 'text-slate-500'}`}
-          style={{ fontSize: 'clamp(15px, 1.3vw, 18px)' }}
+          className={`font-serif-display mx-auto mt-6 max-w-[600px] line-clamp-4 ${dark ? 'text-slate-300' : 'text-slate-500'}`}
+          style={{ fontSize: 'clamp(15px, 1.3vw, 18px)', lineHeight: 1.8 }}
         >
           {secondary}
         </p>

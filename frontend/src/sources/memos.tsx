@@ -311,7 +311,6 @@ export const memosAdapter: SourceAdapter = {
     const primary = stripHashtagLines(raw.content)
     return {
       primary,
-      primaryWeight: 400,
       primaryScrollable: { maxHeightVh: 55 },
       metaNode: (
         <span className="inline-flex items-center gap-3">

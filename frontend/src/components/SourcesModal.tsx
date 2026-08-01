@@ -210,12 +210,12 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                         <div
                           key={adapter.id}
                           className={`relative flex h-[72px] items-center rounded-xl border border-slate-100 px-4 transition-all duration-200 hover:z-30 hover:bg-slate-50 ${
-                            active ? "bg-white" : "bg-slate-50 opacity-60"
+                            active ? "bg-white" : "bg-slate-50"
                           }`}
                         >
                           <div className="flex w-full items-center gap-3">
                             <div className="flex min-w-0 flex-1 items-center gap-3">
-                              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-50 ring-1 ring-slate-100">
+                              <span className={`flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-50 ring-1 ring-slate-100 ${active ? "" : "opacity-60"}`}>
                                 {adapter.logoSrc ? (
                                   <img
                                     src={adapter.logoSrc}
@@ -230,7 +230,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                               <div className="flex min-w-0 items-center gap-1">
                                 <label
                                   htmlFor={`source-toggle-${adapter.id}`}
-                                  className="cursor-pointer select-none font-semibold text-slate-800"
+                                  className={`cursor-pointer select-none font-semibold ${active ? "text-slate-800" : "text-slate-500"}`}
                                 >
                                   {adapter.label}
                                 </label>
@@ -247,7 +247,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                                   type="button"
                                   onClick={() => openSourceSettings(adapter)}
                                   aria-label={`${adapter.label} settings`}
-                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                                  className={`flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 ${active ? "" : "opacity-60"}`}
                                 >
                                   <Settings className="h-4 w-4" strokeWidth={1.8} />
                                 </button>

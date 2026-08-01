@@ -45,6 +45,9 @@ if (/translated\s*\?\?\s*original/.test(translation)) {
 if (!/animation:\s*'zen-breathe/.test(zen) || /pendingWidth|animate-pulse/.test(zen)) {
   throw new Error("Translation pending state still uses the heavyweight skeleton layout")
 }
+if (/function primarySize/.test(zen) || !/fontSize:\s*'clamp\(30px, 3\.1vw, 48px\)'/.test(zen)) {
+  throw new Error("Zen content still changes type scale based on source text length")
+}
 
 // The language is a global content/translation preference, not a Wikipedia
 // source setting. It must remain available when Wikipedia is disabled.
@@ -91,6 +94,9 @@ if (
 }
 if (!/toggleSource\(settingsAdapter\.id, settingsDraft\)/.test(sourcesModal) || !/pr-28/.test(sourcesModal) || !/hover:z-30/.test(sourcesModal)) {
   throw new Error("Source setup, secret input spacing, or tooltip stacking safeguards are missing")
+}
+if (/bg-slate-50 opacity-60/.test(sourcesModal)) {
+  throw new Error("Inactive source opacity still affects tooltip rendering")
 }
 if (!/isFullyConfigured/.test(read("src/contexts/SourcesContext.tsx")) || !/return false/.test(read("src/contexts/SourcesContext.tsx"))) {
   throw new Error("Configuration-backed sources can still be enabled before setup")
