@@ -281,17 +281,17 @@ export const memosAdapter: SourceAdapter = {
         style={{ background: heroGradient(stringToHue(raw.uid)) }}
       />
     )
-    const tagStr = raw.tags.length ? raw.tags.map((t) => `#${t}`).join(" ") + " · " : ""
+    const tagStr = raw.tags?.length ? raw.tags.map((t) => `#${t}`).join(" ") + " · " : ""
     return {
       thumbnailNode,
-      descriptionText: tagStr + (raw.excerpt || raw.content.slice(0, 100)),
+      descriptionText: tagStr + (raw.excerpt || raw.content?.slice(0, 100) || raw.title),
       titleHoverClass: "hover:text-slate-700",
     }
   },
 
   getSearchText(item: DiscoveryItem): string {
     const raw = item.raw as MemoRaw
-    return `${item.title} ${raw.excerpt} ${raw.tags.join(" ")}`
+    return `${item.title} ${raw.excerpt ?? ""} ${(raw.tags ?? []).join(" ")}`
   },
 
   getExportData(item: DiscoveryItem): Record<string, unknown> {
@@ -300,7 +300,7 @@ export const memosAdapter: SourceAdapter = {
       title: item.title,
       url: item.url,
       source: "memos",
-      content: raw.content,
+      content: raw.content ?? raw.excerpt ?? "",
       tags: raw.tags,
       displayTime: raw.displayTime,
     }
@@ -308,7 +308,8 @@ export const memosAdapter: SourceAdapter = {
 
   getZenContent(item: DiscoveryItem): ZenContentData {
     const raw = item.raw as MemoRaw
-    const primary = stripHashtagLines(raw.content)
+    const tags = raw.tags ?? []
+    const primary = stripHashtagLines(raw.content || raw.excerpt || raw.title)
     return {
       primary,
       contentKind: "body",
@@ -319,10 +320,10 @@ export const memosAdapter: SourceAdapter = {
             <CalendarIcon className="w-3 h-3" strokeWidth={2} />
             {formatDateLong(raw.displayTime)}
           </span>
-          {raw.tags.length > 0 && (
+          {tags.length > 0 && (
             <>
               <span className="w-1 h-1 rounded-full bg-slate-300" />
-              <span className="font-mono">{raw.tags.slice(0, 4).map((t) => `#${t}`).join('  ')}</span>
+              <span className="font-mono">{tags.slice(0, 4).map((t) => `#${t}`).join('  ')}</span>
             </>
           )}
         </span>

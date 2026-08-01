@@ -1,23 +1,40 @@
 // Environment detection and adaptation utilities
 
 // Global declarations
+type ChromeStorageArea = {
+  get: (
+    keys: string[],
+    cb: (result: Record<string, unknown>) => void
+  ) => void
+  set: (
+    items: Record<string, unknown>,
+    cb: () => void
+  ) => void
+  remove: (keys: string[], cb: () => void) => void
+}
+
+type ChromeStorageChange = {
+  newValue?: unknown
+  oldValue?: unknown
+}
+
 declare global {
   var __IS_EXTENSION__: boolean | undefined;
   var chrome:
     | {
         storage?: {
-          local: {
-            get: (
-              keys: string[],
-              cb: (result: Record<string, unknown>) => void
-            ) => void;
-            set: (
-              items: Record<string, unknown>,
-              cb: () => void
-            ) => void;
-            remove: (keys: string[], cb: () => void) => void;
-          };
+          local: ChromeStorageArea
+          sync?: ChromeStorageArea
+          onChanged?: {
+            addListener: (
+              listener: (changes: Record<string, ChromeStorageChange>, areaName: string) => void
+            ) => void
+            removeListener: (
+              listener: (changes: Record<string, ChromeStorageChange>, areaName: string) => void
+            ) => void
+          }
         };
+        runtime?: { lastError?: { message?: string } }
         permissions?: {
           request: (
             permissions: { origins?: string[] },
@@ -91,6 +108,83 @@ export class StorageAdapter {
     } else {
       localStorage.removeItem(key);
     }
+  }
+
+  /** Chrome Sync is deliberately separate from the local adapter. The web
+   * build and browsers without the API remain local-only. */
+  static isSyncAvailable(): boolean {
+    return Boolean(isExtension && typeof chrome !== 'undefined' && chrome.storage?.sync)
+  }
+
+  static async syncGet<T = unknown>(key: string): Promise<T | null> {
+    const area = isExtension && typeof chrome !== 'undefined' ? chrome.storage?.sync : undefined
+    if (!area) return null
+    return new Promise((resolve, reject) => {
+      area.get([key], (result) => {
+        const message = chrome?.runtime?.lastError?.message
+        if (message) {
+          reject(new Error(message))
+          return
+        }
+        const value = result[key] as T | undefined
+        resolve(value === undefined || value === null ? null : value)
+      })
+    })
+  }
+
+  static async syncGetMany(keys: string[]): Promise<Record<string, unknown>> {
+    const area = isExtension && typeof chrome !== 'undefined' ? chrome.storage?.sync : undefined
+    if (!area || keys.length === 0) return {}
+    return new Promise((resolve, reject) => {
+      area.get(keys, (result) => {
+        const message = chrome?.runtime?.lastError?.message
+        if (message) {
+          reject(new Error(message))
+          return
+        }
+        resolve(result)
+      })
+    })
+  }
+
+  static async syncSet(items: Record<string, unknown>): Promise<void> {
+    const area = isExtension && typeof chrome !== 'undefined' ? chrome.storage?.sync : undefined
+    if (!area) throw new Error('Chrome Sync is unavailable')
+    return new Promise((resolve, reject) => {
+      area.set(items, () => {
+        const message = chrome?.runtime?.lastError?.message
+        if (message) {
+          reject(new Error(message))
+          return
+        }
+        resolve()
+      })
+    })
+  }
+
+  static async syncRemove(keys: string[]): Promise<void> {
+    const area = isExtension && typeof chrome !== 'undefined' ? chrome.storage?.sync : undefined
+    if (!area || keys.length === 0) return
+    return new Promise((resolve, reject) => {
+      area.remove(keys, () => {
+        const message = chrome?.runtime?.lastError?.message
+        if (message) {
+          reject(new Error(message))
+          return
+        }
+        resolve()
+      })
+    })
+  }
+
+  static onSyncChange(listener: (keys: string[]) => void): () => void {
+    const events = isExtension && typeof chrome !== 'undefined' ? chrome.storage?.onChanged : undefined
+    if (!events) return () => undefined
+    const handler = (changes: Record<string, ChromeStorageChange>, areaName: string) => {
+      if (areaName === 'sync') listener(Object.keys(changes))
+    }
+    events.addListener(handler)
+    return () => events.removeListener(handler)
   }
 }
 

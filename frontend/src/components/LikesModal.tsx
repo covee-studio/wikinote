@@ -1,4 +1,4 @@
-import { Download, Heart, Search, X } from "lucide-react"
+import { Cloud, Download, Heart, Search, X } from "lucide-react"
 import { useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useLikedArticles } from "../contexts/LikedArticlesContext"
@@ -14,7 +14,14 @@ interface LikesModalProps {
 
 export function LikesModal({ isOpen, onClose }: LikesModalProps) {
   const { t } = useI18n()
-  const { likedArticles, toggleLike } = useLikedArticles()
+  const {
+    likedArticles,
+    toggleLike,
+    syncAvailable,
+    syncEnabled,
+    syncStatus,
+    setSyncEnabled,
+  } = useLikedArticles()
   const [searchQuery, setSearchQuery] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -98,6 +105,39 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
                 </button>
               </div>
             </div>
+
+            {syncAvailable && (
+              <div
+                className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 mb-4"
+                title="Only compact favorite previews are synced. API keys and tokens stay on this device."
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <Cloud className={`h-4 w-4 flex-shrink-0 ${syncStatus === "error" ? "text-rose-400" : "text-slate-400"}`} strokeWidth={1.8} />
+                  <div className="min-w-0">
+                    <p className="text-[13px] font-medium text-slate-700">Sync favorites</p>
+                    <p className={`truncate text-[11px] ${syncStatus === "error" ? "text-rose-500" : "text-slate-400"}`}>
+                      {syncStatus === "syncing"
+                        ? "Syncing with Chrome"
+                        : syncStatus === "synced"
+                          ? "Synced with Chrome"
+                          : syncStatus === "error"
+                            ? "Sync unavailable"
+                            : "Only on this device"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={syncEnabled}
+                  aria-label="Sync favorites across Chrome devices"
+                  onClick={() => setSyncEnabled(!syncEnabled)}
+                  className={`relative h-6 w-10 flex-shrink-0 rounded-full transition-colors ${syncEnabled ? "bg-slate-800" : "bg-slate-200"}`}
+                >
+                  <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${syncEnabled ? "translate-x-5" : "translate-x-1"}`} />
+                </button>
+              </div>
+            )}
 
             {/* Search */}
             <div className="relative mb-4">

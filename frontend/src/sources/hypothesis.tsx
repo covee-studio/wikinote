@@ -10,6 +10,8 @@ const PAGE_SIZE = 20
 export interface HypothesisAnnotationRaw {
   id: string
   uri: string
+  /** Compact cross-device favorite preview; the API value is derived from target selectors. */
+  quote?: string
   text?: string
   user?: string
   created?: string
@@ -55,6 +57,7 @@ function documentTitle(annotation: HypothesisAnnotationRaw): string {
 
 /** Returns the exact text selected by a TextQuoteSelector, when present. */
 export function getAnnotationQuote(annotation: HypothesisAnnotationRaw): string {
+  if (annotation.quote?.trim()) return annotation.quote.trim()
   for (const target of annotation.target ?? []) {
     for (const selector of target.selector ?? []) {
       if (selector.type === "TextQuoteSelector" && selector.exact?.trim()) {

@@ -18,6 +18,10 @@ const adapter = read("src/sources/adapter.ts")
 const wikipedia = read("src/sources/wikipedia.tsx")
 const hackerNews = read("src/sources/hackernews.tsx")
 const hypothesis = read("src/sources/hypothesis.tsx")
+const environment = read("src/utils/environment.ts")
+const favoriteSync = read("src/utils/favoriteSync.ts")
+const likedContext = read("src/contexts/LikedArticlesContext.tsx")
+const likesModal = read("src/components/LikesModal.tsx")
 
 // Translation must use the requested foundation model first and retain an
 // on-device task-model fallback for languages unsupported by Prompt API.
@@ -136,6 +140,20 @@ if (responseCheck === -1 || cursorWrite === -1 || cursorWrite < responseCheck) {
 }
 if (!/showCachedWhileRefetching:\s*false/.test(memos)) {
   throw new Error("Memos can still render stale data before a fresh window")
+}
+
+// Favorite sync must be explicit, use Chrome Sync only when available, and
+// keep sensitive source credentials and full private memo bodies local.
+if (
+  !/storage\?\.sync/.test(environment) ||
+  !/isFavoriteSyncAvailable/.test(favoriteSync) ||
+  !/setSyncEnabled/.test(likedContext) ||
+  !/Sync favorites/.test(likesModal) ||
+  !/compactRaw/.test(favoriteSync) ||
+  /raw\.content/.test(favoriteSync) ||
+  /raw\.token/.test(favoriteSync)
+) {
+  throw new Error("Favorite sync is missing explicit opt-in or private-data safeguards")
 }
 
 // A failed load-more request should result in one notification, not a burst
