@@ -4,10 +4,10 @@ This guide describes the current Wikinote Chrome extension release. Keep it alig
 
 ## Current release
 
-- Extension version: `2.0.5`
+- Extension version: `2.0.6`
 - Manifest: `configs/extension/manifest.json`
 - Build output: `dist/extension/`
-- Submission package: `dist/wikinote-extension-v2.0.5.zip`
+- Submission package: `dist/wikinote-extension-v2.0.6.zip`
 - Privacy policy source: [`PRIVACY.md`](../PRIVACY.md)
 - Public privacy policy URL after it is pushed to `main`:
   `https://github.com/covee-studio/wikinote/blob/main/PRIVACY.md`
@@ -146,4 +146,4 @@ Before uploading, verify that the package contains the current version in `manif
 6. Review the package, permissions, and data disclosures.
 7. Click **Submit for review** only after the final local installation test passes.
 
-The new Hypothesis host permission may receive additional review because it was added after the previous store version. No new permission is introduced by the shared toggle or visual changes in version 2.0.5.
+The new Hypothesis host permission may receive additional review because it was added after the previous store version. No new permission is introduced by the sync and translation fixes in version 2.0.6.

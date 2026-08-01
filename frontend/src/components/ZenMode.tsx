@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon, Shuffle as ShuffleIcon } from 'lucide-react'
+import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon, Shuffle as ShuffleIcon, Languages as LanguagesIcon } from 'lucide-react'
 import { useLikedArticles } from '../contexts/LikedArticlesContext'
 import { useToast } from '../contexts/ToastContext'
 import { useI18n } from '../hooks/useI18n'
@@ -154,20 +154,13 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
     </blockquote>
   ) : primaryEl
 
-  const translationLabel = translation.state === 'pending'
-    ? 'Local AI…'
-    : translation.engine === 'prompt'
-      ? 'Chrome AI'
-      : translation.engine === 'translator'
-        ? 'Chrome Translator'
-        : 'Original title'
   const translationTitle = translation.state === 'pending'
     ? 'Waiting for Chrome LanguageModel'
     : translation.engine === 'prompt'
-      ? 'Translated by Chrome LanguageModel (Prompt API)'
+      ? 'Translated locally by Chrome LanguageModel'
       : translation.engine === 'translator'
-        ? 'Translated by Chrome Translator API fallback'
-        : 'The original Hacker News title is shown because local translation is unavailable'
+        ? 'Translated locally by Chrome Translator API fallback'
+        : 'Local translation is unavailable; showing the original title'
 
   const textBlock = (
     <>
@@ -222,13 +215,15 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
         <div className="inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: accentText }}>
           <span aria-hidden className="w-1 h-1 rounded-full" style={{ backgroundColor: accent }} />
           {sourceLabel}
-          {translation.requested && (
+          {translation.requested && translation.state === 'translated' && (
             <span
-              className="normal-case tracking-normal text-[9px] font-medium opacity-70"
-              data-translation-engine={translation.state === 'pending' ? 'pending' : translation.engine}
+              className="inline-flex items-center opacity-55 transition-opacity hover:opacity-100"
+              data-translation-engine={translation.engine}
               title={translationTitle}
+              aria-label={translationTitle}
+              role="img"
             >
-              {translationLabel}
+              <LanguagesIcon aria-hidden className="h-3 w-3" strokeWidth={1.8} />
             </span>
           )}
         </div>

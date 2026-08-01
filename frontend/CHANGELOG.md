@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## v2.0.6 - 2026-08-01
+
+- Fixed: Favorite sync opt-in now follows the Chrome profile across devices, including legacy sync data.
+- Fixed: Translation attribution is now a restrained hoverable icon instead of a visible engine label.
+- Changed: Added a clear Chrome Sync prerequisite to the favorites sync affordance.
+
 ## v2.0.5 - 2026-08-01
 
 - Added: Hypothesis annotations as a configurable reading source.

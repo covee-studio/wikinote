@@ -45,6 +45,9 @@ if (
 if (!/TranslationEngine/.test(translation) || !/data-translation-engine/.test(zen)) {
   throw new Error("Translation engine is not observable in the UI")
 }
+if (/const translationLabel/.test(zen) || !/LanguagesIcon/.test(zen) || !/Translated locally by Chrome Translator API fallback/.test(zen)) {
+  throw new Error("Translation attribution is still exposed as a heavy visible text label")
+}
 if (/translated\s*\?\?\s*original/.test(translation)) {
   throw new Error("Translation can render the source title before the target title is ready")
 }
@@ -165,6 +168,9 @@ if (!/pageOrder/.test(hypothesis) || !/shuffledPageOrder/.test(hypothesis) || !/
 if (
   !/storage\?\.sync/.test(environment) ||
   !/isFavoriteSyncAvailable/.test(favoriteSync) ||
+  !/readFavoriteSyncEnabled/.test(favoriteSync) ||
+  !/writeFavoriteSyncEnabled/.test(favoriteSync) ||
+  !/remoteSyncEnabled !== false/.test(likedContext) ||
   !/setSyncEnabled/.test(likedContext) ||
   !/Sync favorites/.test(likesModal) ||
   !/compactRaw/.test(favoriteSync) ||
