@@ -189,6 +189,145 @@ function ChromeButton({
 
 type ModalKey = 'sources' | 'likes' | 'about' | null
 
+function ThemePicker({
+  dark,
+  themeId,
+  themeOpen,
+  onToggle,
+  onClose,
+  onSelect,
+}: {
+  dark: boolean
+  themeId: string
+  themeOpen: boolean
+  onToggle: () => void
+  onClose: () => void
+  onSelect: (id: string) => void
+}) {
+  return (
+    <div className="relative">
+      <ChromeButton label="Appearance" active={themeOpen} onClick={onToggle} dark={dark}>
+        <PaletteIcon className="w-[18px] h-[18px]" strokeWidth={2} />
+      </ChromeButton>
+      <AnimatePresence>
+        {themeOpen && (
+          <>
+            <div className="fixed inset-0 z-10" onClick={onClose} aria-hidden />
+            <motion.div
+              initial={{ opacity: 0, y: -6, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -6, scale: 0.97 }}
+              transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute right-0 mt-2 w-[288px] z-20 rounded-2xl bg-white/90 backdrop-blur-xl border border-white/70 shadow-[0_16px_48px_rgba(15,23,42,0.16)] p-3"
+            >
+              <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400 px-1 pb-2">
+                Appearance
+              </div>
+              <button
+                type="button"
+                onClick={() => onSelect('random')}
+                className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg mb-2 transition-colors ${themeId === 'random' ? 'bg-slate-100' : 'hover:bg-slate-50'}`}
+                aria-pressed={themeId === 'random'}
+              >
+                <span className="w-7 h-7 rounded-md bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 inline-flex items-center justify-center flex-shrink-0">
+                  <ShuffleIcon className="w-3.5 h-3.5 text-slate-500" strokeWidth={2} />
+                </span>
+                <span className="text-[12px] text-slate-700 font-medium">Auto</span>
+                <span className="text-[11px] text-slate-400 ml-0.5">— different each tab</span>
+                {themeId === 'random' && (
+                  <span className="ml-auto w-4 h-4 rounded-full bg-slate-800 text-white inline-flex items-center justify-center flex-shrink-0">
+                    <CheckIcon className="w-2.5 h-2.5" strokeWidth={3} />
+                  </span>
+                )}
+              </button>
+              <div className="h-px bg-slate-100 mb-2" />
+              <div className="grid grid-cols-4 gap-2">
+                {ZEN_THEMES.map((th) => {
+                  const selected = th.id === themeId
+                  return (
+                    <button
+                      key={th.id}
+                      type="button"
+                      onClick={() => onSelect(th.id)}
+                      className="group flex flex-col items-center gap-1.5"
+                      aria-pressed={selected}
+                    >
+                      <span
+                        className="relative w-full h-10 rounded-lg overflow-hidden border transition-all"
+                        style={{
+                          background: th.Preview ? undefined : th.swatch,
+                          borderColor: selected ? '#334155' : 'rgba(226,232,240,0.9)',
+                          boxShadow: selected ? '0 0 0 1.5px #334155' : 'none',
+                        }}
+                      >
+                        {th.Preview && <th.Preview />}
+                        {selected && (
+                          <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-slate-800 text-white inline-flex items-center justify-center">
+                            <CheckIcon className="w-2 h-2" strokeWidth={3} />
+                          </span>
+                        )}
+                      </span>
+                      <span className={`text-[10px] ${selected ? 'text-slate-900 font-medium' : 'text-slate-500'}`}>
+                        {th.name}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function TopToolbar({
+  dark,
+  visible,
+  themeId,
+  themeOpen,
+  onOpenModal,
+  onToggleTheme,
+  onCloseTheme,
+  onSelectTheme,
+}: {
+  dark: boolean
+  visible: boolean
+  themeId: string
+  themeOpen: boolean
+  onOpenModal: (modal: Exclude<ModalKey, null>) => void
+  onToggleTheme: () => void
+  onCloseTheme: () => void
+  onSelectTheme: (id: string) => void
+}) {
+  return (
+    <motion.div
+      animate={{ opacity: visible ? 1 : 0, y: visible ? 0 : -6 }}
+      transition={{ duration: 0.4, ease: 'easeOut' }}
+      className="absolute top-0 right-0 px-7 pt-5 z-30 flex items-center gap-1"
+    >
+      <ChromeButton label="About" onClick={() => { onCloseTheme(); onOpenModal('about') }} dark={dark}>
+        <InfoIcon className="w-[18px] h-[18px]" strokeWidth={2} />
+      </ChromeButton>
+      <ChromeButton label="Sources" onClick={() => { onCloseTheme(); onOpenModal('sources') }} dark={dark}>
+        <LayersIcon className="w-[18px] h-[18px]" strokeWidth={2} />
+      </ChromeButton>
+      <ChromeButton label="Liked" onClick={() => { onCloseTheme(); onOpenModal('likes') }} dark={dark}>
+        <HeartIcon className="w-[18px] h-[18px]" strokeWidth={2} />
+      </ChromeButton>
+      <ThemePicker
+        dark={dark}
+        themeId={themeId}
+        themeOpen={themeOpen}
+        onToggle={onToggleTheme}
+        onClose={onCloseTheme}
+        onSelect={onSelectTheme}
+      />
+    </motion.div>
+  )
+}
+
 export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNearEnd, isLoading = false, loadError, onRetry }: ZenModeProps) {
   const [currentItemId, setCurrentItemId] = useState<string | null>(null)
   // When items is rebuilt with a completely different random batch (Wikipedia uses
@@ -343,12 +482,21 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
             Wikinote
           </span>
         </div>
-        {/* Sources button — always visible so user can escape a stuck loading screen */}
-        <div className="absolute top-0 right-0 px-7 pt-5 z-30">
-          <ChromeButton label="Sources" onClick={() => setModal('sources')} dark={isDark}>
-            <LayersIcon className="w-[18px] h-[18px]" strokeWidth={2} />
-          </ChromeButton>
-        </div>
+        {/* Keep the complete toolbar available while the first source request is pending. */}
+        <TopToolbar
+          dark={isDark}
+          visible
+          themeId={themeId}
+          themeOpen={themeOpen}
+          onOpenModal={setModal}
+          onToggleTheme={() => setThemeOpen((value) => !value)}
+          onCloseTheme={() => setThemeOpen(false)}
+          onSelectTheme={(id) => {
+            setThemeId(id)
+            localStorage.setItem('zen-theme-id', id)
+            setThemeOpen(false)
+          }}
+        />
         <div className="absolute inset-0 flex items-center justify-center px-8">
           {loadError ? (
             <div
@@ -424,99 +572,21 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
         </span>
       </motion.div>
 
-      {/* Top-right: icon buttons + theme picker */}
-      <motion.div
-        animate={{ opacity: chromeVisible ? 1 : 0, y: chromeVisible ? 0 : -6 }}
-        transition={{ duration: 0.4, ease: 'easeOut' }}
-        className="absolute top-0 right-0 px-7 pt-5 z-30 flex items-center gap-1"
-      >
-        <ChromeButton label="About" onClick={() => { setThemeOpen(false); setModal('about') }} dark={isDark}>
-          <InfoIcon className="w-[18px] h-[18px]" strokeWidth={2} />
-        </ChromeButton>
-        <ChromeButton label="Sources" onClick={() => { setThemeOpen(false); setModal('sources') }} dark={isDark}>
-          <LayersIcon className="w-[18px] h-[18px]" strokeWidth={2} />
-        </ChromeButton>
-        <ChromeButton label="Liked" onClick={() => { setThemeOpen(false); setModal('likes') }} dark={isDark}>
-          <HeartIcon className="w-[18px] h-[18px]" strokeWidth={2} />
-        </ChromeButton>
-
-        {/* Theme picker */}
-        <div className="relative">
-          <ChromeButton label="Appearance" active={themeOpen} onClick={() => setThemeOpen((v) => !v)} dark={isDark}>
-            <PaletteIcon className="w-[18px] h-[18px]" strokeWidth={2} />
-          </ChromeButton>
-          <AnimatePresence>
-            {themeOpen && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setThemeOpen(false)} aria-hidden />
-                <motion.div
-                  initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                  transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute right-0 mt-2 w-[288px] z-20 rounded-2xl bg-white/90 backdrop-blur-xl border border-white/70 shadow-[0_16px_48px_rgba(15,23,42,0.16)] p-3"
-                >
-                  <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400 px-1 pb-2">
-                    Appearance
-                  </div>
-                  {/* Random / auto option */}
-                  <button
-                    type="button"
-                    onClick={() => { setThemeId('random'); localStorage.setItem('zen-theme-id', 'random'); setThemeOpen(false) }}
-                    className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg mb-2 transition-colors ${themeId === 'random' ? 'bg-slate-100' : 'hover:bg-slate-50'}`}
-                    aria-pressed={themeId === 'random'}
-                  >
-                    <span className="w-7 h-7 rounded-md bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 inline-flex items-center justify-center flex-shrink-0">
-                      <ShuffleIcon className="w-3.5 h-3.5 text-slate-500" strokeWidth={2} />
-                    </span>
-                    <span className="text-[12px] text-slate-700 font-medium">Auto</span>
-                    <span className="text-[11px] text-slate-400 ml-0.5">— different each tab</span>
-                    {themeId === 'random' && (
-                      <span className="ml-auto w-4 h-4 rounded-full bg-slate-800 text-white inline-flex items-center justify-center flex-shrink-0">
-                        <CheckIcon className="w-2.5 h-2.5" strokeWidth={3} />
-                      </span>
-                    )}
-                  </button>
-                  <div className="h-px bg-slate-100 mb-2" />
-                  <div className="grid grid-cols-4 gap-2">
-                    {ZEN_THEMES.map((th) => {
-                      const sel = th.id === themeId
-                      return (
-                        <button
-                          key={th.id}
-                          type="button"
-                          onClick={() => { setThemeId(th.id); localStorage.setItem('zen-theme-id', th.id); setThemeOpen(false) }}
-                          className="group flex flex-col items-center gap-1.5"
-                          aria-pressed={sel}
-                        >
-                          <span
-                            className="relative w-full h-10 rounded-lg overflow-hidden border transition-all"
-                            style={{
-                              background: th.Preview ? undefined : th.swatch,
-                              borderColor: sel ? '#334155' : 'rgba(226,232,240,0.9)',
-                              boxShadow: sel ? '0 0 0 1.5px #334155' : 'none',
-                            }}
-                          >
-                            {th.Preview && <th.Preview />}
-                            {sel && (
-                              <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-slate-800 text-white inline-flex items-center justify-center">
-                                <CheckIcon className="w-2 h-2" strokeWidth={3} />
-                              </span>
-                            )}
-                          </span>
-                          <span className={`text-[10px] ${sel ? 'text-slate-900 font-medium' : 'text-slate-500'}`}>
-                            {th.name}
-                          </span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        </div>
-      </motion.div>
+      {/* Top-right: keep all controls in the same place before and after loading. */}
+      <TopToolbar
+        dark={isDark}
+        visible={chromeVisible}
+        themeId={themeId}
+        themeOpen={themeOpen}
+        onOpenModal={setModal}
+        onToggleTheme={() => setThemeOpen((value) => !value)}
+        onCloseTheme={() => setThemeOpen(false)}
+        onSelectTheme={(id) => {
+          setThemeId(id)
+          localStorage.setItem('zen-theme-id', id)
+          setThemeOpen(false)
+        }}
+      />
 
       {/* Center content */}
       <div className="absolute inset-0 flex items-start md:items-center justify-center overflow-y-auto px-8 pt-16 pb-32">
