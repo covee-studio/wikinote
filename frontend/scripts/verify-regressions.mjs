@@ -15,6 +15,7 @@ const sourcesModal = read("src/components/SourcesModal.tsx")
 const adapter = read("src/sources/adapter.ts")
 const wikipedia = read("src/sources/wikipedia.tsx")
 const hackerNews = read("src/sources/hackernews.tsx")
+const hypothesis = read("src/sources/hypothesis.tsx")
 
 // Translation must use the requested foundation model first and retain an
 // on-device task-model fallback for languages unsupported by Prompt API.
@@ -70,9 +71,10 @@ if (/Configure below|Configure Memos|Save & enable|Test connection/.test(sources
 }
 if (
   !/logoSrc/.test(adapter) ||
-  !/logoSrc:\s*\"\/wikipedia-logo\.png\"/.test(wikipedia) ||
-  !/logoSrc:\s*\"\/hacker-news-logo\.png\"/.test(hackerNews) ||
-  !/logoSrc:\s*\"\/memos-logo\.png\"/.test(memos) ||
+  !/logoSrc:\s*\"\/source-icons\/wikipedia\.png\"/.test(wikipedia) ||
+  !/logoSrc:\s*\"\/source-icons\/hacker-news\.png\"/.test(hackerNews) ||
+  !/logoSrc:\s*\"\/source-icons\/memos\.png\"/.test(memos) ||
+  !/logoSrc:\s*\"\/source-icons\/hypothesis\.png\"/.test(hypothesis) ||
   !/aria-label=\{`\$\{adapter\.label\} settings`\}/.test(sourcesModal)
 ) {
   throw new Error("Memos settings entry or brand asset is missing")

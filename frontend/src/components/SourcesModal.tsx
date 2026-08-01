@@ -215,7 +215,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                                     src={adapter.logoSrc}
                                     alt=""
                                     aria-hidden="true"
-                                    className="h-9 w-9 object-contain"
+                                    className="h-full w-full object-contain"
                                   />
                                 ) : (
                                   <Layers className="h-5 w-5 text-slate-400" aria-hidden="true" />
@@ -280,7 +280,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                       <img
                         src={settingsAdapter.logoSrc}
                         alt={settingsAdapter.label}
-                        className="h-20 w-20 object-contain shadow-sm"
+                        className="h-20 w-20 rounded-full object-contain shadow-sm"
                       />
                     ) : (
                       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-500">

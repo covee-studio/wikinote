@@ -91,7 +91,7 @@ export const hypothesisAdapter: SourceAdapter = {
   label: "Hypothesis",
   description: "Your web annotations and highlights from Hypothesis.",
   color: "#e0a000",
-  logoSrc: "/hypothesis-logo-official.svg",
+  logoSrc: "/source-icons/hypothesis.png",
   requiresConfig: true,
   configSchema: [
     {
