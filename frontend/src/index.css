@@ -33,6 +33,37 @@ html, body {
   scrollbar-width: none;
 }
 
+/* Source descriptions should feel discovered, not instantaneous. The small
+   enter delay gives the hint visual hierarchy; exit remains immediate and
+   soft. The trigger stays keyboard-accessible through :focus-within. */
+.source-tooltip {
+  --tooltip-motion-delay: 0ms;
+  --tooltip-visibility-delay: 180ms;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-2px);
+  transition:
+    opacity 180ms ease var(--tooltip-motion-delay),
+    transform 180ms ease var(--tooltip-motion-delay),
+    visibility 0s linear var(--tooltip-visibility-delay);
+}
+
+.source-tooltip-trigger:hover .source-tooltip,
+.source-tooltip-trigger:focus-within .source-tooltip {
+  --tooltip-motion-delay: 80ms;
+  --tooltip-visibility-delay: 0ms;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .source-tooltip {
+    transition: none;
+    transform: none;
+  }
+}
+
 /* Zen reading surfaces keep native scrolling without exposing a browser
    scrollbar. FadingScroll adds the visual edge affordance per scroll state. */
 .zen-scroll {

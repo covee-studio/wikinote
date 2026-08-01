@@ -116,8 +116,8 @@ if (
 if (!/primaryKind\?: "highlight" \| "note"/.test(adapter) || !/primaryKind/.test(zen) || !/primaryKind === "highlight"/.test(zen)) {
   throw new Error("Shared Zen content does not support semantic quote treatment for highlights")
 }
-if (!/toggleSource\(settingsAdapter\.id, settingsDraft\)/.test(sourcesModal) || !/pr-28/.test(sourcesModal) || !/hover:z-30/.test(sourcesModal)) {
-  throw new Error("Source setup, secret input spacing, or tooltip stacking safeguards are missing")
+if (!/toggleSource\(settingsAdapter\.id, settingsDraft\)/.test(sourcesModal) || !/pr-28/.test(sourcesModal) || !/hover:z-30/.test(sourcesModal) || !/source-tooltip/.test(sourcesModal) || !/prefers-reduced-motion/.test(read("src/index.css"))) {
+  throw new Error("Source setup, secret input spacing, or accessible tooltip motion safeguards are missing")
 }
 if (/bg-slate-50 opacity-60/.test(sourcesModal)) {
   throw new Error("Inactive source opacity still affects tooltip rendering")

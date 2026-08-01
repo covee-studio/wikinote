@@ -43,7 +43,7 @@ function SourceHint({ sourceId, sourceLabel, description }: { sourceId: string; 
   const tooltipId = `source-description-${sourceId}`
 
   return (
-    <span className="group relative inline-flex">
+    <span className="source-tooltip-trigger group relative inline-flex">
       <button
         type="button"
         aria-label={`About ${sourceLabel}`}
@@ -55,7 +55,7 @@ function SourceHint({ sourceId, sourceLabel, description }: { sourceId: string; 
       <span
         id={tooltipId}
         role="tooltip"
-        className="pointer-events-none invisible absolute left-0 top-full z-50 mt-2 w-56 rounded-xl bg-slate-800 px-3 py-2 text-[11px] font-normal leading-snug text-white opacity-0 shadow-lg transition-all duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+        className="source-tooltip pointer-events-none invisible absolute left-0 top-full z-50 mt-2 w-56 rounded-xl bg-slate-800 px-3 py-2 text-[11px] font-normal leading-snug text-white shadow-lg group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
       >
         {description}
       </span>
@@ -171,7 +171,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                   transition={{ duration: 0.16, ease: "easeOut" }}
                 >
                   <div className="mb-5 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-100">
+                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-white text-slate-500 ring-1 ring-slate-100">
                       <Languages className="h-5 w-5" strokeWidth={1.8} />
                     </div>
                     <div className="flex min-w-0 flex-1 items-center gap-1">
@@ -189,7 +189,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                         id="article-language-select"
                         value={currentLanguage.id}
                         onChange={(event) => setLanguage(event.target.value)}
-                        className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 pr-8 text-sm text-slate-700 shadow-sm outline-none transition-shadow focus:ring-2 focus:ring-slate-300"
+                        className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 pr-8 text-sm text-slate-700 outline-none transition-colors focus:border-slate-300 focus:ring-2 focus:ring-slate-300"
                       >
                         {LANGUAGES.map((lang) => (
                           <option key={lang.id} value={lang.id}>
