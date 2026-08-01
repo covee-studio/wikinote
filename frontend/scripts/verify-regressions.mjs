@@ -103,9 +103,15 @@ if (!/hypothesisAdapter/.test(read("src/sources/registry.ts")) || !/API Token/.t
 if (
   !/getAnnotationQuote/.test(hypothesis) ||
   !/TextQuoteSelector/.test(hypothesis) ||
-  !/title: quote \|\| note \|\| documentTitle/.test(hypothesis)
+  !/title: quote \|\| note \|\| documentTitle/.test(hypothesis) ||
+  !/primaryLabel: quote \? "Highlight" : "Your note"/.test(hypothesis) ||
+  !/secondaryLabel: quote && note \? "Your note"/.test(hypothesis) ||
+  !/Highlight: \$\{quote\}/.test(hypothesis)
 ) {
-  throw new Error("Hypothesis highlights are not mapped to the primary content")
+  throw new Error("Hypothesis highlights and personal notes are not mapped with explicit labels")
+}
+if (!/primaryLabel\?: string/.test(adapter) || !/secondaryLabel\?: string/.test(adapter) || !/primaryLabel/.test(zen)) {
+  throw new Error("Shared Zen content does not support semantic content labels")
 }
 if (!/toggleSource\(settingsAdapter\.id, settingsDraft\)/.test(sourcesModal) || !/pr-28/.test(sourcesModal) || !/hover:z-30/.test(sourcesModal)) {
   throw new Error("Source setup, secret input spacing, or tooltip stacking safeguards are missing")

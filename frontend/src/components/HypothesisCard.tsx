@@ -22,10 +22,10 @@ export function HypothesisCard({ item }: HypothesisCardProps) {
   const { toggleLike, isLiked } = useLikedArticles()
   const liked = isLiked(item)
   const domain = getDomain(item.url)
-  const excerpt = annotation.text?.trim() || "No note attached"
+  const note = annotation.text?.trim() || ""
   const quote = getAnnotationQuote(annotation)
-  const displayText = quote || excerpt || item.title
-  const displayExcerpt = excerpt.length > 220 ? `${excerpt.slice(0, 217)}…` : excerpt
+  const primaryText = quote || note || item.title
+  const displayNote = note.length > 220 ? `${note.slice(0, 217)}…` : note
 
   const handleShare = async (event: React.MouseEvent) => {
     event.preventDefault()
@@ -67,14 +67,28 @@ export function HypothesisCard({ item }: HypothesisCardProps) {
           Hypothesis
         </div>
 
-        <h3 className="wiki-card-title text-card-title-hn">
-          <a href={item.url} target="_blank" rel="noopener noreferrer">
-            {displayText}
+        <div className="mb-2 text-[10px] font-bold uppercase tracking-[0.12em] text-amber-600">
+          {quote ? "Highlight" : "Your note"}
+        </div>
+
+        <h3 className="text-lg font-normal leading-relaxed text-slate-800">
+          <a
+            href={item.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="transition-colors hover:text-amber-700"
+          >
+            {primaryText}
           </a>
         </h3>
 
-        {quote && annotation.text?.trim() && (
-          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-500">{displayExcerpt}</p>
+        {quote && note && (
+          <div className="mt-4 border-t border-slate-100 pt-3">
+            <div className="mb-1 text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400">
+              Your note
+            </div>
+            <p className="line-clamp-3 text-sm leading-relaxed text-slate-500">{displayNote}</p>
+          </div>
         )}
 
         <div className="card-footer-row">

@@ -151,13 +151,17 @@ export const hypothesisAdapter: SourceAdapter = {
     const raw = item.raw as HypothesisAnnotationRaw
     const text = raw.text?.trim() || "No note attached"
     const quote = getAnnotationQuote(raw)
+    const previewParts = [
+      quote ? `Highlight: ${quote}` : "",
+      raw.text?.trim() ? `Your note: ${text}` : "",
+    ].filter(Boolean)
     return {
       thumbnailNode: (
         <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-500">
           <Highlighter className="h-7 w-7" strokeWidth={1.7} />
         </div>
       ),
-      descriptionText: `${getDomain(item.url) || "Hypothesis"} · ${(quote || text).slice(0, 90)}`,
+      descriptionText: `${getDomain(item.url) || "Hypothesis"} · ${previewParts.join(" · ").slice(0, 180)}`,
       titleHoverClass: "hover:text-amber-700",
     }
   },
@@ -190,7 +194,9 @@ export const hypothesisAdapter: SourceAdapter = {
     const note = raw.text?.trim() || ""
     return {
       primary: quote || note || item.title,
+      primaryLabel: quote ? "Highlight" : "Your note",
       secondary: quote && note ? note : undefined,
+      secondaryLabel: quote && note ? "Your note" : undefined,
       contentKind: "body",
       metaNode: (
         <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">

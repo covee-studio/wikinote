@@ -91,7 +91,7 @@ function FadingScroll({ children, maxHeightVh }: { children: React.ReactNode; ma
 }
 
 function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
-  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, contentKind = "title", accent, accentText, sourceLabel, noLink, contentScrollable } =
+  const { primary, primaryLabel, secondary, secondaryLabel, imageUrl, metaNode, primaryWeight = 500, contentKind = "title", accent, accentText, sourceLabel, noLink, contentScrollable } =
     getAdapter(item.source).getZenContent(item)
   const { currentLanguage } = useLocalization()
   const translation = useAutoTranslatedText(
@@ -165,18 +165,33 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
 
   const textBlock = (
     <>
+      {primaryLabel && (
+        <div
+          className="mb-4 text-center text-[10px] font-bold uppercase tracking-[0.16em]"
+          style={{ color: accentText }}
+        >
+          {primaryLabel}
+        </div>
+      )}
       {primaryEl}
       {secondary && (
-        <p
-          className={contentKind === "body"
-            ? `font-serif-display whitespace-pre-line mx-auto mt-8 w-full max-w-[680px] ${dark ? 'text-slate-50' : 'text-slate-900'}`
-            : `font-serif-display mx-auto mt-6 max-w-[600px] line-clamp-4 ${dark ? 'text-slate-300' : 'text-slate-500'}`}
-          style={contentKind === "body"
-            ? primaryStyle
-            : { fontSize: 'clamp(15px, 1.3vw, 18px)', lineHeight: 1.8, textAlign: secondaryTextAlign }}
-        >
-          {secondary}
-        </p>
+        <div className={contentKind === "body" ? "mt-10 border-t border-slate-300/30 pt-7" : ""}>
+          {secondaryLabel && (
+            <div className="mb-3 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
+              {secondaryLabel}
+            </div>
+          )}
+          <p
+            className={contentKind === "body"
+              ? `font-serif-display whitespace-pre-line mx-auto w-full max-w-[680px] ${dark ? 'text-slate-300' : 'text-slate-600'}`
+              : `font-serif-display mx-auto mt-6 max-w-[600px] line-clamp-4 ${dark ? 'text-slate-300' : 'text-slate-500'}`}
+            style={contentKind === "body"
+              ? { ...primaryStyle, color: dark ? 'rgba(226,232,240,0.78)' : '#64748b' }
+              : { fontSize: 'clamp(15px, 1.3vw, 18px)', lineHeight: 1.8, textAlign: secondaryTextAlign }}
+          >
+            {secondary}
+          </p>
+        </div>
       )}
     </>
   )
