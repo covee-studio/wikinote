@@ -70,9 +70,9 @@ if (/Configure below|Configure Memos|Save & enable|Test connection/.test(sources
 }
 if (
   !/logoSrc/.test(adapter) ||
-  !/logoSrc:\s*\"\/source-icons\/wikipedia\.png\"/.test(wikipedia) ||
-  !/logoSrc:\s*\"\/source-icons\/hacker-news\.png\"/.test(hackerNews) ||
-  !/logoSrc:\s*\"\/source-icons\/memos\.png\"/.test(memos) ||
+  !/logoSrc:\s*\"\/wikipedia-logo\.png\"/.test(wikipedia) ||
+  !/logoSrc:\s*\"\/hacker-news-logo\.png\"/.test(hackerNews) ||
+  !/logoSrc:\s*\"\/memos-logo\.png\"/.test(memos) ||
   !/aria-label=\{`\$\{adapter\.label\} settings`\}/.test(sourcesModal)
 ) {
   throw new Error("Memos settings entry or brand asset is missing")

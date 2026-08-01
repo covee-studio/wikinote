@@ -228,7 +228,7 @@ export const memosAdapter: SourceAdapter = {
   label: "Memos",
   description: "Your personal notes from a self-hosted Memos instance.",
   color: "#1e293b",
-  logoSrc: "/source-icons/memos.png",
+  logoSrc: "/memos-logo.png",
   requiresConfig: true,
   // Always refetch on mount so the window cursor advances on every new tab,
   // even within the global feed-cache TTL window. Cached data is only used
