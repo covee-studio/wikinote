@@ -31,6 +31,65 @@ interface ZenModeProps {
   onRetry?: () => void
 }
 
+const SCROLL_FADE_SIZE = '3.75rem'
+
+function FadingScroll({ children, maxHeightVh }: { children: React.ReactNode; maxHeightVh: number }) {
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [fade, setFade] = useState({ top: false, bottom: false })
+
+  const updateFade = useCallback(() => {
+    const node = scrollRef.current
+    if (!node) return
+    const overflow = node.scrollHeight - node.clientHeight > 1
+    setFade({
+      top: overflow && node.scrollTop > 1,
+      bottom: overflow && node.scrollTop + node.clientHeight < node.scrollHeight - 1,
+    })
+  }, [])
+
+  useEffect(() => {
+    const node = scrollRef.current
+    if (!node) return
+
+    updateFade()
+    node.addEventListener('scroll', updateFade, { passive: true })
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateFade) : null
+    observer?.observe(node)
+
+    return () => {
+      node.removeEventListener('scroll', updateFade)
+      observer?.disconnect()
+    }
+  }, [updateFade, children])
+
+  const maskImage = fade.top && fade.bottom
+    ? `linear-gradient(to bottom, transparent 0, black ${SCROLL_FADE_SIZE}, black calc(100% - ${SCROLL_FADE_SIZE}), transparent 100%)`
+    : fade.top
+      ? `linear-gradient(to bottom, transparent 0, black ${SCROLL_FADE_SIZE}, black 100%)`
+      : fade.bottom
+        ? `linear-gradient(to bottom, black 0, black calc(100% - ${SCROLL_FADE_SIZE}), transparent 100%)`
+        : 'none'
+
+  return (
+    <div className="relative mx-auto w-full max-w-[680px]">
+      <div
+        ref={scrollRef}
+        // A scrollable region must be focusable so keyboard users can scroll it.
+        // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
+        tabIndex={0}
+        role="region"
+        aria-label="Scrollable content"
+        className="zen-scroll w-full overflow-y-auto rounded-lg px-2 outline-none focus-visible:ring-2 focus-visible:ring-slate-400/30"
+        style={{ maxHeight: `${maxHeightVh}vh`, maskImage }}
+      >
+        {children}
+      </div>
+      <div aria-hidden className={`zen-scroll-edge zen-scroll-edge-top ${fade.top ? 'opacity-100' : 'opacity-0'}`} />
+      <div aria-hidden className={`zen-scroll-edge zen-scroll-edge-bottom ${fade.bottom ? 'opacity-100' : 'opacity-0'}`} />
+    </div>
+  )
+}
+
 function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
   const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, contentKind = "title", accent, accentText, sourceLabel, noLink, primaryScrollable } =
     getAdapter(item.source).getZenContent(item)
@@ -106,12 +165,9 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
   const textBlock = (
     <>
       {primaryScrollable ? (
-        <div
-          className={`overflow-y-auto w-full max-w-[680px] mx-auto text-left rounded-lg px-2 ${dark ? 'scrollbar-dark' : ''}`}
-          style={{ maxHeight: `${primaryScrollable.maxHeightVh}vh` }}
-        >
+        <FadingScroll maxHeightVh={primaryScrollable.maxHeightVh}>
           {primaryEl}
-        </div>
+        </FadingScroll>
       ) : primaryEl}
       {secondary && (
         <p

@@ -10,6 +10,7 @@ const read = (path) => readFileSync(resolve(root, path), "utf8")
 const app = read("src/App.tsx")
 const translation = read("src/utils/translation.ts")
 const zen = read("src/components/ZenMode.tsx")
+const styles = read("src/index.css")
 const memos = read("src/sources/memos.tsx")
 const sourcesModal = read("src/components/SourcesModal.tsx")
 const adapter = read("src/sources/adapter.ts")
@@ -115,6 +116,9 @@ if (!/isFullyConfigured/.test(read("src/contexts/SourcesContext.tsx")) || !/retu
 // URLs or other unbroken strings.
 if (!/primaryScrollable/.test(zen) || !/overflowWrap:\s*["']anywhere/.test(zen)) {
   throw new Error("Long-content layout safeguards are missing")
+}
+if (!/function FadingScroll/.test(zen) || !/ResizeObserver/.test(zen) || !/maskImage/.test(zen) || !/zen-scroll-edge-bottom/.test(zen) || !/\.zen-scroll::\-webkit-scrollbar/.test(styles)) {
+  throw new Error("Scrollable content is missing scrollbar-free edge fade affordances")
 }
 
 // Memos must not advance its cursor until the window request succeeds.

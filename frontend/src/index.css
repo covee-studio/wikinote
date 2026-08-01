@@ -32,6 +32,46 @@ html, body {
   scrollbar-width: none;
 }
 
+/* Zen reading surfaces keep native scrolling without exposing a browser
+   scrollbar. FadingScroll adds the visual edge affordance per scroll state. */
+.zen-scroll {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+}
+
+.zen-scroll::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.zen-scroll-edge {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: 3.75rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 180ms ease;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.zen-scroll-edge-top {
+  top: 0;
+  mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0%, transparent 100%);
+}
+
+.zen-scroll-edge-bottom {
+  bottom: 0;
+  mask-image: linear-gradient(to top, black 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to top, black 0%, transparent 100%);
+}
+
 /* Soft textured gradient background */
 .gradient-bg {
   /* Elegant gradient inspired by Apple HIG */
