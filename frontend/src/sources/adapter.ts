@@ -10,6 +10,8 @@ export interface FetchConfig {
   language?: Language
   /** Per-source user settings (API keys, endpoints, etc.) stored in SourcesContext */
   sourceConfig?: Record<string, string>
+  /** Distinguishes the initial feed request from the user's explicit load-more action. */
+  fetchMode?: "initial" | "more"
 }
 
 export interface CardRenderProps {
@@ -58,6 +60,8 @@ export interface SourceConfigField {
   placeholder: string
   secret?: boolean
   hint?: string
+  /** Optional fields do not prevent a source from being enabled when empty. */
+  required?: boolean
   /** Marks this field as a base URL (e.g. a self-hosted instance address).
    *  Used to normalize the value (auto-add https://) and to request the
    *  Chrome extension host permission needed to fetch it. */

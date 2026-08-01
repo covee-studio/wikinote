@@ -53,7 +53,7 @@ function configFingerprint(adapter: SourceAdapter, config: Record<string, string
 /** Returns true only when every required config field has a non-empty value. */
 function isFullyConfigured(adapter: SourceAdapter, config: Record<string, string>): boolean {
   if (!adapter.requiresConfig || !adapter.configSchema) return true
-  return adapter.configSchema.every((f) => config[f.key]?.trim())
+  return adapter.configSchema.every((f) => f.required === false || Boolean(config[f.key]?.trim()))
 }
 
 // How long the user must pause typing in a source's config form before that
@@ -248,6 +248,7 @@ function App() {
           const items = await adapter.fetch({
             language: currentLanguage,
             sourceConfig: settledConfigs[adapter.id] ?? getSourceConfig(adapter.id),
+            fetchMode: "more",
           })
           return [adapter.id, items] as const
         })

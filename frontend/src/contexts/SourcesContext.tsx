@@ -49,7 +49,7 @@ const ALL_SOURCE_IDS: SourceId[] = ADAPTER_LIST.map((a) => a.id)
 function isFullyConfigured(id: SourceId, config: Record<string, string>): boolean {
   const adapter = ADAPTER_LIST.find((candidate) => candidate.id === id)
   if (!adapter?.requiresConfig || !adapter.configSchema) return true
-  return adapter.configSchema.every((field) => config[field.key]?.trim())
+  return adapter.configSchema.every((field) => field.required === false || Boolean(config[field.key]?.trim()))
 }
 
 // ─── Loaders ──────────────────────────────────────────────────

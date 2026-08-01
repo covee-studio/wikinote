@@ -8,16 +8,15 @@ import { useLocalization } from "../hooks/useLocalization"
 import { LANGUAGES } from "../languages"
 import { ADAPTER_LIST } from "../sources/registry"
 import { useToast } from "../contexts/ToastContext"
+import type { SourceAdapter } from "../sources/adapter"
+import type { SourceId } from "../types/DiscoveryItem"
 
 interface SourcesModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
-type SourcesView = "sources" | "memos"
-
-const MEMOS_LOGO_SRC = "/memos-logo.png"
-const MEMOS_ADAPTER = ADAPTER_LIST.find((adapter) => adapter.id === "memos")
+type SourcesView = "sources" | SourceId
 
 function Toggle({ checked, onChange, id }: { checked: boolean; onChange: () => void; id: string }) {
   return (
@@ -69,9 +68,10 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
   const { showToast } = useToast()
   const { currentLanguage, setLanguage } = useLocalization()
   const [view, setView] = useState<SourcesView>("sources")
-  const [memosDraft, setMemosDraft] = useState<Record<string, string>>({})
+  const [settingsDraft, setSettingsDraft] = useState<Record<string, string>>({})
   const [showToken, setShowToken] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const settingsAdapter = view === "sources" ? undefined : ADAPTER_LIST.find((adapter) => adapter.id === view)
 
   useKeyboardNavigation({ onEscape: onClose, enabled: isOpen })
   useFocusTrap(isOpen, containerRef)
@@ -79,21 +79,23 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
   useEffect(() => {
     if (isOpen) return
     setView("sources")
+    setSettingsDraft({})
     setShowToken(false)
   }, [isOpen])
 
-  const openMemosSettings = () => {
-    setMemosDraft({ ...getSourceConfig("memos") })
+  const openSourceSettings = (adapter: SourceAdapter) => {
+    setSettingsDraft({ ...getSourceConfig(adapter.id) })
     setShowToken(false)
-    setView("memos")
+    setView(adapter.id)
   }
 
-  const saveMemosSettings = (event: React.FormEvent<HTMLFormElement>) => {
+  const saveSourceSettings = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    for (const field of MEMOS_ADAPTER?.configSchema ?? []) {
-      updateSourceConfig("memos", field.key, memosDraft[field.key] ?? "")
+    if (!settingsAdapter) return
+    for (const field of settingsAdapter.configSchema ?? []) {
+      updateSourceConfig(settingsAdapter.id, field.key, settingsDraft[field.key] ?? "")
     }
-    ensureHostPermission("memos", memosDraft)
+    ensureHostPermission(settingsAdapter.id, settingsDraft)
     setView("sources")
   }
 
@@ -102,7 +104,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
     if (toggled || enabledSources.has(adapter.id)) return
 
     showToast(`Configure ${adapter.label} before enabling it`)
-    if (adapter.id === "memos") openMemosSettings()
+    if (adapter.requiresConfig) openSourceSettings(adapter)
   }
 
   return (
@@ -196,7 +198,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                   <div className="flex flex-col gap-3">
                     {ADAPTER_LIST.map((adapter) => {
                       const active = enabledSources.has(adapter.id)
-                      const isMemos = adapter.id === "memos"
+                      const hasSettings = Boolean(adapter.configSchema?.length)
 
                       return (
                         <div
@@ -234,11 +236,11 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                               </div>
                             </div>
                             <div className="ml-auto flex items-center gap-3">
-                              {isMemos && (
+                              {hasSettings && (
                                 <button
                                   type="button"
-                                  onClick={openMemosSettings}
-                                  aria-label="Memos settings"
+                                  onClick={() => openSourceSettings(adapter)}
+                                  aria-label={`${adapter.label} settings`}
                                   className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                                 >
                                   <Settings className="h-4 w-4" strokeWidth={1.8} />
@@ -258,7 +260,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                 </motion.div>
               ) : (
                 <motion.div
-                  key="memos-view"
+                  key={`${settingsAdapter?.id ?? "source"}-view`}
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 10 }}
@@ -274,35 +276,43 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                   </button>
 
                   <div className="flex flex-col items-center">
-                    <img
-                      src={MEMOS_LOGO_SRC}
-                      alt="Memos"
-                      className="h-20 w-20 rounded-full object-cover shadow-sm"
-                    />
-                    <h3 className="mt-5 text-3xl font-bold tracking-tight text-slate-800">Memos</h3>
+                    {settingsAdapter?.logoSrc ? (
+                      <img
+                        src={settingsAdapter.logoSrc}
+                        alt={settingsAdapter.label}
+                        className="h-20 w-20 rounded-full object-cover shadow-sm"
+                      />
+                    ) : (
+                      <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-500">
+                        <Layers className="h-9 w-9" strokeWidth={1.6} />
+                      </div>
+                    )}
+                    <h3 className="mt-5 text-3xl font-bold tracking-tight text-slate-800">
+                      {settingsAdapter?.label ?? "Source"}
+                    </h3>
                   </div>
 
-                  <form className="mt-10 flex flex-col gap-5" onSubmit={saveMemosSettings}>
-                    {(MEMOS_ADAPTER?.configSchema ?? []).map((field) => {
+                  <form className="mt-10 flex flex-col gap-5" onSubmit={saveSourceSettings}>
+                    {(settingsAdapter?.configSchema ?? []).map((field) => {
                       const isSecret = field.secret === true
-                      const value = memosDraft[field.key] ?? ""
+                      const value = settingsDraft[field.key] ?? ""
 
                       return (
                         <div key={field.key}>
                           <label
-                            htmlFor={`memos-${field.key}`}
+                            htmlFor={`${settingsAdapter?.id ?? "source"}-${field.key}`}
                             className="mb-2 block text-sm font-semibold text-slate-700"
                           >
                             {field.label}
                           </label>
                           <div className="relative">
                             <input
-                              id={`memos-${field.key}`}
+                              id={`${settingsAdapter?.id ?? "source"}-${field.key}`}
                               type={isSecret && !showToken ? "password" : "text"}
                               value={value}
                               placeholder={field.placeholder}
                               onChange={(event) => {
-                                setMemosDraft((previous) => ({ ...previous, [field.key]: event.target.value }))
+                                setSettingsDraft((previous) => ({ ...previous, [field.key]: event.target.value }))
                               }}
                               className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition-shadow placeholder:text-slate-300 focus:border-slate-300 focus:ring-2 focus:ring-slate-200"
                               autoComplete="off"

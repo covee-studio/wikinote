@@ -59,10 +59,10 @@ if (/Content and translation language|Article language — Wikipedia only/.test(
 // Memos configuration lives on a dedicated child page. The source list must
 // stay compact and must not expose the old inline form or an enable-on-save
 // action that couples configuration to source activation.
-if (!/Back to Sources/.test(sourcesModal) || !/Memos settings/.test(sourcesModal)) {
+if (!/Back to Sources/.test(sourcesModal) || !/settingsAdapter/.test(sourcesModal) || !/openSourceSettings/.test(sourcesModal)) {
   throw new Error("Memos child settings page is missing")
 }
-if (!/Configure \$\{adapter\.label\} before enabling it/.test(sourcesModal) || !/setView\("memos"\)/.test(sourcesModal)) {
+if (!/Configure \$\{adapter\.label\} before enabling it/.test(sourcesModal) || !/setView\(adapter\.id\)/.test(sourcesModal)) {
   throw new Error("Unconfigured sources do not provide a clear setup path")
 }
 if (/Configure below|Configure Memos|Save & enable|Test connection/.test(sourcesModal)) {
@@ -73,9 +73,12 @@ if (
   !/logoSrc:\s*\"\/wikipedia-logo\.png\"/.test(wikipedia) ||
   !/logoSrc:\s*\"\/hacker-news-logo\.png\"/.test(hackerNews) ||
   !/logoSrc:\s*\"\/memos-logo\.png\"/.test(memos) ||
-  !/aria-label=\"Memos settings\"/.test(sourcesModal)
+  !/aria-label=\{`\$\{adapter\.label\} settings`\}/.test(sourcesModal)
 ) {
   throw new Error("Memos settings entry or brand asset is missing")
+}
+if (!/hypothesisAdapter/.test(read("src/sources/registry.ts")) || !/API Token/.test(read("src/sources/hypothesis.tsx"))) {
+  throw new Error("Hypothesis source registration or token configuration is missing")
 }
 if (!/isFullyConfigured/.test(read("src/contexts/SourcesContext.tsx")) || !/return false/.test(read("src/contexts/SourcesContext.tsx"))) {
   throw new Error("Configuration-backed sources can still be enabled before setup")
@@ -116,4 +119,4 @@ if (existsSync(zipPath)) {
   }
 }
 
-console.log("Regression checks passed: Prompt API fallback, long-content layout, Memos window stability, and extension packaging")
+console.log("Regression checks passed: Prompt API fallback, long-content layout, source setup gating, Hypothesis registration, Memos window stability, and extension packaging")

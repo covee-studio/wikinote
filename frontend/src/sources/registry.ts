@@ -4,6 +4,7 @@
 // automatically — zero changes needed elsewhere.
 
 import { hackerNewsAdapter } from "./hackernews"
+import { hypothesisAdapter } from "./hypothesis"
 import { memosAdapter } from "./memos"
 import { wikipediaAdapter } from "./wikipedia"
 import type { SourceAdapter } from "./adapter"
@@ -13,6 +14,7 @@ export const ADAPTER_REGISTRY: Record<SourceId, SourceAdapter> = {
   wikipedia: wikipediaAdapter,
   hackernews: hackerNewsAdapter,
   memos: memosAdapter,
+  hypothesis: hypothesisAdapter,
 }
 
 /** Ordered list for UI rendering (Sources button dots, SourcesModal cards) */

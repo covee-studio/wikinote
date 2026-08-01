@@ -9,7 +9,8 @@
   ],
   "host_permissions": [
     "https://*.wikipedia.org/*",
-    "https://hacker-news.firebaseio.com/*"
+    "https://hacker-news.firebaseio.com/*",
+    "https://hypothes.is/*"
   ],
   "optional_host_permissions": [
     "https://*/*",
