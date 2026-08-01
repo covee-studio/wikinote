@@ -6,6 +6,7 @@ import { useI18n } from "../hooks/useI18n"
 import { useFocusTrap } from "../hooks/useFocusTrap"
 import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation"
 import { getAdapter } from "../sources/registry"
+import { Toggle } from "./Toggle"
 
 interface LikesModalProps {
   isOpen: boolean
@@ -126,16 +127,11 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
                     </p>
                   </div>
                 </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={syncEnabled}
-                  aria-label="Sync favorites across Chrome devices"
-                  onClick={() => setSyncEnabled(!syncEnabled)}
-                  className={`relative h-6 w-10 flex-shrink-0 rounded-full transition-colors ${syncEnabled ? "bg-slate-800" : "bg-slate-200"}`}
-                >
-                  <span className={`absolute top-1 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${syncEnabled ? "translate-x-5" : "translate-x-1"}`} />
-                </button>
+                <Toggle
+                  checked={syncEnabled}
+                  onChange={() => setSyncEnabled(!syncEnabled)}
+                  ariaLabel="Sync favorites across Chrome devices"
+                />
               </div>
             )}
 

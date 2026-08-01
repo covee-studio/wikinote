@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## v2.0.5 - 2026-08-01
+
+- Added: Hypothesis annotations as a configurable reading source.
+- Added: Optional Chrome Sync for compact favorite previews without syncing source credentials.
+- Changed: Unified source toggles and refreshed source/settings interactions.
+- Changed: Updated Chrome Web Store disclosures and added a dedicated privacy policy.
+- Fixed: Various reading layout, overflow, loading, and visual consistency issues.
+
 ## v2.0.4 - 2026-07-09
 
 - Fixed: 1 issue(s)

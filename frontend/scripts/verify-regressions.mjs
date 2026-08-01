@@ -119,6 +119,9 @@ if (!/primaryKind\?: "highlight" \| "note"/.test(adapter) || !/primaryKind/.test
 if (!/toggleSource\(settingsAdapter\.id, settingsDraft\)/.test(sourcesModal) || !/pr-28/.test(sourcesModal) || !/hover:z-30/.test(sourcesModal) || !/source-tooltip/.test(sourcesModal) || !/prefers-reduced-motion/.test(read("src/index.css"))) {
   throw new Error("Source setup, secret input spacing, or accessible tooltip motion safeguards are missing")
 }
+if (!/import \{ Toggle \} from "\.\/Toggle"/.test(sourcesModal) || !/import \{ Toggle \} from "\.\/Toggle"/.test(likesModal) || !/<Toggle/.test(likesModal)) {
+  throw new Error("Source and favorites switches must use the shared Toggle component")
+}
 if (/bg-slate-50 opacity-60/.test(sourcesModal)) {
   throw new Error("Inactive source opacity still affects tooltip rendering")
 }

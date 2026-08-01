@@ -8,6 +8,7 @@ This document describes the repository layout, build targets, and key convention
 wikinote/
 ├── LICENSE
 ├── README.md                 # Root project readme
+├── PRIVACY.md                # Public privacy policy for the Chrome extension
 ├── PROJECT_STRUCTURE.md      # This document
 └── frontend/                 # React + TypeScript app (Web + Chrome Extension)
 ```
@@ -79,6 +80,7 @@ frontend/
   - Analytics only on Web
 - Strong TypeScript settings (strict), ESLint with `jsx-a11y`.
 - PWA (Web) via `vite-plugin-pwa`.
+- Chrome Web Store submission and privacy details are maintained in `frontend/CHROME_STORE_SUBMISSION.md` and `PRIVACY.md`.
 - Accessibility: ErrorBoundary, keyboard navigation, focus trap for modals, toast notifications.
 
 ## Build commands
@@ -106,4 +108,4 @@ Optional improvements (nice to have):
 - Unify `public/` usage: the Web production config currently has its own root under `configs/web/`. Consider setting `publicDir: ../../public` in `configs/web/vite.config.ts` to use a single source of truth for static assets across dev and prod.
 - Prefer a single package manager (project uses npm; remove `bun.lock` to avoid confusion).
 - Consider adding CI (GitHub Actions) to run lint/typecheck/build for both targets and upload the zip as an artifact.
-- If UI language must remain English‑only, ensure `languages.ts` display names are consistently English (currently many use native names by design). 
+- If UI language must remain English‑only, ensure `languages.ts` display names are consistently English (currently many use native names by design).
