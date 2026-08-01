@@ -32,7 +32,7 @@ interface ZenModeProps {
 }
 
 function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
-  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, accent, accentText, sourceLabel, noLink, primaryScrollable } =
+  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, contentKind = "title", accent, accentText, sourceLabel, noLink, primaryScrollable } =
     getAdapter(item.source).getZenContent(item)
   const { currentLanguage } = useLocalization()
   const translation = useAutoTranslatedText(
@@ -46,13 +46,12 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
   const imageStyle = { width: 120, height: 120, objectFit: 'cover' as const, flexShrink: 0 }
 
   const primaryStyle = {
-    // Keep the reading scale stable across sources. Long content gets a
-    // scrollable region rather than silently shrinking into a different type
-    // hierarchy.
-    fontSize: 'clamp(30px, 3.1vw, 48px)',
-    lineHeight: 1.62,
+    // Keep the semantic hierarchy stable across sources. Wikipedia and HN
+    // provide titles/headlines; Memos and Hypothesis provide reading content.
+    fontSize: contentKind === "body" ? 'clamp(18px, 1.6vw, 28px)' : 'clamp(30px, 3.1vw, 48px)',
+    lineHeight: contentKind === "body" ? 1.85 : 1.62,
     letterSpacing: '0.005em',
-    fontWeight: primaryWeight,
+    fontWeight: contentKind === "body" ? 400 : primaryWeight,
     overflowWrap: 'anywhere' as const,
   }
   const primaryEl = translation.state === 'pending' ? (
@@ -108,7 +107,11 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
       {secondary && (
         <p
           className={`font-serif-display mx-auto mt-6 max-w-[600px] line-clamp-4 ${dark ? 'text-slate-300' : 'text-slate-500'}`}
-          style={{ fontSize: 'clamp(15px, 1.3vw, 18px)', lineHeight: 1.8 }}
+          style={{
+            fontSize: contentKind === "body" ? 'clamp(18px, 1.6vw, 28px)' : 'clamp(15px, 1.3vw, 18px)',
+            lineHeight: contentKind === "body" ? 1.85 : 1.8,
+            fontWeight: contentKind === "body" ? 400 : undefined,
+          }}
         >
           {secondary}
         </p>

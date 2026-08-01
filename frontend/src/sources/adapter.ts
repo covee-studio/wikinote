@@ -41,6 +41,9 @@ export interface ZenContentData {
   metaNode: ReactNode
   /** Font weight for primary text; defaults to 500 */
   primaryWeight?: number
+  /** Reading hierarchy for the main content. Titles/headlines are large;
+   * body sources such as Memos and Hypothesis stay at reading size. */
+  contentKind?: "title" | "body"
   /** Muted accent colour for the source indicator dot and horizontal rule */
   accent: string
   /** Text colour for the source label above the rule */

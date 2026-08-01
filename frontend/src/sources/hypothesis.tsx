@@ -188,6 +188,7 @@ export const hypothesisAdapter: SourceAdapter = {
     return {
       primary: quote || note || item.title,
       secondary: quote && note ? note : undefined,
+      contentKind: "body",
       metaNode: (
         <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
           <span className="inline-flex items-center gap-1.5">

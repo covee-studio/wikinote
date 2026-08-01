@@ -45,8 +45,11 @@ if (/translated\s*\?\?\s*original/.test(translation)) {
 if (!/animation:\s*'zen-breathe/.test(zen) || /pendingWidth|animate-pulse/.test(zen)) {
   throw new Error("Translation pending state still uses the heavyweight skeleton layout")
 }
-if (/function primarySize/.test(zen) || !/fontSize:\s*'clamp\(30px, 3\.1vw, 48px\)'/.test(zen)) {
-  throw new Error("Zen content still changes type scale based on source text length")
+if (/function primarySize/.test(zen) || !/contentKind === "body"/.test(zen) || !/clamp\(18px, 1\.6vw, 28px\)/.test(zen)) {
+  throw new Error("Zen content does not preserve title and body reading hierarchies")
+}
+if (!/contentKind:\s*"body"/.test(memos) || !/contentKind:\s*"body"/.test(hypothesis)) {
+  throw new Error("Body-oriented sources are not explicitly marked for reading typography")
 }
 
 // The language is a global content/translation preference, not a Wikipedia
