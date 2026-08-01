@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronDown, Eye, EyeOff, Info, Languages, Layers, Settings, X } from "lucide-react"
+import { ArrowLeft, ChevronDown, Eye, EyeOff, Info, Layers, Settings, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSources } from "../contexts/SourcesContext"
@@ -165,8 +165,13 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                   transition={{ duration: 0.16, ease: "easeOut" }}
                 >
                   <div className="mb-5 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-100">
-                      <Languages className="h-5 w-5" strokeWidth={1.8} />
+                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-slate-100">
+                      <img
+                        src="/source-icons/language.png"
+                        alt=""
+                        aria-hidden="true"
+                        className="h-full w-full rounded-full object-cover"
+                      />
                     </div>
                     <div className="flex min-w-0 flex-1 items-center gap-1">
                       <label htmlFor="article-language-select" className="block text-sm font-semibold text-slate-700">
