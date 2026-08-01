@@ -96,6 +96,12 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
       updateSourceConfig(settingsAdapter.id, field.key, settingsDraft[field.key] ?? "")
     }
     ensureHostPermission(settingsAdapter.id, settingsDraft)
+    // Saving a complete configuration is the explicit setup action. Enable the
+    // source immediately so the user does not have to save, go back, and flip
+    // the same switch a second time.
+    if (!enabledSources.has(settingsAdapter.id)) {
+      toggleSource(settingsAdapter.id, settingsDraft)
+    }
     setView("sources")
   }
 
@@ -203,7 +209,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                       return (
                         <div
                           key={adapter.id}
-                          className={`flex h-[72px] items-center rounded-xl border border-slate-100 px-4 transition-all duration-200 hover:bg-slate-50 ${
+                          className={`relative flex h-[72px] items-center rounded-xl border border-slate-100 px-4 transition-all duration-200 hover:z-30 hover:bg-slate-50 ${
                             active ? "bg-white" : "bg-slate-50 opacity-60"
                           }`}
                         >
@@ -314,7 +320,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                               onChange={(event) => {
                                 setSettingsDraft((previous) => ({ ...previous, [field.key]: event.target.value }))
                               }}
-                              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition-shadow placeholder:text-slate-300 focus:border-slate-300 focus:ring-2 focus:ring-slate-200"
+                              className={`w-full rounded-xl border border-slate-200 bg-white py-3 pl-3.5 text-sm text-slate-800 outline-none transition-shadow placeholder:text-slate-300 focus:border-slate-300 focus:ring-2 focus:ring-slate-200 ${isSecret ? "pr-28" : "pr-3.5"}`}
                               autoComplete="off"
                               spellCheck={false}
                             />
@@ -322,7 +328,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                               <button
                                 type="button"
                                 onClick={() => setShowToken((previous) => !previous)}
-                                className="absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center gap-1.5 text-xs font-medium text-slate-400 transition-colors hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                                className="absolute right-2 top-1/2 z-10 inline-flex -translate-y-1/2 shrink-0 items-center gap-1.5 whitespace-nowrap bg-white px-1 text-xs font-medium text-slate-400 transition-colors hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
                                 aria-label={showToken ? "Hide token" : "Show token"}
                               >
                                 {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}

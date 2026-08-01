@@ -5,6 +5,7 @@ import { useToast } from "../contexts/ToastContext"
 import { useI18n } from "../hooks/useI18n"
 import type { DiscoveryItem } from "../types/DiscoveryItem"
 import { formatRelativeTime, getDomain } from "../utils/formatting"
+import { getAnnotationQuote } from "../sources/hypothesis"
 import type { HypothesisAnnotationRaw } from "../sources/hypothesis"
 import "../styles/TextCard.css"
 import "../styles/WikiCard.css"
@@ -22,6 +23,8 @@ export function HypothesisCard({ item }: HypothesisCardProps) {
   const liked = isLiked(item)
   const domain = getDomain(item.url)
   const excerpt = annotation.text?.trim() || "No note attached"
+  const quote = getAnnotationQuote(annotation)
+  const displayText = quote || excerpt || item.title
   const displayExcerpt = excerpt.length > 220 ? `${excerpt.slice(0, 217)}…` : excerpt
 
   const handleShare = async (event: React.MouseEvent) => {
@@ -66,11 +69,13 @@ export function HypothesisCard({ item }: HypothesisCardProps) {
 
         <h3 className="wiki-card-title text-card-title-hn">
           <a href={item.url} target="_blank" rel="noopener noreferrer">
-            {item.title}
+            {displayText}
           </a>
         </h3>
 
-        <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-500">{displayExcerpt}</p>
+        {quote && annotation.text?.trim() && (
+          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-500">{displayExcerpt}</p>
+        )}
 
         <div className="card-footer-row">
           <span>{annotation.user?.replace(/^acct:/, "") || "Private annotation"}</span>

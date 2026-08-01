@@ -20,7 +20,7 @@ export type SourceConfigs = Partial<Record<SourceId, Record<string, string>>>
 interface SourcesContextType {
   enabledSources: Set<SourceId>
   /** Returns false when a source cannot be enabled because required config is missing. */
-  toggleSource: (id: SourceId) => boolean
+  toggleSource: (id: SourceId, configOverride?: Record<string, string>) => boolean
   isEnabled: (id: SourceId) => boolean
   sourceConfigs: SourceConfigs
   updateSourceConfig: (id: SourceId, key: string, value: string) => void
@@ -86,14 +86,15 @@ export function SourcesProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(CONFIGS_KEY, JSON.stringify(sourceConfigs))
   }, [sourceConfigs])
 
-  const toggleSource = (id: SourceId): boolean => {
+  const toggleSource = (id: SourceId, configOverride?: Record<string, string>): boolean => {
     const adapter = ADAPTER_LIST.find((a) => a.id === id)
     const currentlyEnabled = enabledSources.has(id)
+    const config = configOverride ?? sourceConfigs[id] ?? {}
 
     // Configuration-backed sources must be complete before they can enter the
     // active feed. This keeps the invariant at the state boundary instead of
     // relying only on the Sources UI to prevent an invalid activation.
-    if (!currentlyEnabled && adapter?.requiresConfig && !isFullyConfigured(id, sourceConfigs[id] ?? {})) {
+    if (!currentlyEnabled && adapter?.requiresConfig && !isFullyConfigured(id, config)) {
       return false
     }
 
@@ -109,7 +110,7 @@ export function SourcesProvider({ children }: { children: ReactNode }) {
     })
 
     if (!currentlyEnabled && adapter?.requiresConfig) {
-      ensureHostPermission(id)
+      ensureHostPermission(id, configOverride)
     }
     return true
   }

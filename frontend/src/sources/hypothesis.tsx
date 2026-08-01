@@ -16,6 +16,14 @@ export interface HypothesisAnnotationRaw {
   updated?: string
   tags?: string[]
   group?: string
+  target?: Array<{
+    selector?: Array<{
+      type?: string
+      exact?: string
+      prefix?: string
+      suffix?: string
+    }>
+  }>
   document?: {
     title?: string[]
     link?: Array<{ href?: string }>
@@ -43,6 +51,18 @@ function documentTitle(annotation: HypothesisAnnotationRaw): string {
   if (title) return title
   const domain = getDomain(annotation.uri)
   return domain ? `Annotation on ${domain}` : "Hypothesis annotation"
+}
+
+/** Returns the exact text selected by a TextQuoteSelector, when present. */
+export function getAnnotationQuote(annotation: HypothesisAnnotationRaw): string {
+  for (const target of annotation.target ?? []) {
+    for (const selector of target.selector ?? []) {
+      if (selector.type === "TextQuoteSelector" && selector.exact?.trim()) {
+        return selector.exact.trim()
+      }
+    }
+  }
+  return ""
 }
 
 function normalizeUsername(value: string): string {
@@ -77,13 +97,19 @@ async function fetchAnnotations(config: FetchConfig): Promise<DiscoveryItem[]> {
 
   return rows
     .filter((annotation) => typeof annotation.id === "string" && typeof annotation.uri === "string")
-    .map((annotation) => ({
-      id: `hypothesis-${annotation.id}`,
-      source: "hypothesis" as const,
-      title: documentTitle(annotation),
-      url: annotation.uri,
-      raw: annotation,
-    }))
+    .map((annotation) => {
+      const quote = getAnnotationQuote(annotation)
+      const note = annotation.text?.trim() ?? ""
+      return {
+        id: `hypothesis-${annotation.id}`,
+        source: "hypothesis" as const,
+        // The selected quote is the useful content of a highlight. Fall back
+        // to the note body, then the document title for note-only annotations.
+        title: quote || note || documentTitle(annotation),
+        url: annotation.uri,
+        raw: annotation,
+      }
+    })
 }
 
 export const hypothesisAdapter: SourceAdapter = {
@@ -121,26 +147,29 @@ export const hypothesisAdapter: SourceAdapter = {
   getLikePreview(item: DiscoveryItem): LikePreview {
     const raw = item.raw as HypothesisAnnotationRaw
     const text = raw.text?.trim() || "No note attached"
+    const quote = getAnnotationQuote(raw)
     return {
       thumbnailNode: (
         <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-500">
           <Highlighter className="h-7 w-7" strokeWidth={1.7} />
         </div>
       ),
-      descriptionText: `${getDomain(item.url) || "Hypothesis"} · ${text.slice(0, 90)}`,
+      descriptionText: `${getDomain(item.url) || "Hypothesis"} · ${(quote || text).slice(0, 90)}`,
       titleHoverClass: "hover:text-amber-700",
     }
   },
 
   getSearchText(item: DiscoveryItem): string {
     const raw = item.raw as HypothesisAnnotationRaw
-    return `${item.title} ${raw.text ?? ""} ${(raw.tags ?? []).join(" ")}`
+    return `${item.title} ${getAnnotationQuote(raw)} ${raw.text ?? ""} ${(raw.tags ?? []).join(" ")}`
   },
 
   getExportData(item: DiscoveryItem): Record<string, unknown> {
     const raw = item.raw as HypothesisAnnotationRaw
     return {
       title: item.title,
+      documentTitle: documentTitle(raw),
+      quote: getAnnotationQuote(raw),
       url: item.url,
       source: "hypothesis",
       text: raw.text ?? "",
@@ -154,9 +183,11 @@ export const hypothesisAdapter: SourceAdapter = {
   getZenContent(item: DiscoveryItem): ZenContentData {
     const raw = item.raw as HypothesisAnnotationRaw
     const tags = raw.tags ?? []
+    const quote = getAnnotationQuote(raw)
+    const note = raw.text?.trim() || ""
     return {
-      primary: item.title,
-      secondary: raw.text?.trim() || undefined,
+      primary: quote || note || item.title,
+      secondary: quote && note ? note : undefined,
       metaNode: (
         <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">
           <span className="inline-flex items-center gap-1.5">

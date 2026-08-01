@@ -82,6 +82,16 @@ if (
 if (!/hypothesisAdapter/.test(read("src/sources/registry.ts")) || !/API Token/.test(read("src/sources/hypothesis.tsx"))) {
   throw new Error("Hypothesis source registration or token configuration is missing")
 }
+if (
+  !/getAnnotationQuote/.test(hypothesis) ||
+  !/TextQuoteSelector/.test(hypothesis) ||
+  !/title: quote \|\| note \|\| documentTitle/.test(hypothesis)
+) {
+  throw new Error("Hypothesis highlights are not mapped to the primary content")
+}
+if (!/toggleSource\(settingsAdapter\.id, settingsDraft\)/.test(sourcesModal) || !/pr-28/.test(sourcesModal) || !/hover:z-30/.test(sourcesModal)) {
+  throw new Error("Source setup, secret input spacing, or tooltip stacking safeguards are missing")
+}
 if (!/isFullyConfigured/.test(read("src/contexts/SourcesContext.tsx")) || !/return false/.test(read("src/contexts/SourcesContext.tsx"))) {
   throw new Error("Configuration-backed sources can still be enabled before setup")
 }
