@@ -63,6 +63,9 @@ if (!/contentKind === "body"[\s\S]*whitespace-pre-line/.test(zen) || !/contentKi
 if (!/isChineseBody/.test(zen) || !/textAlign: isChineseBody \? 'justify'/.test(zen) || !/secondaryTextAlign/.test(zen)) {
   throw new Error("Chinese body text does not use language-aware justification")
 }
+if (!/readingColumnClass/.test(zen) || !/w-full max-w-\[680px\]/.test(zen)) {
+  throw new Error("Zen primary and secondary content do not share a stable reading column")
+}
 
 // The language is a global content/translation preference, not a Wikipedia
 // source setting. It must remain available when Wikipedia is disabled.

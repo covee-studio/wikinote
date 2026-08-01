@@ -112,6 +112,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
   const isChineseBody = contentKind === "body" && hasChineseText(bodyText)
   const secondaryTextAlign = secondary ? (hasChineseText(secondary) ? 'justify' as const : 'left' as const) : undefined
   const bodyScroll = contentKind === "body" ? (contentScrollable ?? { maxHeightVh: 55 }) : null
+  const readingColumnClass = "mx-auto w-full max-w-[680px]"
 
   const primaryStyle = {
     // Keep the semantic hierarchy stable across sources. Wikipedia and HN
@@ -140,7 +141,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
     </div>
   ) : (
     <p
-      className={`font-serif-display whitespace-pre-line mx-auto max-w-[680px] ${dark ? 'text-slate-50' : 'text-slate-900'}`}
+      className={`font-serif-display whitespace-pre-line ${readingColumnClass} ${dark ? 'text-slate-50' : 'text-slate-900'}`}
       style={primaryStyle}
       data-translation-engine={translation.engine}
     >
@@ -167,7 +168,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
     <>
       {primaryLabel && (
         <div
-          className="mb-4 text-center text-[10px] font-bold uppercase tracking-[0.16em]"
+          className={`${readingColumnClass} mb-4 text-center text-[10px] font-bold uppercase tracking-[0.16em]`}
           style={{ color: accentText }}
         >
           {primaryLabel}
@@ -175,7 +176,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
       )}
       {primaryEl}
       {secondary && (
-        <div className={contentKind === "body" ? "mt-10 border-t border-slate-300/30 pt-7" : ""}>
+        <div className={contentKind === "body" ? `${readingColumnClass} mt-10 border-t border-slate-300/30 pt-7` : ""}>
           {secondaryLabel && (
             <div className="mb-3 text-center text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">
               {secondaryLabel}
