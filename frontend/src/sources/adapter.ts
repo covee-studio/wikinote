@@ -35,12 +35,10 @@ export interface LikePreview {
 export interface ZenContentData {
   /** Main display text: article title, headline, or full note */
   primary: string
-  /** Optional semantic label shown above the primary content (e.g. Highlight). */
-  primaryLabel?: string
+  /** Optional semantic role for the primary content, rendered as a quote treatment when highlighted. */
+  primaryKind?: "highlight" | "note"
   /** Optional secondary text shown below the title (e.g. article extract) */
   secondary?: string
-  /** Optional semantic label shown above the secondary content (e.g. Your note). */
-  secondaryLabel?: string
   /** Optional hero image URL */
   imageUrl?: string
   /** Metadata row (read time, score, tags, etc.) rendered as a ReactNode */

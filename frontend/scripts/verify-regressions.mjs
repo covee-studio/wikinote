@@ -107,14 +107,14 @@ if (
   !/getAnnotationQuote/.test(hypothesis) ||
   !/TextQuoteSelector/.test(hypothesis) ||
   !/title: quote \|\| note \|\| documentTitle/.test(hypothesis) ||
-  !/primaryLabel: quote \? "Highlight" : "Your note"/.test(hypothesis) ||
-  !/secondaryLabel: quote && note \? "Your note"/.test(hypothesis) ||
-  !/Highlight: \$\{quote\}/.test(hypothesis)
+  !/primaryKind: quote \? "highlight" : "note"/.test(hypothesis) ||
+  !/blockquote className="border-l/.test(hypothesis) ||
+  !/border-t border-slate-100/.test(hypothesis)
 ) {
-  throw new Error("Hypothesis highlights and personal notes are not mapped with explicit labels")
+  throw new Error("Hypothesis highlights and personal notes are not mapped with restrained quote/note treatments")
 }
-if (!/primaryLabel\?: string/.test(adapter) || !/secondaryLabel\?: string/.test(adapter) || !/primaryLabel/.test(zen)) {
-  throw new Error("Shared Zen content does not support semantic content labels")
+if (!/primaryKind\?: "highlight" \| "note"/.test(adapter) || !/primaryKind/.test(zen) || !/primaryKind === "highlight"/.test(zen)) {
+  throw new Error("Shared Zen content does not support semantic quote treatment for highlights")
 }
 if (!/toggleSource\(settingsAdapter\.id, settingsDraft\)/.test(sourcesModal) || !/pr-28/.test(sourcesModal) || !/hover:z-30/.test(sourcesModal)) {
   throw new Error("Source setup, secret input spacing, or tooltip stacking safeguards are missing")

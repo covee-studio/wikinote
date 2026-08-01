@@ -1,4 +1,4 @@
-import { Calendar, Highlighter, PenLine, Quote, Tag } from "lucide-react"
+import { Calendar, Highlighter, Tag } from "lucide-react"
 import { HypothesisCard } from "../components/HypothesisCard"
 import type { DiscoveryItem } from "../types/DiscoveryItem"
 import type { FetchConfig, LikePreview, SourceAdapter, ZenContentData } from "./adapter"
@@ -239,30 +239,20 @@ export const hypothesisAdapter: SourceAdapter = {
     const raw = item.raw as HypothesisAnnotationRaw
     const text = raw.text?.trim() || "No note attached"
     const quote = getAnnotationQuote(raw)
-    const previewParts = [
-      quote ? `Highlight: ${quote}` : "",
-      raw.text?.trim() ? `Your note: ${text}` : "",
-    ].filter(Boolean)
     return {
       thumbnailNode: (
         <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-500">
           <Highlighter className="h-7 w-7" strokeWidth={1.7} />
         </div>
       ),
-      descriptionText: `${getDomain(item.url) || "Hypothesis"} · ${previewParts.join(" · ").slice(0, 180)}`,
+      descriptionText: `${getDomain(item.url) || "Hypothesis"} · ${[quote, raw.text?.trim()].filter(Boolean).join(" · ").slice(0, 180)}`,
       descriptionNode: (
         <div className="mt-0.5 line-clamp-2 space-y-1 text-sm leading-relaxed text-slate-400">
           {quote && (
-            <div className="flex items-start gap-1.5">
-              <span className="mt-0.5 flex-shrink-0 text-slate-400" title="Highlight" aria-label="Highlight" role="img"><Quote className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" /></span>
-              <span>{quote}</span>
-            </div>
+            <blockquote className="border-l border-slate-200 pl-3">{quote}</blockquote>
           )}
           {raw.text?.trim() && (
-            <div className="flex items-start gap-1.5 text-slate-500">
-              <span className="mt-0.5 flex-shrink-0 text-slate-400" title="Your note" aria-label="Your note" role="img"><PenLine className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" /></span>
-              <span>{text}</span>
-            </div>
+            <p className={quote ? "border-t border-slate-100 pt-1 text-slate-500" : "text-slate-500"}>{text}</p>
           )}
         </div>
       ),
@@ -298,9 +288,8 @@ export const hypothesisAdapter: SourceAdapter = {
     const note = raw.text?.trim() || ""
     return {
       primary: quote || note || item.title,
-      primaryLabel: quote ? "Highlight" : "Your note",
+      primaryKind: quote ? "highlight" : "note",
       secondary: quote && note ? note : undefined,
-      secondaryLabel: quote && note ? "Your note" : undefined,
       contentKind: "body",
       metaNode: (
         <span className="inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1">

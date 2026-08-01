@@ -1,4 +1,4 @@
-import { Heart, Highlighter, PenLine, Quote, Share2 } from "lucide-react"
+import { Heart, Highlighter, Share2 } from "lucide-react"
 import { useState } from "react"
 import { useLikedArticles } from "../contexts/LikedArticlesContext"
 import { useToast } from "../contexts/ToastContext"
@@ -68,31 +68,33 @@ export function HypothesisCard({ item }: HypothesisCardProps) {
         </div>
 
         {quote ? (
-          <span className="mb-2 inline-flex text-slate-400" title="Highlight" aria-label="Highlight" role="img">
-            <Quote className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
-          </span>
+          <blockquote className="border-l-2 border-slate-200 pl-4">
+            <h3 className="text-lg font-normal leading-relaxed text-slate-800">
+              <a
+                href={item.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition-colors hover:text-amber-700"
+              >
+                {primaryText}
+              </a>
+            </h3>
+          </blockquote>
         ) : (
-          <span className="mb-2 inline-flex text-slate-400" title="Your note" aria-label="Your note" role="img">
-            <PenLine className="h-4 w-4" strokeWidth={1.7} aria-hidden="true" />
-          </span>
+          <h3 className="text-lg font-normal leading-relaxed text-slate-800">
+            <a
+              href={item.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="transition-colors hover:text-amber-700"
+            >
+              {primaryText}
+            </a>
+          </h3>
         )}
 
-        <h3 className="text-lg font-normal leading-relaxed text-slate-800">
-          <a
-            href={item.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="transition-colors hover:text-amber-700"
-          >
-            {primaryText}
-          </a>
-        </h3>
-
         {quote && note && (
-          <div className="mt-4 border-t border-slate-100 pt-3">
-            <span className="mb-2 inline-flex text-slate-400" title="Your note" aria-label="Your note" role="img">
-              <PenLine className="h-3.5 w-3.5" strokeWidth={1.7} aria-hidden="true" />
-            </span>
+          <div className="mt-4 border-t border-slate-100 pl-4 pt-3">
             <p className="line-clamp-3 text-sm leading-relaxed text-slate-500">{displayNote}</p>
           </div>
         )}
