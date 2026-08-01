@@ -91,7 +91,7 @@ function FadingScroll({ children, maxHeightVh }: { children: React.ReactNode; ma
 }
 
 function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
-  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, contentKind = "title", accent, accentText, sourceLabel, noLink, primaryScrollable } =
+  const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, contentKind = "title", accent, accentText, sourceLabel, noLink, contentScrollable } =
     getAdapter(item.source).getZenContent(item)
   const { currentLanguage } = useLocalization()
   const translation = useAutoTranslatedText(
@@ -111,6 +111,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
   const hasChineseText = (value: string) => /[\u3400-\u4dbf\u4e00-\u9fff]/.test(value)
   const isChineseBody = contentKind === "body" && hasChineseText(bodyText)
   const secondaryTextAlign = secondary ? (hasChineseText(secondary) ? 'justify' as const : 'left' as const) : undefined
+  const bodyScroll = contentKind === "body" ? (contentScrollable ?? { maxHeightVh: 55 }) : null
 
   const primaryStyle = {
     // Keep the semantic hierarchy stable across sources. Wikipedia and HN
@@ -164,11 +165,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
 
   const textBlock = (
     <>
-      {primaryScrollable ? (
-        <FadingScroll maxHeightVh={primaryScrollable.maxHeightVh}>
-          {primaryEl}
-        </FadingScroll>
-      ) : primaryEl}
+      {primaryEl}
       {secondary && (
         <p
           className={contentKind === "body"
@@ -183,6 +180,14 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
       )}
     </>
   )
+  const linkedTextBlock = linkProps ? (
+    <a {...linkProps} className="flex flex-col items-center hover:opacity-80 transition-opacity w-full">
+      {textBlock}
+    </a>
+  ) : textBlock
+  const content = bodyScroll
+    ? <FadingScroll maxHeightVh={bodyScroll.maxHeightVh}>{linkedTextBlock}</FadingScroll>
+    : linkedTextBlock
 
   return (
     <article className="text-center flex flex-col items-center w-full">
@@ -221,11 +226,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
         </div>
       </div>
       <div aria-hidden className="mx-auto mb-7 h-[2px] w-10 rounded-full" style={{ backgroundColor: accent, opacity: 0.5 }} />
-      {linkProps ? (
-        <a {...linkProps} className="flex flex-col items-center hover:opacity-80 transition-opacity w-full">
-          {textBlock}
-        </a>
-      ) : textBlock}
+      {content}
       <div className="mt-9 text-[12px] text-slate-400">{metaNode}</div>
     </article>
   )

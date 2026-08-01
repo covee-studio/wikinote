@@ -312,7 +312,7 @@ export const memosAdapter: SourceAdapter = {
     return {
       primary,
       contentKind: "body",
-      primaryScrollable: { maxHeightVh: 55 },
+      contentScrollable: { maxHeightVh: 55 },
       metaNode: (
         <span className="inline-flex items-center gap-3">
           <span className="inline-flex items-center gap-1.5">

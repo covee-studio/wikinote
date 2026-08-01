@@ -9,7 +9,8 @@ html, body {
   overflow: visible;
 }
 
-.font-serif-display {
+.font-serif-display,
+.font-serif-editorial {
   font-family: 'Source Serif 4', 'LXGW WenKai', '霞鹜文楷', 'Iowan Old Style', 'Apple Garamond', Georgia, 'Songti SC', 'STSong', serif;
   font-feature-settings: 'liga', 'kern';
 }

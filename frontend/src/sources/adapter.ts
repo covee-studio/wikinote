@@ -52,9 +52,10 @@ export interface ZenContentData {
   sourceLabel: string
   /** When true, no external link is rendered (e.g. Memos, where URLs are private/invalid) */
   noLink?: boolean
-  /** When set, the primary text block is rendered in a scrollable container capped at this
-   *  viewport-height fraction. Use for sources like Memos where content is arbitrarily long. */
-  primaryScrollable?: { maxHeightVh: number }
+  /** Optional override for the shared body-content scroll region. Body sources
+   *  get the same fading scroll treatment by default; this only changes its
+   *  viewport-height cap when a source needs a different reading surface. */
+  contentScrollable?: { maxHeightVh: number }
 }
 
 export interface SourceConfigField {

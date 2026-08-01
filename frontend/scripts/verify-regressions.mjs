@@ -11,6 +11,7 @@ const app = read("src/App.tsx")
 const translation = read("src/utils/translation.ts")
 const zen = read("src/components/ZenMode.tsx")
 const styles = read("src/index.css")
+const about = read("src/components/AboutModal.tsx")
 const memos = read("src/sources/memos.tsx")
 const sourcesModal = read("src/components/SourcesModal.tsx")
 const adapter = read("src/sources/adapter.ts")
@@ -114,11 +115,17 @@ if (!/isFullyConfigured/.test(read("src/contexts/SourcesContext.tsx")) || !/retu
 
 // Long memo content needs both a bounded scroll region and a break rule for
 // URLs or other unbroken strings.
-if (!/primaryScrollable/.test(zen) || !/overflowWrap:\s*["']anywhere/.test(zen)) {
+if (!/contentScrollable/.test(zen) || !/contentKind === "body"/.test(zen) || !/overflowWrap:\s*["']anywhere/.test(zen)) {
   throw new Error("Long-content layout safeguards are missing")
 }
-if (!/function FadingScroll/.test(zen) || !/ResizeObserver/.test(zen) || !/maskImage/.test(zen) || !/zen-scroll-edge-bottom/.test(zen) || !/\.zen-scroll::\-webkit-scrollbar/.test(styles)) {
+if (/primaryScrollable/.test(zen) || /primaryScrollable/.test(memos)) {
+  throw new Error("Body scrolling is still coupled to the primary text block")
+}
+if (!/function FadingScroll/.test(zen) || !/bodyScroll/.test(zen) || !/ResizeObserver/.test(zen) || !/maskImage/.test(zen) || !/zen-scroll-edge-bottom/.test(zen) || !/\.zen-scroll::\-webkit-scrollbar/.test(styles)) {
   throw new Error("Scrollable content is missing scrollbar-free edge fade affordances")
+}
+if (!/font-serif-editorial/.test(about) || !/font-sans/.test(about) || !/font-serif-editorial/.test(styles)) {
+  throw new Error("Editorial font treatment is missing from the About surface")
 }
 
 // Memos must not advance its cursor until the window request succeeds.

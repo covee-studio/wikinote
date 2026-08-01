@@ -49,7 +49,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
                 <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0">
                   <Info className="w-5 h-5 text-white" />
                 </div>
-                <h2 className="text-xl font-bold text-slate-800">{t('about.title')}</h2>
+                <h2 className="font-serif-editorial text-xl font-semibold text-slate-800">{t('about.title')}</h2>
               </div>
               <button
                 onClick={onClose}
@@ -61,7 +61,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
             </div>
 
             {/* Body */}
-            <div className="flex flex-col gap-2.5 text-sm text-slate-600 leading-relaxed">
+            <div className="font-serif-editorial flex flex-col gap-2.5 text-[15px] text-slate-600 leading-[1.75]">
               <p>A new tab is usually just a moment between things.</p>
               <p>
                 Wikinote puts something there — one article, quietly chosen at random.
@@ -104,7 +104,7 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
               </p>
               <p>Hope you enjoy it.</p>
 
-              <div className="pt-4 border-t border-slate-100 mt-1 flex items-center gap-4">
+              <div className="font-sans pt-4 border-t border-slate-100 mt-1 flex items-center gap-4">
                 <a
                   href="https://github.com/Exploreryer/wikinote"
                   target="_blank"
