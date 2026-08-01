@@ -71,7 +71,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
     </div>
   ) : (
     <p
-      className={`font-serif-display whitespace-pre-line mx-auto max-w-[680px] ${dark ? 'text-slate-50' : 'text-slate-900'}`}
+      className={`font-serif-display whitespace-pre-line mx-auto max-w-[680px] ${contentKind === "body" ? 'text-left' : ''} ${dark ? 'text-slate-50' : 'text-slate-900'}`}
       style={primaryStyle}
       data-translation-engine={translation.engine}
     >
@@ -106,12 +106,10 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
       ) : primaryEl}
       {secondary && (
         <p
-          className={`font-serif-display mx-auto mt-6 max-w-[600px] line-clamp-4 ${dark ? 'text-slate-300' : 'text-slate-500'}`}
-          style={{
-            fontSize: contentKind === "body" ? 'clamp(18px, 1.6vw, 28px)' : 'clamp(15px, 1.3vw, 18px)',
-            lineHeight: contentKind === "body" ? 1.85 : 1.8,
-            fontWeight: contentKind === "body" ? 400 : undefined,
-          }}
+          className={contentKind === "body"
+            ? `font-serif-display whitespace-pre-line mx-auto mt-8 w-full max-w-[680px] text-left ${dark ? 'text-slate-50' : 'text-slate-900'}`
+            : `font-serif-display mx-auto mt-6 max-w-[600px] line-clamp-4 ${dark ? 'text-slate-300' : 'text-slate-500'}`}
+          style={contentKind === "body" ? primaryStyle : { fontSize: 'clamp(15px, 1.3vw, 18px)', lineHeight: 1.8 }}
         >
           {secondary}
         </p>

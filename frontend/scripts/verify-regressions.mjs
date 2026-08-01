@@ -51,6 +51,9 @@ if (/function primarySize/.test(zen) || !/contentKind === "body"/.test(zen) || !
 if (!/contentKind:\s*"body"/.test(memos) || !/contentKind:\s*"body"/.test(hypothesis)) {
   throw new Error("Body-oriented sources are not explicitly marked for reading typography")
 }
+if (!/contentKind === "body"[\s\S]*whitespace-pre-line[\s\S]*text-left/.test(zen) || !/contentKind === "body"[\s\S]*primaryStyle/.test(zen)) {
+  throw new Error("Body secondary content does not preserve paragraph layout and typography")
+}
 
 // The language is a global content/translation preference, not a Wikipedia
 // source setting. It must remain available when Wikipedia is disabled.
