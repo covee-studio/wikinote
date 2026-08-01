@@ -33,10 +33,18 @@ export interface HypothesisAnnotationRaw {
 }
 
 interface HypothesisSearchResponse {
+  total?: number
   rows?: HypothesisAnnotationRaw[]
 }
 
-const pageByConfig = new Map<string, number>()
+interface HypothesisCursor {
+  pageOrder: number[]
+  position: number
+  total: number
+  checkedAt: number
+}
+
+const TOTAL_REFRESH_MS = 5 * 60 * 1000
 
 function hashString(value: string): string {
   let hash = 5381
@@ -46,6 +54,46 @@ function hashString(value: string): string {
 
 function configKey(token: string, username: string): string {
   return `${hashString(token)}:${username.toLowerCase()}`
+}
+
+function cursorKey(key: string): string {
+  return `wikinote-hypothesis-cursor-${hashString(key)}`
+}
+
+function shuffledPageOrder(totalPages: number): number[] {
+  const order = Array.from({ length: totalPages }, (_, index) => index)
+  for (let i = order.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[order[i], order[j]] = [order[j], order[i]]
+  }
+  return order
+}
+
+function readCursor(key: string): HypothesisCursor | null {
+  try {
+    const raw = localStorage.getItem(cursorKey(key))
+    if (!raw) return null
+    const value = JSON.parse(raw) as Partial<HypothesisCursor>
+    return Array.isArray(value.pageOrder) &&
+      typeof value.position === "number" &&
+      typeof value.total === "number" &&
+      typeof value.checkedAt === "number"
+      ? value as HypothesisCursor
+      : null
+  } catch {
+    return null
+  }
+}
+
+function writeCursor(key: string, cursor: HypothesisCursor): void {
+  try { localStorage.setItem(cursorKey(key), JSON.stringify(cursor)) } catch { /* quota */ }
+}
+
+function isValidCursor(cursor: HypothesisCursor | null, total: number): cursor is HypothesisCursor {
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  if (!cursor || cursor.total !== total || cursor.total < 0 || !Number.isInteger(cursor.position) || cursor.position < 0 || cursor.pageOrder.length !== totalPages) return false
+  const unique = new Set(cursor.pageOrder)
+  return unique.size === totalPages && cursor.pageOrder.every((page) => Number.isInteger(page) && page >= 0 && page < totalPages)
 }
 
 function documentTitle(annotation: HypothesisAnnotationRaw): string {
@@ -78,25 +126,65 @@ async function fetchAnnotations(config: FetchConfig): Promise<DiscoveryItem[]> {
   if (!token) return []
 
   const key = configKey(token, username)
-  const offset = config.fetchMode === "more" ? (pageByConfig.get(key) ?? PAGE_SIZE) : 0
-  const params = new URLSearchParams({
-    limit: String(PAGE_SIZE),
-    offset: String(offset),
-    sort: "updated",
-  })
-  if (username) params.set("user", `acct:${username}@hypothes.is`)
+  const headers = {
+    Accept: "application/json",
+    Authorization: `Bearer ${token}`,
+  }
+  const buildUrl = (limit: number, offset: number) => {
+    const params = new URLSearchParams({ limit: String(limit), offset: String(offset), sort: "updated" })
+    if (username) params.set("user", `acct:${username}@hypothes.is`)
+    return `${API_URL}?${params.toString()}`
+  }
+  const requestPage = async (limit: number, offset: number): Promise<HypothesisSearchResponse> => {
+    const response = await fetch(buildUrl(limit, offset), { headers })
+    if (!response.ok) throw new Error(`Hypothesis API error: ${response.status}`)
+    return response.json() as Promise<HypothesisSearchResponse>
+  }
 
-  const response = await fetch(`${API_URL}?${params.toString()}`, {
-    headers: {
-      Accept: "application/json",
-      Authorization: `Bearer ${token}`,
-    },
-  })
-  if (!response.ok) throw new Error(`Hypothesis API error: ${response.status}`)
+  let cursor = readCursor(key)
+  let total = cursor?.total ?? 0
+  const shouldRefreshTotal = !cursor || Date.now() - cursor.checkedAt > TOTAL_REFRESH_MS
+  if (shouldRefreshTotal) {
+    const probe = await requestPage(1, 0)
+    total = typeof probe.total === "number" && Number.isFinite(probe.total) ? Math.max(0, probe.total) : 0
+    cursor = null
+  }
 
-  const data = await response.json() as HypothesisSearchResponse
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  if (!isValidCursor(cursor, total)) {
+    cursor = {
+      pageOrder: shuffledPageOrder(totalPages),
+      position: 0,
+      total,
+      checkedAt: Date.now(),
+    }
+  }
+
+  const position = cursor.position % totalPages
+  const pageIndex = cursor.pageOrder[position]
+  const offset = pageIndex * PAGE_SIZE
+  const data = await requestPage(PAGE_SIZE, offset)
   const rows = Array.isArray(data.rows) ? data.rows : []
-  pageByConfig.set(key, offset + rows.length)
+  const responseTotal = typeof data.total === "number" && Number.isFinite(data.total)
+    ? Math.max(0, data.total)
+    : total
+  const nextTotalPages = Math.max(1, Math.ceil(responseTotal / PAGE_SIZE))
+  const nextCursor = responseTotal !== total
+    ? {
+      pageOrder: shuffledPageOrder(nextTotalPages),
+      position: 0,
+      total: responseTotal,
+      checkedAt: Date.now(),
+    }
+    : {
+      pageOrder: cursor.pageOrder,
+      position: (position + 1) % totalPages,
+      total,
+      checkedAt: cursor.checkedAt,
+    }
+  // Advance only after the page has returned successfully. A failed request
+  // therefore retries the same randomized page instead of skipping it.
+  writeCursor(key, nextCursor)
 
   return rows
     .filter((annotation) => typeof annotation.id === "string" && typeof annotation.uri === "string")

@@ -147,6 +147,12 @@ if (responseCheck === -1 || cursorWrite === -1 || cursorWrite < responseCheck) {
 if (!/showCachedWhileRefetching:\s*false/.test(memos)) {
   throw new Error("Memos can still render stale data before a fresh window")
 }
+if (!/windowOrder/.test(memos) || !/shuffledWindowOrder/.test(memos) || !/isValidCursor/.test(memos)) {
+  throw new Error("Memos history windows are not randomized with no-repeat coverage")
+}
+if (!/pageOrder/.test(hypothesis) || !/shuffledPageOrder/.test(hypothesis) || !/total\?/.test(hypothesis)) {
+  throw new Error("Hypothesis pages are not randomized from the full result count")
+}
 
 // Favorite sync must be explicit, use Chrome Sync only when available, and
 // keep sensitive source credentials and full private memo bodies local.

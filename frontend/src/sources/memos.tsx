@@ -80,12 +80,14 @@ function shuffleArray<T>(arr: T[]): T[] {
   return arr
 }
 
-// ── Window-cycling cursor ─────────────────────────────────────
-// Divides the full history into non-overlapping PAGE_SIZE windows and
-// cycles through them in order. This guarantees every note is surfaced
-// before any repeats, regardless of totalSize.
+// ── Randomized window cursor ──────────────────────────────────
+// Divides the full history into non-overlapping PAGE_SIZE windows, then
+// visits a shuffled permutation of those windows. This gives the feed
+// variety across the full timeline without repeatedly hitting the newest
+// window or repeating a window before the rest have been seen.
 interface MemosCursor {
-  windowIndex: number   // which window we'll fetch NEXT
+  windowOrder: number[] // shuffled window indexes
+  position: number      // which entry in windowOrder we'll fetch NEXT
   totalWindows: number  // how many windows exist for the current totalSize
   totalSize: number     // snapshot of totalSize when cursor was written
 }
@@ -111,6 +113,18 @@ function writeCursor(key: string, cursor: MemosCursor): void {
   try { localStorage.setItem(key, JSON.stringify(cursor)) } catch { /* quota */ }
 }
 
+function shuffledWindowOrder(totalWindows: number): number[] {
+  return shuffleArray(Array.from({ length: totalWindows }, (_, index) => index))
+}
+
+function isValidCursor(cursor: MemosCursor | null, totalWindows: number, totalSize: number): cursor is MemosCursor {
+  if (!cursor || cursor.totalWindows !== totalWindows || cursor.totalSize !== totalSize) return false
+  if (!Number.isInteger(cursor.position) || cursor.position < 0) return false
+  if (!Array.isArray(cursor.windowOrder) || cursor.windowOrder.length !== totalWindows) return false
+  const unique = new Set(cursor.windowOrder)
+  return unique.size === totalWindows && cursor.windowOrder.every((index) => Number.isInteger(index) && index >= 0 && index < totalWindows)
+}
+
 async function fetchMemos(endpoint: string, token: string): Promise<DiscoveryItem[]> {
   const base = normalizeUrl(endpoint).replace(/\/$/, "")
   const headers = { Authorization: `Bearer ${token}` }
@@ -126,7 +140,7 @@ async function fetchMemos(endpoint: string, token: string): Promise<DiscoveryIte
     }
   } catch { /* probe failed — offset stays 0 */ }
 
-  // ── Step 2: pick the next non-overlapping window ─────────────────────────
+  // ── Step 2: pick the next non-overlapping randomized window ───────────────
   // Divides history into ceil(totalSize / PAGE_SIZE) windows. The last window
   // may return fewer than PAGE_SIZE items — that's fine and avoids overlap.
   // Never clamp the offset to totalSize - PAGE_SIZE (that would cause the last
@@ -139,9 +153,18 @@ async function fetchMemos(endpoint: string, token: string): Promise<DiscoveryIte
     const totalWindows = Math.ceil(totalSize / PAGE_SIZE)
     const saved = readCursor(ck)
 
-    // Reset cursor whenever totalSize changed at all — Memos is time-ordered,
+    // Reset and reshuffle whenever totalSize changes — Memos is time-ordered,
     // so even one new note shifts all offset boundaries.
-    const windowIndex = (!saved || saved.totalSize !== totalSize) ? 0 : saved.windowIndex
+    const cursor = isValidCursor(saved, totalWindows, totalSize)
+      ? saved
+      : {
+        windowOrder: shuffledWindowOrder(totalWindows),
+        position: 0,
+        totalWindows,
+        totalSize,
+      }
+    const position = cursor.position % totalWindows
+    const windowIndex = cursor.windowOrder[position]
 
     offset = windowIndex * PAGE_SIZE
 
@@ -149,7 +172,8 @@ async function fetchMemos(endpoint: string, token: string): Promise<DiscoveryIte
     // before the request would skip a window when the network is unavailable.
     cursorKeyToWrite = ck
     nextCursor = {
-      windowIndex: (windowIndex + 1) % totalWindows,
+      windowOrder: cursor.windowOrder,
+      position: (position + 1) % totalWindows,
       totalWindows,
       totalSize,
     }
