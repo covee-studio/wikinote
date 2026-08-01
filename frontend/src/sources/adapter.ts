@@ -70,6 +70,8 @@ export interface SourceAdapter {
   readonly description: string
   /** Hex accent colour used for indicator dots and UI highlights */
   readonly color: string
+  /** Optional source brand mark shown in source settings */
+  readonly logoSrc?: string
   /** Optional per-source user-configurable fields (e.g. API key, endpoint).
    *  When present, the SourcesModal renders input fields for these. */
   readonly configSchema?: SourceConfigField[]
@@ -80,6 +82,11 @@ export interface SourceAdapter {
    *  Set to 0 to always refetch on mount while still showing cached data instantly.
    *  Defaults to the global CACHE_TTL_MS when absent. */
   readonly cacheTtlMs?: number
+  /** When false, cached feed data is kept only as an error fallback and is not
+   *  rendered before the first fresh response. */
+  readonly showCachedWhileRefetching?: boolean
+  /** When true, a failed fetch may fall back to the last cached batch. */
+  readonly fallbackToCachedDataOnError?: boolean
   /** When true, ZenMode replaces the initial anchor item after a background refetch
    *  completes with new data. Use for sources like Memos where each refetch returns a
    *  deliberately different window — the user should see the new batch, not stay pinned

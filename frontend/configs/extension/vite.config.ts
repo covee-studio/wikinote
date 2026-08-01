@@ -11,6 +11,12 @@ export default defineConfig({
   build: {
     outDir: resolve(__dirname, "../../dist/extension"),
     emptyOutDir: true,
+    // Chrome extension pages have their own isolated resource-loading world.
+    // Vite's document-level modulepreload hints are treated as a different
+    // request context there and produce "cross-world extension resource
+    // mismatch" warnings. The module graph is small and the entry module
+    // already loads these local chunks, so omit the hints for this target.
+    modulePreload: false,
     rollupOptions: {
       input: {
         newtab: resolve(__dirname, "newtab.html"),

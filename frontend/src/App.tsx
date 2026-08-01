@@ -86,7 +86,6 @@ function useSettledConfigs(
     const handle = setTimeout(() => {
       settledKeyRef.current = rawConfigsKey
       setSettledConfigs(rawConfigs)
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, CONFIG_SETTLE_DELAY_MS)
     return () => clearTimeout(handle)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -161,18 +160,26 @@ function App() {
       return {
         queryKey: ["articles", adapter.id, langId, configStr],
         queryFn: async () => {
-          const items = await adapter.fetch({ language: currentLanguage, sourceConfig: config })
-          if (items.length > 0) feedCache.set(cacheKey, items)
-          return items
+          try {
+            const items = await adapter.fetch({ language: currentLanguage, sourceConfig: config })
+            if (items.length > 0) feedCache.set(cacheKey, items)
+            return items
+          } catch (error) {
+            if (adapter.fallbackToCachedDataOnError && cached?.items?.length) {
+              return cached.items
+            }
+            throw error
+          }
         },
         enabled: ready,
         refetchOnWindowFocus: false,
         retry: 1,
-        initialData: cached?.items,
+        initialData: adapter.showCachedWhileRefetching === false ? undefined : cached?.items,
         initialDataUpdatedAt: cached?.timestamp ?? 0,
         // Per-adapter override: Memos sets cacheTtlMs=0 so every mount triggers
-        // a refetch (advancing the window cursor) while still showing cached
-        // items instantly via initialData. Other sources use the global TTL.
+        // a refetch (advancing the window cursor). It opts out of initialData
+        // and uses the cached batch only when that fresh request fails.
+        // Other sources use the global TTL and normal stale-while-revalidate.
         staleTime: adapter.cacheTtlMs ?? CACHE_TTL_MS,
       }
     }),
@@ -186,6 +193,12 @@ function App() {
       ])
     )
   )
+
+  const hasQueryError = articles.length === 0 && queryResults.some((result) => result.isError)
+  const isLoading = !ready || queryResults.some((result) => result.isPending || result.isFetching)
+  const retryLoad = useCallback(() => {
+    void Promise.all(queryResults.map((result) => result.refetch()))
+  }, [queryResults])
 
   // Detect when a replaceAnchorOnRefetch adapter gets genuinely new data.
   // This effect is declared BEFORE the articles→zenIndex effect so that within
@@ -234,7 +247,7 @@ function App() {
         activeAdapters.map(async (adapter) => {
           const items = await adapter.fetch({
             language: currentLanguage,
-            sourceConfig: getSourceConfig(adapter.id),
+            sourceConfig: settledConfigs[adapter.id] ?? getSourceConfig(adapter.id),
           })
           return [adapter.id, items] as const
         })
@@ -273,6 +286,9 @@ function App() {
       items={articles}
       initialIndex={zenIndex}
       onNearEnd={loadMore}
+      isLoading={isLoading}
+      loadError={hasQueryError ? "Unable to load content" : undefined}
+      onRetry={hasQueryError ? retryLoad : undefined}
     />
   )
 }

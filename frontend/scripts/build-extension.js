@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 
 import { build } from 'vite';
-import { resolve } from 'path';
+import { resolve, sep } from 'path';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
-import { copyFile, mkdir, readdir, writeFile, readFile } from 'fs/promises';
+import { copyFile, mkdir, readdir, writeFile, readFile, rm } from 'fs/promises';
 import { existsSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -147,6 +147,14 @@ async function copyBuiltFiles() {
         console.log(`📄 Copied: ${file}`);
       }
     }
+
+    // Vite preserves the source directory for the HTML entry, while the
+    // extension manifest uses the flattened copy at dist/extension/newtab.html.
+    // Remove only that generated nested directory so it is not shipped twice.
+    const nestedTargetPrefix = `${targetDir}${sep}`;
+    if (sourceDir.startsWith(nestedTargetPrefix) && sourceDir !== targetDir) {
+      await rm(sourceDir, { recursive: true, force: true });
+    }
     
   } catch (error) {
     console.error('❌ Error copying built files:', error);
@@ -190,4 +198,4 @@ async function buildExtension() {
   }
 }
 
-buildExtension(); 
+buildExtension();

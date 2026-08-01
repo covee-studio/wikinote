@@ -96,7 +96,7 @@ export function MemoCard({ item, priority = false }: MemoCardProps) {
       <div className="wiki-card-content">
         {/* Source badge */}
         <div className="source-badge">
-          <span className="source-badge-dot" style={{ backgroundColor: "#8b5cf6" }} />
+          <span className="source-badge-dot" style={{ backgroundColor: "#1e293b" }} />
           Memos
         </div>
 
@@ -106,7 +106,7 @@ export function MemoCard({ item, priority = false }: MemoCardProps) {
             href={item.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-purple-600 transition-colors duration-200"
+            className="hover:text-slate-700 transition-colors duration-200"
           >
             {memo.title}
           </a>

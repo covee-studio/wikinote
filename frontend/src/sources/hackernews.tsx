@@ -95,6 +95,7 @@ export const hackerNewsAdapter: SourceAdapter = {
   label: "Hacker News",
   description: "Top stories from the Hacker News community.",
   color: "#ff6600",
+  logoSrc: "/hacker-news-logo.png",
 
   async fetch(): Promise<DiscoveryItem[]> {
     return fetchStories()

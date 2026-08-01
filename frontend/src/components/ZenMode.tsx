@@ -4,10 +4,12 @@ import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart
 import { useLikedArticles } from '../contexts/LikedArticlesContext'
 import { useToast } from '../contexts/ToastContext'
 import { useI18n } from '../hooks/useI18n'
+import { useLocalization } from '../hooks/useLocalization'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { getAdapter } from '../sources/registry'
 import type { DiscoveryItem } from '../types/DiscoveryItem'
 import { ZEN_THEMES } from '../utils/zenThemes'
+import { useAutoTranslatedText } from '../utils/translation'
 import { AboutModal } from './AboutModal'
 import { LikesModal } from './LikesModal'
 import { SourcesModal } from './SourcesModal'
@@ -24,6 +26,9 @@ interface ZenModeProps {
   items: DiscoveryItem[]
   initialIndex: number
   onNearEnd?: () => void
+  isLoading?: boolean
+  loadError?: string
+  onRetry?: () => void
 }
 
 function primarySize(len: number): string {
@@ -36,18 +41,63 @@ function primarySize(len: number): string {
 function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
   const { primary, secondary, imageUrl, metaNode, primaryWeight = 500, accent, accentText, sourceLabel, noLink, primaryScrollable } =
     getAdapter(item.source).getZenContent(item)
+  const { currentLanguage } = useLocalization()
+  const translation = useAutoTranslatedText(
+    primary,
+    currentLanguage.id,
+    item.source === 'hackernews',
+  )
+  const translatedPrimary = translation.text
 
   const linkProps = !noLink ? { href: item.url, target: '_blank' as const, rel: 'noopener noreferrer' } : null
   const imageStyle = { width: 120, height: 120, objectFit: 'cover' as const, flexShrink: 0 }
 
-  const primaryEl = (
+  const primaryStyle = {
+    fontSize: primarySize(Math.max(primary.length, translatedPrimary.length)),
+    lineHeight: 1.5,
+    letterSpacing: '-0.005em',
+    fontWeight: primaryWeight,
+    overflowWrap: 'anywhere' as const,
+  }
+  const primaryEl = translation.state === 'pending' ? (
+    <div
+      className="mx-auto flex min-h-[72px] w-full max-w-[680px] items-center justify-center"
+      role="status"
+      aria-label="Translating headline locally"
+      data-translation-engine="pending"
+    >
+      <div style={{
+        width: 40,
+        height: 40,
+        borderRadius: '50%',
+        border: `1.5px solid ${dark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.18)'}`,
+        animation: 'zen-breathe 2.6s ease-in-out infinite',
+      }} />
+    </div>
+  ) : (
     <p
       className={`font-serif-display whitespace-pre-line mx-auto max-w-[680px] ${dark ? 'text-slate-50' : 'text-slate-900'}`}
-      style={{ fontSize: primarySize(primary.length), lineHeight: 1.5, letterSpacing: '-0.005em', fontWeight: primaryWeight }}
+      style={primaryStyle}
+      data-translation-engine={translation.engine}
     >
-      {primary}
+      {translatedPrimary}
     </p>
   )
+
+  const translationLabel = translation.state === 'pending'
+    ? 'Local AI…'
+    : translation.engine === 'prompt'
+      ? 'Chrome AI'
+      : translation.engine === 'translator'
+        ? 'Chrome Translator'
+        : 'Original title'
+  const translationTitle = translation.state === 'pending'
+    ? 'Waiting for Chrome LanguageModel'
+    : translation.engine === 'prompt'
+      ? 'Translated by Chrome LanguageModel (Prompt API)'
+      : translation.engine === 'translator'
+        ? 'Translated by Chrome Translator API fallback'
+        : 'The original Hacker News title is shown because local translation is unavailable'
 
   const textBlock = (
     <>
@@ -95,6 +145,15 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
         <div className="inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: accentText }}>
           <span aria-hidden className="w-1 h-1 rounded-full" style={{ backgroundColor: accent }} />
           {sourceLabel}
+          {translation.requested && (
+            <span
+              className="normal-case tracking-normal text-[9px] font-medium opacity-70"
+              data-translation-engine={translation.state === 'pending' ? 'pending' : translation.engine}
+              title={translationTitle}
+            >
+              {translationLabel}
+            </span>
+          )}
         </div>
       </div>
       <div aria-hidden className="mx-auto mb-7 h-[2px] w-10 rounded-full" style={{ backgroundColor: accent, opacity: 0.5 }} />
@@ -130,7 +189,7 @@ function ChromeButton({
 
 type ModalKey = 'sources' | 'likes' | 'about' | null
 
-export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNearEnd }: ZenModeProps) {
+export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNearEnd, isLoading = false, loadError, onRetry }: ZenModeProps) {
   const [currentItemId, setCurrentItemId] = useState<string | null>(null)
   // When items is rebuilt with a completely different random batch (Wikipedia uses
   // generator=random so each fetch returns new article IDs), currentItemId may not
@@ -290,12 +349,39 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
             <LayersIcon className="w-[18px] h-[18px]" strokeWidth={2} />
           </ChromeButton>
         </div>
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div style={{
-            width: 40, height: 40, borderRadius: '50%',
-            border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.18)'}`,
-            animation: 'zen-breathe 2.6s ease-in-out infinite',
-          }} />
+        <div className="absolute inset-0 flex items-center justify-center px-8">
+          {loadError ? (
+            <div
+              role="alert"
+              className={`max-w-sm text-center ${isDark ? 'text-slate-100' : 'text-slate-700'}`}
+            >
+              <p className="text-base font-medium">{loadError}</p>
+              <p className={`mt-2 text-sm ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>
+                Check your connection or source settings, then try again.
+              </p>
+              {onRetry && (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className={`mt-5 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+                    isDark ? 'bg-white/15 text-white hover:bg-white/25' : 'bg-white/70 text-slate-700 hover:bg-white'
+                  }`}
+                >
+                  Retry
+                </button>
+              )}
+            </div>
+          ) : isLoading ? (
+            <div style={{
+              width: 40, height: 40, borderRadius: '50%',
+              border: `1.5px solid ${isDark ? 'rgba(255,255,255,0.4)' : 'rgba(15,23,42,0.18)'}`,
+              animation: 'zen-breathe 2.6s ease-in-out infinite',
+            }} />
+          ) : (
+            <div className={`max-w-sm text-center text-sm ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>
+              No content is available from the enabled sources.
+            </div>
+          )}
         </div>
         <SourcesModal isOpen={modal === 'sources'} onClose={() => setModal(null)} />
       </div>
@@ -433,8 +519,8 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
       </motion.div>
 
       {/* Center content */}
-      <div className="absolute inset-0 flex items-center justify-center px-8 pt-16 pb-32">
-        <div className="w-full max-w-[820px] relative">
+      <div className="absolute inset-0 flex items-start md:items-center justify-center overflow-y-auto px-8 pt-16 pb-32">
+        <div className="w-full max-w-[820px] relative min-h-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={item.id}

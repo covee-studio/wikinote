@@ -1,5 +1,5 @@
-import { ChevronDown, Layers, X } from "lucide-react"
-import { useRef } from "react"
+import { ArrowLeft, ChevronDown, Eye, EyeOff, Info, Languages, Layers, Settings, X } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSources } from "../contexts/SourcesContext"
 import { useFocusTrap } from "../hooks/useFocusTrap"
@@ -7,25 +7,32 @@ import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation"
 import { useLocalization } from "../hooks/useLocalization"
 import { LANGUAGES } from "../languages"
 import { ADAPTER_LIST } from "../sources/registry"
+import { useToast } from "../contexts/ToastContext"
 
 interface SourcesModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
+type SourcesView = "sources" | "memos"
+
+const MEMOS_LOGO_SRC = "/memos-logo.png"
+const MEMOS_ADAPTER = ADAPTER_LIST.find((adapter) => adapter.id === "memos")
+
 function Toggle({ checked, onChange, id }: { checked: boolean; onChange: () => void; id: string }) {
   return (
     <button
+      type="button"
       role="switch"
       aria-checked={checked}
       id={id}
       onClick={onChange}
-      className={`relative w-11 h-6 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 flex-shrink-0 ${
+      className={`relative h-6 w-11 flex-shrink-0 rounded-full transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 ${
         checked ? "bg-slate-800" : "bg-slate-200"
       }`}
     >
       <span
-        className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${
+        className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-300 ${
           checked ? "translate-x-5" : "translate-x-0"
         }`}
       />
@@ -33,13 +40,70 @@ function Toggle({ checked, onChange, id }: { checked: boolean; onChange: () => v
   )
 }
 
+function SourceHint({ sourceId, sourceLabel, description }: { sourceId: string; sourceLabel: string; description: string }) {
+  const tooltipId = `source-description-${sourceId}`
+
+  return (
+    <span className="group relative inline-flex">
+      <button
+        type="button"
+        aria-label={`About ${sourceLabel}`}
+        aria-describedby={tooltipId}
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-slate-300 transition-colors hover:text-slate-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+      >
+        <Info className="h-3.5 w-3.5" strokeWidth={2} />
+      </button>
+      <span
+        id={tooltipId}
+        role="tooltip"
+        className="pointer-events-none invisible absolute left-0 top-full z-50 mt-2 w-56 rounded-xl bg-slate-800 px-3 py-2 text-[11px] font-normal leading-snug text-white opacity-0 shadow-lg transition-all duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100"
+      >
+        {description}
+      </span>
+    </span>
+  )
+}
+
 export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
   const { enabledSources, toggleSource, getSourceConfig, updateSourceConfig, ensureHostPermission } = useSources()
+  const { showToast } = useToast()
   const { currentLanguage, setLanguage } = useLocalization()
+  const [view, setView] = useState<SourcesView>("sources")
+  const [memosDraft, setMemosDraft] = useState<Record<string, string>>({})
+  const [showToken, setShowToken] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
   useKeyboardNavigation({ onEscape: onClose, enabled: isOpen })
   useFocusTrap(isOpen, containerRef)
+
+  useEffect(() => {
+    if (isOpen) return
+    setView("sources")
+    setShowToken(false)
+  }, [isOpen])
+
+  const openMemosSettings = () => {
+    setMemosDraft({ ...getSourceConfig("memos") })
+    setShowToken(false)
+    setView("memos")
+  }
+
+  const saveMemosSettings = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    for (const field of MEMOS_ADAPTER?.configSchema ?? []) {
+      updateSourceConfig("memos", field.key, memosDraft[field.key] ?? "")
+    }
+    ensureHostPermission("memos", memosDraft)
+    setView("sources")
+  }
+
+  const handleSourceToggle = (adapter: (typeof ADAPTER_LIST)[number]) => {
+    const toggled = toggleSource(adapter.id)
+    if (toggled || enabledSources.has(adapter.id)) return
+
+    showToast(`Configure ${adapter.label} before enabling it`)
+    if (adapter.id === "memos") openMemosSettings()
+  }
 
   return (
     <AnimatePresence>
@@ -50,7 +114,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.2 }}
-          className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 p-4 backdrop-blur-sm"
           role="dialog"
           aria-modal="true"
           aria-label="Sources settings"
@@ -61,18 +125,16 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             ref={containerRef}
-            className="z-[41] p-6 rounded-2xl w-full max-w-md flex flex-col relative max-h-[85vh] overflow-y-auto overscroll-y-contain"
+            className="relative z-[41] flex h-[min(600px,92vh)] w-full max-w-md flex-col overflow-y-auto overscroll-y-contain rounded-2xl bg-white p-6"
             style={{
-              background: "#ffffff",
               boxShadow: "0 8px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
             }}
             role="document"
           >
-            {/* Header */}
-            <div className="flex items-center justify-between mb-6">
+            <div className="mb-8 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Layers className="w-5 h-5 text-white" />
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-slate-800">
+                  <Layers className="h-5 w-5 text-white" />
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-slate-800">Sources</h2>
@@ -82,139 +144,207 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                 </div>
               </div>
               <button
+                type="button"
                 onClick={onClose}
-                className="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 hover:border-slate-300 transition-all"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 text-slate-400 transition-all hover:border-slate-300 hover:text-slate-600"
                 aria-label="Close"
               >
-                <X className="w-4 h-4" />
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            {/* Source rows */}
-            <div className="flex flex-col gap-3">
-              {ADAPTER_LIST.map((adapter) => {
-                const active = enabledSources.has(adapter.id)
-                const cfg = getSourceConfig(adapter.id)
-                const isConfigured = !adapter.requiresConfig ||
-                  (adapter.configSchema?.every((f) => cfg[f.key]?.trim()) ?? false)
-
-                return (
-                  <div
-                    key={adapter.id}
-                    className={`p-4 rounded-xl border transition-all duration-200 ${
-                      active ? "bg-white border-slate-200" : "bg-slate-50 border-slate-100 opacity-60"
-                    }`}
-                  >
-                    {/* Header row */}
-                    <div className="flex items-center gap-3">
-                      <div className="flex-1 min-w-0">
-                        <label
-                          htmlFor={`source-toggle-${adapter.id}`}
-                          className="font-semibold text-slate-800 cursor-pointer select-none"
-                        >
-                          {adapter.label}
-                        </label>
-                        <p className="text-xs text-slate-400 mt-0.5 leading-snug">
-                          {adapter.description}
-                        </p>
-                      </div>
-                      <Toggle
-                        id={`source-toggle-${adapter.id}`}
-                        checked={active}
-                        onChange={() => toggleSource(adapter.id)}
+            <AnimatePresence mode="wait" initial={false}>
+              {view === "sources" ? (
+                <motion.div
+                  key="sources-view"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -10 }}
+                  transition={{ duration: 0.16, ease: "easeOut" }}
+                >
+                  <div className="mb-5 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
+                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-white text-slate-500 shadow-sm ring-1 ring-slate-100">
+                      <Languages className="h-5 w-5" strokeWidth={1.8} />
+                    </div>
+                    <div className="flex min-w-0 flex-1 items-center gap-1">
+                      <label htmlFor="article-language-select" className="block text-sm font-semibold text-slate-700">
+                        Language
+                      </label>
+                      <SourceHint
+                        sourceId="language"
+                        sourceLabel="Language"
+                        description="Wikipedia articles and Hacker News headline translation"
                       />
                     </div>
+                    <div className="relative w-[148px] flex-shrink-0">
+                      <select
+                        id="article-language-select"
+                        value={currentLanguage.id}
+                        onChange={(event) => setLanguage(event.target.value)}
+                        className="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 pr-8 text-sm text-slate-700 shadow-sm outline-none transition-shadow focus:ring-2 focus:ring-slate-300"
+                      >
+                        {LANGUAGES.map((lang) => (
+                          <option key={lang.id} value={lang.id}>
+                            {lang.name}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                    </div>
+                  </div>
 
-                    {/* Article language — Wikipedia only */}
-                    {adapter.id === "wikipedia" && (
-                      <div className="mt-3 pt-3 border-t border-slate-100">
-                        <label
-                          htmlFor="article-language-select"
-                          className="text-xs font-medium text-slate-500 block mb-1.5"
-                        >
-                          Article language
-                        </label>
-                        <div className="relative">
-                          <select
-                            id="article-language-select"
-                            value={currentLanguage.id}
-                            onChange={(e) => setLanguage(e.target.value)}
-                            className="w-full appearance-none text-sm text-slate-700 px-3 py-2.5 rounded-lg border border-slate-200 bg-white focus:outline-none focus:ring-2 focus:ring-slate-300 pr-8 cursor-pointer"
-                          >
-                            {LANGUAGES.map((lang) => (
-                              <option key={lang.id} value={lang.id}>
-                                {lang.name}
-                              </option>
-                            ))}
-                          </select>
-                          <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
-                        </div>
-                      </div>
-                    )}
+                  <div className="flex flex-col gap-3">
+                    {ADAPTER_LIST.map((adapter) => {
+                      const active = enabledSources.has(adapter.id)
+                      const isMemos = adapter.id === "memos"
 
-                    {/* Config fields (e.g. Memos URL + token) */}
-                    {adapter.configSchema && (
-                      <div className="mt-3 pt-3 border-t border-slate-100 flex flex-col gap-3">
-                        {/* Always rendered to keep layout stable; fades out when configured */}
-                        <p
-                          aria-hidden={isConfigured}
-                          className={`text-xs text-amber-600 bg-amber-50 rounded-lg px-3 py-2 transition-opacity duration-200 ${
-                            isConfigured ? 'opacity-0 pointer-events-none select-none' : 'opacity-100'
+                      return (
+                        <div
+                          key={adapter.id}
+                          className={`flex h-[72px] items-center rounded-xl border border-slate-100 px-4 transition-all duration-200 hover:bg-slate-50 ${
+                            active ? "bg-white" : "bg-slate-50 opacity-60"
                           }`}
                         >
-                          Configure below, then enable this source.
-                        </p>
-                        {adapter.configSchema.map((field) => (
-                          <div key={field.key}>
-                            <label
-                              htmlFor={`cfg-${adapter.id}-${field.key}`}
-                              className="text-xs font-medium text-slate-600 flex items-center gap-1"
-                            >
-                              {field.label}
-                              {isConfigured && cfg[field.key] && (
-                                <span className="text-emerald-500">✓</span>
+                          <div className="flex w-full items-center gap-3">
+                            <div className="flex min-w-0 flex-1 items-center gap-3">
+                              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-50 ring-1 ring-slate-100">
+                                {adapter.logoSrc ? (
+                                  <img
+                                    src={adapter.logoSrc}
+                                    alt=""
+                                    aria-hidden="true"
+                                    className="h-full w-full rounded-full object-cover"
+                                  />
+                                ) : (
+                                  <Layers className="h-5 w-5 text-slate-400" aria-hidden="true" />
+                                )}
+                              </span>
+                              <div className="flex min-w-0 items-center gap-1">
+                                <label
+                                  htmlFor={`source-toggle-${adapter.id}`}
+                                  className="cursor-pointer select-none font-semibold text-slate-800"
+                                >
+                                  {adapter.label}
+                                </label>
+                                <SourceHint
+                                  sourceId={adapter.id}
+                                  sourceLabel={adapter.label}
+                                  description={adapter.description}
+                                />
+                              </div>
+                            </div>
+                            <div className="ml-auto flex items-center gap-3">
+                              {isMemos && (
+                                <button
+                                  type="button"
+                                  onClick={openMemosSettings}
+                                  aria-label="Memos settings"
+                                  className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                                >
+                                  <Settings className="h-4 w-4" strokeWidth={1.8} />
+                                </button>
                               )}
-                            </label>
-                            {field.hint && (
-                              <p className="text-xs text-slate-400 mb-1">{field.hint}</p>
-                            )}
+                              <Toggle
+                                id={`source-toggle-${adapter.id}`}
+                                checked={active}
+                                onChange={() => handleSourceToggle(adapter)}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="memos-view"
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  transition={{ duration: 0.16, ease: "easeOut" }}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setView("sources")}
+                    className="mb-8 inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition-colors hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                  >
+                    <ArrowLeft className="h-4 w-4" strokeWidth={1.8} />
+                    Back to Sources
+                  </button>
+
+                  <div className="flex flex-col items-center">
+                    <img
+                      src={MEMOS_LOGO_SRC}
+                      alt="Memos"
+                      className="h-20 w-20 rounded-full object-cover shadow-sm"
+                    />
+                    <h3 className="mt-5 text-3xl font-bold tracking-tight text-slate-800">Memos</h3>
+                  </div>
+
+                  <form className="mt-10 flex flex-col gap-5" onSubmit={saveMemosSettings}>
+                    {(MEMOS_ADAPTER?.configSchema ?? []).map((field) => {
+                      const isSecret = field.secret === true
+                      const value = memosDraft[field.key] ?? ""
+
+                      return (
+                        <div key={field.key}>
+                          <label
+                            htmlFor={`memos-${field.key}`}
+                            className="mb-2 block text-sm font-semibold text-slate-700"
+                          >
+                            {field.label}
+                          </label>
+                          <div className="relative">
                             <input
-                              id={`cfg-${adapter.id}-${field.key}`}
-                              type={field.secret ? "password" : "text"}
+                              id={`memos-${field.key}`}
+                              type={isSecret && !showToken ? "password" : "text"}
+                              value={value}
                               placeholder={field.placeholder}
-                              value={cfg[field.key] ?? ""}
-                              onChange={(e) => updateSourceConfig(adapter.id, field.key, e.target.value)}
-                              className="mt-0.5 w-full text-slate-800 px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 placeholder-slate-400"
+                              onChange={(event) => {
+                                setMemosDraft((previous) => ({ ...previous, [field.key]: event.target.value }))
+                              }}
+                              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition-shadow placeholder:text-slate-300 focus:border-slate-300 focus:ring-2 focus:ring-slate-200"
                               autoComplete="off"
                               spellCheck={false}
                             />
-                            {field.isUrl && cfg[field.key]?.trim() && (
+                            {isSecret && (
                               <button
                                 type="button"
-                                onClick={() => ensureHostPermission(adapter.id)}
-                                className="mt-1.5 text-xs text-slate-500 hover:text-slate-800 underline underline-offset-2 transition-colors"
+                                onClick={() => setShowToken((previous) => !previous)}
+                                className="absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center gap-1.5 text-xs font-medium text-slate-400 transition-colors hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300"
+                                aria-label={showToken ? "Hide token" : "Show token"}
                               >
-                                Grant extension access to this URL
+                                {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                {showToken ? "Hide token" : "Show token"}
                               </button>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+                        </div>
+                      )
+                    })}
 
-            <p className="text-xs text-slate-400 text-center mt-5">
-              Enabled sources are mixed together in your feed.
-            </p>
+                    <button
+                      type="submit"
+                      className="mt-3 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+                    >
+                      Save
+                    </button>
+                  </form>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
 
           <div
-            className="w-full h-full z-[40] fixed inset-0"
+            className="fixed inset-0 z-[40] h-full w-full"
             onClick={onClose}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onClose() } }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault()
+                onClose()
+              }
+            }}
             role="button"
             tabIndex={0}
             aria-label="Close"

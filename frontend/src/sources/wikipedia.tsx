@@ -108,6 +108,7 @@ export const wikipediaAdapter: SourceAdapter = {
   label: "Wikipedia",
   description: "Random articles from the world's largest encyclopedia.",
   color: "#3b82f6",
+  logoSrc: "/wikipedia-logo.png",
 
   async fetch(config?: FetchConfig): Promise<DiscoveryItem[]> {
     return fetchArticles(config?.language ?? EN_FALLBACK)

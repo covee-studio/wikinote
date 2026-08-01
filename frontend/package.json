@@ -9,6 +9,7 @@
     "build:web": "tsc -b && node scripts/build-web.js",
     "build:extension": "tsc -b && node scripts/build-extension.js",
     "pack:extension": "node scripts/pack-extension.js",
+    "verify:regressions": "node scripts/verify-regressions.mjs",
     "build:all": "node scripts/build-all.js",
     "install:extension": "node scripts/install-extension.js",
     "release": "standard-version && node scripts/sync-manifest-version.js",

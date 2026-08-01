@@ -132,6 +132,8 @@ async function fetchMemos(endpoint: string, token: string): Promise<DiscoveryIte
   // Never clamp the offset to totalSize - PAGE_SIZE (that would cause the last
   // two windows to overlap by up to PAGE_SIZE - 1 items).
   let offset = 0
+  let cursorKeyToWrite: string | null = null
+  let nextCursor: MemosCursor | null = null
   if (totalSize > 0) {
     const ck = cursorKey(endpointHash(base))
     const totalWindows = Math.ceil(totalSize / PAGE_SIZE)
@@ -143,12 +145,14 @@ async function fetchMemos(endpoint: string, token: string): Promise<DiscoveryIte
 
     offset = windowIndex * PAGE_SIZE
 
-    // Advance and wrap for next call
-    writeCursor(ck, {
+    // Advance and wrap after the window is fetched successfully. Advancing
+    // before the request would skip a window when the network is unavailable.
+    cursorKeyToWrite = ck
+    nextCursor = {
       windowIndex: (windowIndex + 1) % totalWindows,
       totalWindows,
       totalSize,
-    })
+    }
   }
 
   // ── Step 3: fetch the window ─────────────────────────────────────────────
@@ -160,6 +164,8 @@ async function fetchMemos(endpoint: string, token: string): Promise<DiscoveryIte
 
   // API shape: { memos: MemosApiMemo[] }  (some older versions return a plain array)
   const memoList: MemosApiMemo[] = Array.isArray(data) ? data : (data.memos ?? [])
+
+  if (cursorKeyToWrite && nextCursor) writeCursor(cursorKeyToWrite, nextCursor)
 
   const items = memoList
     .filter((m) => m.content?.trim())
@@ -221,12 +227,16 @@ export const memosAdapter: SourceAdapter = {
   id: "memos",
   label: "Memos",
   description: "Your personal notes from a self-hosted Memos instance.",
-  color: "#8b5cf6",
+  color: "#1e293b",
+  logoSrc: "/memos-logo.png",
   requiresConfig: true,
   // Always refetch on mount so the window cursor advances on every new tab,
-  // even within the global feed-cache TTL window. initialData still shows
-  // cached cards instantly; the background refetch swaps in the next window.
+  // even within the global feed-cache TTL window. Cached data is only used
+  // when a fresh request fails, so a new tab never flashes an old memo before
+  // replacing it with the next window.
   cacheTtlMs: 0,
+  showCachedWhileRefetching: false,
+  fallbackToCachedDataOnError: true,
   replaceAnchorOnRefetch: true,
   configSchema: [
     {
@@ -250,12 +260,7 @@ export const memosAdapter: SourceAdapter = {
     const token = config?.sourceConfig?.token?.trim()
     // Gracefully return empty when not configured — no error shown
     if (!endpoint || !token) return []
-    try {
-      return await fetchMemos(endpoint, token)
-    } catch (err) {
-      console.error("[Memos adapter] fetch failed:", err)
-      return []
-    }
+    return fetchMemos(endpoint, token)
   },
 
   renderCard(item: DiscoveryItem, props: CardRenderProps) {
@@ -280,7 +285,7 @@ export const memosAdapter: SourceAdapter = {
     return {
       thumbnailNode,
       descriptionText: tagStr + (raw.excerpt || raw.content.slice(0, 100)),
-      titleHoverClass: "hover:text-purple-600",
+      titleHoverClass: "hover:text-slate-700",
     }
   },
 
@@ -322,8 +327,8 @@ export const memosAdapter: SourceAdapter = {
           )}
         </span>
       ),
-      accent: '#867b9a',
-      accentText: '#6e6383',
+      accent: '#64748b',
+      accentText: '#475569',
       sourceLabel: 'Memos',
       noLink: true,
     }

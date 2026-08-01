@@ -19,7 +19,8 @@ export type SourceConfigs = Partial<Record<SourceId, Record<string, string>>>
 
 interface SourcesContextType {
   enabledSources: Set<SourceId>
-  toggleSource: (id: SourceId) => void
+  /** Returns false when a source cannot be enabled because required config is missing. */
+  toggleSource: (id: SourceId) => boolean
   isEnabled: (id: SourceId) => boolean
   sourceConfigs: SourceConfigs
   updateSourceConfig: (id: SourceId, key: string, value: string) => void
@@ -29,7 +30,7 @@ interface SourcesContextType {
    *  no-ops once granted or outside the extension context. Call this from
    *  a genuine user gesture (e.g. an input's onBlur), since
    *  chrome.permissions.request requires one. */
-  ensureHostPermission: (id: SourceId) => void
+  ensureHostPermission: (id: SourceId, configOverride?: Record<string, string>) => void
 }
 
 const SourcesContext = createContext<SourcesContextType | undefined>(undefined)
@@ -44,6 +45,12 @@ const DEFAULT_SOURCE_IDS: SourceId[] = ADAPTER_LIST
   .map((a) => a.id)
 
 const ALL_SOURCE_IDS: SourceId[] = ADAPTER_LIST.map((a) => a.id)
+
+function isFullyConfigured(id: SourceId, config: Record<string, string>): boolean {
+  const adapter = ADAPTER_LIST.find((candidate) => candidate.id === id)
+  if (!adapter?.requiresConfig || !adapter.configSchema) return true
+  return adapter.configSchema.every((field) => config[field.key]?.trim())
+}
 
 // ─── Loaders ──────────────────────────────────────────────────
 function loadEnabled(): Set<SourceId> {
@@ -79,8 +86,17 @@ export function SourcesProvider({ children }: { children: ReactNode }) {
     localStorage.setItem(CONFIGS_KEY, JSON.stringify(sourceConfigs))
   }, [sourceConfigs])
 
-  const toggleSource = (id: SourceId) => {
+  const toggleSource = (id: SourceId): boolean => {
     const adapter = ADAPTER_LIST.find((a) => a.id === id)
+    const currentlyEnabled = enabledSources.has(id)
+
+    // Configuration-backed sources must be complete before they can enter the
+    // active feed. This keeps the invariant at the state boundary instead of
+    // relying only on the Sources UI to prevent an invalid activation.
+    if (!currentlyEnabled && adapter?.requiresConfig && !isFullyConfigured(id, sourceConfigs[id] ?? {})) {
+      return false
+    }
+
     setEnabledSources((prev) => {
       const next = new Set(prev)
       if (next.has(id)) {
@@ -92,9 +108,10 @@ export function SourcesProvider({ children }: { children: ReactNode }) {
       return next
     })
 
-    if (!enabledSources.has(id) && adapter?.requiresConfig) {
+    if (!currentlyEnabled && adapter?.requiresConfig) {
       ensureHostPermission(id)
     }
+    return true
   }
 
   const isEnabled = (id: SourceId) => enabledSources.has(id)
@@ -115,9 +132,9 @@ export function SourcesProvider({ children }: { children: ReactNode }) {
   // already-enabled source's instance URL doesn't keep failing with a
   // silent CORS/"Failed to fetch" error because permission was only ever
   // granted for the *previous* URL.
-  const ensureHostPermission = (id: SourceId) => {
+  const ensureHostPermission = (id: SourceId, configOverride?: Record<string, string>) => {
     for (const key of urlFieldKeys(id)) {
-      const value = sourceConfigs[id]?.[key]
+      const value = configOverride?.[key] ?? sourceConfigs[id]?.[key]
       if (value?.trim()) void requestOptionalHostPermission(value)
     }
   }
