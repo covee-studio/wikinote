@@ -288,27 +288,19 @@ function ThemePicker({
               <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400 px-1 pb-2">
                 Appearance
               </div>
-              <button
-                type="button"
-                onClick={() => onSelect('random')}
-                className={`w-full flex items-center gap-2.5 px-2 py-1.5 rounded-lg mb-2 transition-colors ${themeId === 'random' ? 'bg-slate-100' : 'hover:bg-slate-50'}`}
-                aria-pressed={themeId === 'random'}
-              >
-                <span className="w-7 h-7 rounded-md bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 inline-flex items-center justify-center flex-shrink-0">
-                  <ShuffleIcon className="w-3.5 h-3.5 text-slate-500" strokeWidth={2} />
-                </span>
-                <span className="text-[12px] text-slate-700 font-medium">Auto</span>
-                <span className="text-[11px] text-slate-400 ml-0.5">— different each tab</span>
-                {themeId === 'random' && (
-                  <span className="ml-auto w-4 h-4 rounded-full bg-slate-800 text-white inline-flex items-center justify-center flex-shrink-0">
-                    <CheckIcon className="w-2.5 h-2.5" strokeWidth={3} />
-                  </span>
-                )}
-              </button>
-              <div className="h-px bg-slate-100 mb-2" />
-              <div className="grid grid-cols-4 gap-2">
-                {ZEN_THEMES.map((th) => {
+              <div className="grid grid-cols-4 gap-x-2 gap-y-3">
+                {[
+                  {
+                    id: 'random',
+                    name: 'Auto',
+                    swatch: 'linear-gradient(135deg, #eef2f5 0%, #dbe4e8 48%, #f1eee8 100%)',
+                    isAuto: true,
+                    Preview: undefined,
+                  },
+                  ...ZEN_THEMES.map((th) => ({ ...th, isAuto: false })),
+                ].map((th) => {
                   const selected = th.id === themeId
+                  const Preview = th.Preview
                   return (
                     <button
                       key={th.id}
@@ -316,16 +308,22 @@ function ThemePicker({
                       onClick={() => onSelect(th.id)}
                       className="group flex flex-col items-center gap-1.5"
                       aria-pressed={selected}
+                      aria-label={`${th.name} theme`}
                     >
                       <span
                         className="relative w-full h-10 rounded-lg overflow-hidden border transition-all"
                         style={{
-                          background: th.Preview ? undefined : th.swatch,
+                          background: Preview ? undefined : th.swatch,
                           borderColor: selected ? '#334155' : 'rgba(226,232,240,0.9)',
                           boxShadow: selected ? '0 0 0 1.5px #334155' : 'none',
                         }}
                       >
-                        {th.Preview && <th.Preview />}
+                        {th.isAuto && (
+                          <span className="absolute inset-0 inline-flex items-center justify-center">
+                            <ShuffleIcon className="w-4 h-4 text-slate-500" strokeWidth={1.8} />
+                          </span>
+                        )}
+                        {Preview && <Preview />}
                         {selected && (
                           <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-slate-800 text-white inline-flex items-center justify-center">
                             <CheckIcon className="w-2 h-2" strokeWidth={3} />
