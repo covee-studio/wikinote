@@ -32,7 +32,6 @@ interface SyncManifest {
 
 const MANIFEST_KEY = "wikinote-favorites-sync-v1"
 const CHUNK_PREFIX = "wikinote-favorites-sync-v1-chunk-"
-const SYNC_ENABLED_KEY = "wikinote-favorites-sync-enabled-v1"
 const CHUNK_BYTE_LIMIT = 6500
 const TOTAL_BYTE_LIMIT = 95000
 const MAX_TEXT_LENGTH = 1200
@@ -209,31 +208,16 @@ export function isFavoriteSyncAvailable(): boolean {
   return StorageAdapter.isSyncAvailable()
 }
 
-export async function readFavoriteSyncEnabled(): Promise<boolean | null> {
-  if (!isFavoriteSyncAvailable()) return null
-  try {
-    return await StorageAdapter.syncGet<boolean>(SYNC_ENABLED_KEY)
-  } catch {
-    return null
-  }
-}
-
-export async function writeFavoriteSyncEnabled(enabled: boolean): Promise<void> {
-  if (!isFavoriteSyncAvailable()) throw new Error("Chrome Sync is unavailable")
-  await StorageAdapter.syncSet({ [SYNC_ENABLED_KEY]: enabled })
-}
-
-export async function readFavoriteSyncRecords(): Promise<{ records: LikeRecord[]; chunkKeys: string[]; hasManifest: boolean }> {
+export async function readFavoriteSyncRecords(): Promise<{ records: LikeRecord[]; chunkKeys: string[] }> {
   const manifest = await StorageAdapter.syncGet<SyncManifest>(MANIFEST_KEY)
-  if (!isSyncManifest(manifest)) return { records: [], chunkKeys: [], hasManifest: false }
-  if (manifest.chunks.length === 0) return { records: [], chunkKeys: [], hasManifest: true }
+  if (!isSyncManifest(manifest) || manifest.chunks.length === 0) return { records: [], chunkKeys: [] }
 
   const values = await StorageAdapter.syncGetMany(manifest.chunks)
   const records = manifest.chunks.flatMap((key) => {
     const chunk = values[key]
     return Array.isArray(chunk) ? chunk.map((record) => fromSyncRecord(record as SyncRecord)).filter(Boolean) as LikeRecord[] : []
   })
-  return { records, chunkKeys: manifest.chunks, hasManifest: true }
+  return { records, chunkKeys: manifest.chunks }
 }
 
 export async function writeFavoriteSyncRecords(records: LikeRecord[], previousChunkKeys: string[] = []): Promise<void> {
@@ -255,6 +239,6 @@ export async function writeFavoriteSyncRecords(records: LikeRecord[], previousCh
 
 export function subscribeToFavoriteSyncChanges(listener: () => void): () => void {
   return StorageAdapter.onSyncChange((keys) => {
-    if (keys.includes(MANIFEST_KEY) || keys.includes(SYNC_ENABLED_KEY) || keys.some((key) => key.startsWith(CHUNK_PREFIX))) listener()
+    if (keys.includes(MANIFEST_KEY) || keys.some((key) => key.startsWith(CHUNK_PREFIX))) listener()
   })
 }

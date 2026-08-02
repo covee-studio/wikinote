@@ -110,7 +110,7 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
             {syncAvailable && (
               <div
                 className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 mb-4"
-                title="Compact favorite previews sync across Chrome devices. API keys and tokens stay on this device. Chrome Sync must be enabled in your browser."
+                title="Only compact favorite previews are synced. API keys and tokens stay on this device."
               >
                 <div className="flex min-w-0 items-center gap-2.5">
                   <Cloud className={`h-4 w-4 flex-shrink-0 ${syncStatus === "error" ? "text-rose-400" : "text-slate-400"}`} strokeWidth={1.8} />

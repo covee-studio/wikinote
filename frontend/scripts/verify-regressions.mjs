@@ -168,9 +168,6 @@ if (!/pageOrder/.test(hypothesis) || !/shuffledPageOrder/.test(hypothesis) || !/
 if (
   !/storage\?\.sync/.test(environment) ||
   !/isFavoriteSyncAvailable/.test(favoriteSync) ||
-  !/readFavoriteSyncEnabled/.test(favoriteSync) ||
-  !/writeFavoriteSyncEnabled/.test(favoriteSync) ||
-  !/remoteSyncEnabled !== false/.test(likedContext) ||
   !/setSyncEnabled/.test(likedContext) ||
   !/Sync favorites/.test(likesModal) ||
   !/compactRaw/.test(favoriteSync) ||

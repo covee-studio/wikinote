@@ -6,10 +6,8 @@ import { StorageAdapter } from "../utils/environment"
 import type { DiscoveryItem, SourceId } from "../types/DiscoveryItem"
 import {
   isFavoriteSyncAvailable,
-  readFavoriteSyncEnabled,
   readFavoriteSyncRecords,
   subscribeToFavoriteSyncChanges,
-  writeFavoriteSyncEnabled,
   writeFavoriteSyncRecords,
 } from "../utils/favoriteSync"
 import type { FavoriteSyncStatus, LikeRecord } from "../utils/favoriteSync"
@@ -146,11 +144,10 @@ export function LikedArticlesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
     const hydrate = async () => {
-      const [saved, savedRecords, savedSyncEnabled, remoteSyncEnabled] = await Promise.all([
+      const [saved, savedRecords, savedSyncEnabled] = await Promise.all([
         StorageAdapter.get<unknown[]>("likedArticles"),
         StorageAdapter.get<unknown[]>(LOCAL_RECORDS_KEY),
         StorageAdapter.get<boolean>(SYNC_ENABLED_KEY),
-        syncAvailable ? readFavoriteSyncEnabled() : Promise.resolve(null),
       ])
       if (cancelled) return
 
@@ -164,18 +161,7 @@ export function LikedArticlesProvider({ children }: { children: ReactNode }) {
       setLikedArticles(visibleItems(recordsRef.current))
       setHydrated(true)
 
-      const remote = syncAvailable && remoteSyncEnabled !== false
-        ? await readFavoriteSyncRecords().catch(() => ({ records: [], chunkKeys: [], hasManifest: false }))
-        : null
-
-      // The opt-in follows the user's Chrome profile so enabling Sync
-      // favorites on one device enables it on the other devices too. A
-      // synced false value is authoritative when the user disables it.
-      const shouldSync = syncAvailable && remoteSyncEnabled !== false && (
-        savedSyncEnabled === true ||
-        remoteSyncEnabled === true ||
-        (remoteSyncEnabled === null && remote?.hasManifest === true)
-      )
+      const shouldSync = syncAvailable && savedSyncEnabled === true
       syncEnabledRef.current = shouldSync
       setSyncEnabledState(shouldSync)
       if (!shouldSync) {
@@ -185,11 +171,10 @@ export function LikedArticlesProvider({ children }: { children: ReactNode }) {
 
       setSyncStatus("syncing")
       try {
-        const remoteRecords = remote ?? await readFavoriteSyncRecords()
-        const merged = mergeRecords(recordsRef.current, remoteRecords.records)
+        const remote = await readFavoriteSyncRecords()
+        const merged = mergeRecords(recordsRef.current, remote.records)
         persistLocal(merged)
-        await writeFavoriteSyncRecords([...merged.values()], remoteRecords.chunkKeys)
-        await writeFavoriteSyncEnabled(true)
+        await writeFavoriteSyncRecords([...merged.values()], remote.chunkKeys)
         if (!cancelled) setSyncStatus("synced")
       } catch {
         if (!cancelled) setSyncStatus("error")
@@ -231,7 +216,6 @@ export function LikedArticlesProvider({ children }: { children: ReactNode }) {
           const merged = mergeRecords(recordsRef.current, remote.records)
           persistLocal(merged)
           await writeFavoriteSyncRecords([...merged.values()], remote.chunkKeys)
-          await writeFavoriteSyncEnabled(true)
           await StorageAdapter.set(SYNC_ENABLED_KEY, true)
           setSyncStatus("synced")
         } catch {
@@ -252,7 +236,6 @@ export function LikedArticlesProvider({ children }: { children: ReactNode }) {
       // cloud copy: another enabled device may still be using it, and a
       // destructive clear here would make a simple toggle lose favorites.
       await StorageAdapter.set(SYNC_ENABLED_KEY, false)
-      await writeFavoriteSyncEnabled(false)
       setSyncStatus("disabled")
     }).catch(async () => {
       await StorageAdapter.set(SYNC_ENABLED_KEY, false)
@@ -261,37 +244,18 @@ export function LikedArticlesProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    if (!hydrated || !syncAvailable) return
+    if (!hydrated || !syncEnabled || !syncAvailable) return
     let cancelled = false
     const pullRemote = async () => {
       try {
-        const remoteSyncEnabled = await readFavoriteSyncEnabled()
-        if (remoteSyncEnabled === false) {
-          syncEnabledRef.current = false
-          setSyncEnabledState(false)
-          await StorageAdapter.set(SYNC_ENABLED_KEY, false)
-          if (!cancelled) setSyncStatus("disabled")
-          return
-        }
-
-        const remote = await readFavoriteSyncRecords()
-        // A manifest without the new synced preference belongs to the
-        // pre-2.0.6 format. Import it once for backwards compatibility, then
-        // write the preference so future devices can follow it automatically.
-        const shouldEnable = remoteSyncEnabled === true || (remoteSyncEnabled === null && remote.hasManifest)
-        if (!shouldEnable) return
-
-        syncEnabledRef.current = true
-        setSyncEnabledState(true)
         setSyncStatus("syncing")
+        const remote = await readFavoriteSyncRecords()
         if (cancelled) return
         const merged = mergeRecords(recordsRef.current, remote.records)
         if (!sameRecordVersions(merged, recordsRef.current)) persistLocal(merged)
         if (!sameRecordVersions(merged, new Map(remote.records.map((record) => [record.id, record])))) {
           await writeFavoriteSyncRecords([...merged.values()], remote.chunkKeys)
         }
-        if (remoteSyncEnabled === null) await writeFavoriteSyncEnabled(true)
-        await StorageAdapter.set(SYNC_ENABLED_KEY, true)
         if (!cancelled) setSyncStatus("synced")
       } catch {
         if (!cancelled) setSyncStatus("error")
@@ -302,7 +266,7 @@ export function LikedArticlesProvider({ children }: { children: ReactNode }) {
       cancelled = true
       unsubscribe()
     }
-  }, [hydrated, syncAvailable])
+  }, [hydrated, syncEnabled, syncAvailable])
 
   return (
     <LikedArticlesContext.Provider value={{ likedArticles, toggleLike, isLiked, syncAvailable, syncEnabled, syncStatus, setSyncEnabled }}>

@@ -146,4 +146,4 @@ Before uploading, verify that the package contains the current version in `manif
 6. Review the package, permissions, and data disclosures.
 7. Click **Submit for review** only after the final local installation test passes.
 
-The new Hypothesis host permission may receive additional review because it was added after the previous store version. No new permission is introduced by the sync and translation fixes in version 2.0.6.
+The new Hypothesis host permission may receive additional review because it was added after the previous store version. No new permission is introduced by the translation UI fix in version 2.0.6.
