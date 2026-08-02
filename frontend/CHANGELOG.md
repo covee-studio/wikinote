@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## v2.0.6 - 2026-08-02
+
+- Changed: 1 update(s)
+
+
 ## v2.0.5 - 2026-08-01
 
 - Added: Hypothesis annotations as a configurable reading source.
