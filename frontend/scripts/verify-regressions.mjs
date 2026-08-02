@@ -45,8 +45,8 @@ if (
 if (!/TranslationEngine/.test(translation) || !/data-translation-engine/.test(zen)) {
   throw new Error("Translation engine is not observable in the UI")
 }
-if (/const translationLabel/.test(zen) || !/LanguagesIcon/.test(zen) || !/Translated locally by Chrome Translator API fallback/.test(zen)) {
-  throw new Error("Translation attribution is still exposed as a heavy visible text label")
+if (/LanguagesIcon/.test(zen) || /translationTitle/.test(zen) || /Translated locally by Chrome Translator API fallback/.test(zen)) {
+  throw new Error("Translation attribution is still exposed in the reading interface")
 }
 if (/translated\s*\?\?\s*original/.test(translation)) {
   throw new Error("Translation can render the source title before the target title is ready")

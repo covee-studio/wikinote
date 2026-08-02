@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## v2.0.6 - 2026-08-01
 
-- Fixed: Translation attribution is now a restrained hoverable icon instead of a visible engine label.
+- Fixed: Removed translation engine attribution from the reading interface for a cleaner experience.
 
 ## v2.0.5 - 2026-08-01
 

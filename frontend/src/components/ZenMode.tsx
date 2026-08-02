@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon, Shuffle as ShuffleIcon, Languages as LanguagesIcon } from 'lucide-react'
+import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon, Shuffle as ShuffleIcon } from 'lucide-react'
 import { useLikedArticles } from '../contexts/LikedArticlesContext'
 import { useToast } from '../contexts/ToastContext'
 import { useI18n } from '../hooks/useI18n'
@@ -154,14 +154,6 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
     </blockquote>
   ) : primaryEl
 
-  const translationTitle = translation.state === 'pending'
-    ? 'Waiting for Chrome LanguageModel'
-    : translation.engine === 'prompt'
-      ? 'Translated locally by Chrome LanguageModel'
-      : translation.engine === 'translator'
-        ? 'Translated locally by Chrome Translator API fallback'
-        : 'Local translation is unavailable; showing the original title'
-
   const textBlock = (
     <>
       {primaryContent}
@@ -215,17 +207,6 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
         <div className="inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: accentText }}>
           <span aria-hidden className="w-1 h-1 rounded-full" style={{ backgroundColor: accent }} />
           {sourceLabel}
-          {translation.requested && translation.state === 'translated' && (
-            <span
-              className="inline-flex items-center opacity-55 transition-opacity hover:opacity-100"
-              data-translation-engine={translation.engine}
-              title={translationTitle}
-              aria-label={translationTitle}
-              role="img"
-            >
-              <LanguagesIcon aria-hidden className="h-3 w-3" strokeWidth={1.8} />
-            </span>
-          )}
         </div>
       </div>
       <div aria-hidden className="mx-auto mb-7 h-[2px] w-10 rounded-full" style={{ backgroundColor: accent, opacity: 0.5 }} />
