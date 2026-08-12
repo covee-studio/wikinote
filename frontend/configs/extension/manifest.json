@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "Wikinote",
-  "version": "2.0.6",
-  "description": "A new tab for discovering articles from Wikipedia, Hacker News, and your own notes.",
+  "name": "Wikinote – A New Tab for Discovery",
+  "short_name": "Wikinote",
+  "version": "2.0.8",
+  "description": "Discover one article, story, note, or annotation from Wikipedia, Hacker News, Memos, or Hypothesis in every new tab.",
   "permissions": [
     "storage",
     "unlimitedStorage"

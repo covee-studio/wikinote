@@ -20,7 +20,7 @@ function pack() {
 
   try {
     // -r: recursive, -X: strip extra file attributes, -q: quiet
-    execSync(`cd ${distDir} && rm -f wikinote-extension.zip && zip -r -X -q wikinote-extension.zip extension` , { stdio: 'inherit' });
+    execSync(`cd ${extDir} && rm -f ${zipPath} && zip -r -X -q ${zipPath} .` , { stdio: 'inherit' });
     console.log(`\n✅ Packed: ${zipPath}`);
   } catch (err) {
     console.error('❌ Failed to create zip. Ensure the "zip" command is available.');

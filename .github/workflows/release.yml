@@ -1,8 +1,9 @@
-name: Release
+name: Build and Release
 
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -31,22 +32,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Bump version (PR → beta)
-        if: github.event_name == 'pull_request'
-        run: node scripts/beta-bump.js
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-
-      - name: Bump version (push to main)
-        if: github.event_name == 'push'
-        run: node scripts/auto-bump.js
+      - name: Lint
+        run: npm run lint
 
       - name: Build extension
         run: npm run build:extension
 
       - name: Pack extension
         run: npm run pack:extension
+
+      - name: Verify regressions and package
+        run: npm run verify:regressions
 
       - name: Read version and changelog entry
         id: version
@@ -61,17 +57,29 @@ jobs:
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
+      - name: Verify release tag matches package version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          PACKAGE_VERSION=$(node -p "require('./package.json').version")
+          MANIFEST_VERSION=$(node -p "require('./configs/extension/manifest.json').version")
+          LOCK_VERSION=$(node -p "require('./package-lock.json').version")
+          test "$TAG_VERSION" = "$PACKAGE_VERSION"
+          test "$TAG_VERSION" = "$MANIFEST_VERSION"
+          test "$TAG_VERSION" = "$LOCK_VERSION"
+
       - name: Rename artifact with version
         run: mv dist/wikinote-extension.zip dist/wikinote-extension-v${{ steps.version.outputs.version }}.zip
 
-      - name: Push release commit and tag
-        if: github.event_name == 'push'
-        run: |
-          git push origin HEAD:${GITHUB_REF_NAME}
-          git push origin --tags
+      - name: Upload verified build artifact
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: wikinote-extension-v${{ steps.version.outputs.version }}
+          path: frontend/dist/wikinote-extension-v${{ steps.version.outputs.version }}.zip
 
-      - name: Create release (push to main)
-        if: github.event_name == 'push'
+      - name: Create GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
@@ -79,16 +87,3 @@ jobs:
           body: ${{ steps.version.outputs.notes }}
           files: frontend/dist/wikinote-extension-v${{ steps.version.outputs.version }}.zip
           prerelease: false
-
-      - name: Create release (PR → beta)
-        if: github.event_name == 'pull_request'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          name: v${{ steps.version.outputs.version }}
-          body: |
-            Beta build from PR #${{ github.event.pull_request.number }}: ${{ github.event.pull_request.title }}
-
-            Branch: `${{ github.head_ref }}`
-          files: frontend/dist/wikinote-extension-v${{ steps.version.outputs.version }}.zip
-          prerelease: true

@@ -2,9 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
-## v2.0.6 - 2026-08-01
+## v2.0.8 - 2026-08-12
 
 - Fixed: Removed translation engine attribution from the reading interface for a cleaner experience.
+- Fixed: Prevented Chrome's white canvas from flashing before the new-tab interface is ready.
+- Fixed: Packaged Chrome Web Store builds with `manifest.json` at the ZIP root.
+- Fixed: Kept package, manifest, and lockfile versions synchronized.
+- Changed: Release automation now builds immutable tagged versions without committing generated version bumps back to `main`.
+
+## v2.0.7 - 2026-08-02
+
+- Changed: Refined the extension name for clearer discovery in Chrome.
+
+
+## v2.0.6 - 2026-08-02
+
+- Changed: Updated the extension name and summary to cover all supported reading sources.
 
 ## v2.0.5 - 2026-08-01
 

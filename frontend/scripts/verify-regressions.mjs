@@ -22,6 +22,23 @@ const environment = read("src/utils/environment.ts")
 const favoriteSync = read("src/utils/favoriteSync.ts")
 const likedContext = read("src/contexts/LikedArticlesContext.tsx")
 const likesModal = read("src/components/LikesModal.tsx")
+const newTabHtml = read("configs/extension/newtab.html")
+const packageJson = JSON.parse(read("package.json"))
+const packageLock = JSON.parse(read("package-lock.json"))
+const manifest = JSON.parse(read("configs/extension/manifest.json"))
+
+// The extension must paint an opaque surface before React starts so Chrome's
+// default white canvas cannot flash through at the bottom of a new tab.
+if (/background:\s*transparent/.test(newTabHtml) || !/html,\s*body,\s*#root/.test(newTabHtml)) {
+  throw new Error("New-tab bootstrap does not provide an opaque first-paint background")
+}
+
+// Release metadata must describe one version everywhere. npm ci does not fix
+// stale package-lock metadata, so validate it explicitly before packaging.
+const lockedVersion = packageLock.packages?.[""]?.version
+if (packageJson.version !== manifest.version || packageJson.version !== packageLock.version || packageJson.version !== lockedVersion) {
+  throw new Error("Package, manifest, and lockfile versions are inconsistent")
+}
 
 // Translation must use the requested foundation model first and retain an
 // on-device task-model fallback for languages unsupported by Prompt API.
@@ -187,10 +204,13 @@ if (loadMoreToastCount !== 1) {
 const zipPath = resolve(root, "dist/wikinote-extension.zip")
 if (existsSync(zipPath)) {
   const entries = execFileSync("unzip", ["-Z1", zipPath], { encoding: "utf8" })
-  if (entries.includes("extension/configs/extension/newtab.html")) {
+  if (!entries.split("\n").includes("manifest.json") || entries.includes("extension/manifest.json")) {
+    throw new Error("Packed extension must place manifest.json at the ZIP root")
+  }
+  if (entries.includes("configs/extension/newtab.html")) {
     throw new Error("Packed extension still contains a duplicate nested newtab.html")
   }
-  const packedHtml = execFileSync("unzip", ["-p", zipPath, "extension/newtab.html"], { encoding: "utf8" })
+  const packedHtml = execFileSync("unzip", ["-p", zipPath, "newtab.html"], { encoding: "utf8" })
   if (packedHtml.includes("modulepreload")) {
     throw new Error("Packed extension still emits Vite modulepreload hints")
   }

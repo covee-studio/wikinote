@@ -1,36 +1,34 @@
-# Release Process (Automated)
+# Release Process
 
-This project is configured to keep releases simple and low‑friction.
+Release versions are committed explicitly so local development, `main`, and
+published artifacts always describe the same source tree.
 
 ## What happens automatically
-- On every push/PR to `main`, CI runs: lint → typecheck → build (web & extension) → pack zip.
-- Pull requests build a beta prerelease (`vX.Y.Z-beta.N`) without committing version files.
-- On pushes to `main`, CI prepares a release bump before building:
-  - If the current package version already has a stable tag, CI increments PATCH (`X.Y.Z → X.Y.(Z+1)`).
-  - If the current package version does not have a stable tag, CI respects it. Use this when a PR intentionally bumps MINOR or MAJOR.
-  - CI syncs the extension manifest, appends an English entry to `CHANGELOG.md` if missing, commits with `[skip ci]`, and creates a tag `vX.Y.Z`.
-- After the extension build and zip pack succeed, CI pushes the release commit/tag and publishes a GitHub Release with:
+- Every pull request and push to `main` runs lint, typecheck, extension build,
+  packaging, and regression checks.
+- CI uploads the verified ZIP as a workflow artifact but never modifies or
+  pushes source files back to `main`.
+- Pushing an explicit `vX.Y.Z` tag verifies that the tag, package, manifest,
+  and lockfile versions match, then publishes a GitHub Release with:
   - Title: `vX.Y.Z`
   - Body: the latest `frontend/CHANGELOG.md` entry
   - Asset: `frontend/dist/wikinote-extension-vX.Y.Z.zip`
 
-## How to trigger a release (zero‑code)
-1. Push your changes to the `main` branch (merge your PR as usual).
-2. The pipeline will:
-   - Prepare the release version and changelog entry
-   - Build and test the release commit
-   - Push the release commit and tag `vX.Y.Z`
-   - Publish a GitHub Release with the extension zip
-3. Download the zip from the Release page and submit to Chrome Web Store.
+## How to release
+1. Update the same version in `frontend/package.json`,
+   `frontend/package-lock.json`, and
+   `frontend/configs/extension/manifest.json`.
+2. Add a concrete English entry to `frontend/CHANGELOG.md`.
+3. Commit and push the changes to `main`; wait for the build workflow to pass.
+4. Create and push the matching tag, for example `v2.0.8`.
+5. Download the ZIP from the GitHub Release and submit it to Chrome Web Store.
 
 ## Versioning rules
-- The auto job increments PATCH by default.
-- For MINOR/MAJOR bumps, update `frontend/package.json`, `frontend/package-lock.json`,
-  `frontend/configs/extension/manifest.json`, and `frontend/CHANGELOG.md` in the PR.
-  When the PR merges, CI will see that `vX.Y.Z` is not tagged yet and release that exact version.
-- Do not create tags locally for normal PRs; CI owns release tags.
+- Every Chrome Web Store upload must use a version higher than the currently
+  published version.
+- Version files and the changelog are part of the release commit.
+- A release tag is immutable and must point to that exact commit.
 
 ## Notes
-- CHANGELOG is always generated/updated in English.
-- If your commit messages are in Chinese, the auto entry still uses a neutral English line: “General improvements and maintenance.”
-- You can edit `frontend/CHANGELOG.md` later if you want to add more detailed English notes.
+- Keep changelog entries concrete and in English.
+- The ZIP must contain `manifest.json` at its root.

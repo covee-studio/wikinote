@@ -6,31 +6,36 @@
     <title>New Tab - Wikinote</title>
 
     <style>
-      /* Prevent initial flash */
-      body {
+      /* Match the default Waves surface before React mounts. Keeping the
+         bootstrap paint opaque prevents Chrome's white canvas from flashing
+         through during new-tab startup. */
+      html,
+      body,
+      #root {
+        width: 100%;
+        height: 100%;
         margin: 0;
         padding: 0;
-        background: transparent;
+        background: #f8f7f4;
+      }
+      body {
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        overflow: hidden;
       }
       #root {
-        width: 100vw;
-        height: 100vh;
         overflow: hidden auto;
       }
       .loading {
         display: flex;
         align-items: center;
         justify-content: center;
-        height: 100vh;
-        color: white;
-        font-size: 18px;
+        height: 100%;
       }
     </style>
   </head>
   <body>
     <div id="root">
-      <div class="loading">Loading Wikinote...</div>
+      <div class="loading" aria-label="Loading Wikinote"></div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
