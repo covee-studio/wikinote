@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'motion/react'
-import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon, Shuffle as ShuffleIcon } from 'lucide-react'
+import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Chrome as ChromeIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon, Shuffle as ShuffleIcon } from 'lucide-react'
 import { useLikedArticles } from '../contexts/LikedArticlesContext'
 import { useToast } from '../contexts/ToastContext'
 import { useI18n } from '../hooks/useI18n'
@@ -8,6 +8,8 @@ import { useLocalization } from '../hooks/useLocalization'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { getAdapter } from '../sources/registry'
 import type { DiscoveryItem } from '../types/DiscoveryItem'
+import { Analytics, isExtension } from '../utils/environment'
+import { CHROME_WEB_STORE_URL } from '../utils/productLinks'
 import { ZEN_THEMES } from '../utils/zenThemes'
 import { useAutoTranslatedText } from '../utils/translation'
 import { AboutModal } from './AboutModal'
@@ -354,6 +356,26 @@ function TopToolbar({
       transition={{ duration: 0.4, ease: 'easeOut' }}
       className="absolute top-0 right-0 px-7 pt-5 z-30 flex items-center gap-1"
     >
+      {!isExtension && (
+        <a
+          href={CHROME_WEB_STORE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => {
+            onCloseTheme()
+            Analytics.track('extension_cta_clicked', { placement: 'toolbar' })
+          }}
+          aria-label="Make Wikinote my new tab — opens Chrome Web Store"
+          className={`mr-2 hidden h-9 items-center gap-2 rounded-full border px-3.5 text-[12px] font-medium tracking-[-0.01em] backdrop-blur-md transition-[background-color,border-color,color,transform] duration-200 md:inline-flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
+            dark
+              ? 'border-white/20 bg-white/8 text-slate-200 hover:-translate-y-px hover:border-white/30 hover:bg-white/14 hover:text-white focus-visible:ring-white/40 focus-visible:ring-offset-slate-900'
+              : 'border-white/80 bg-white/45 text-slate-600 hover:-translate-y-px hover:border-white hover:bg-white/80 hover:text-slate-900 focus-visible:ring-slate-400/40 focus-visible:ring-offset-white'
+          }`}
+        >
+          <ChromeIcon className="h-4 w-4" strokeWidth={1.8} aria-hidden />
+          <span>Make this my new tab</span>
+        </a>
+      )}
       <ChromeButton label="About" onClick={() => { onCloseTheme(); onOpenModal('about') }} dark={dark}>
         <InfoIcon className="w-[18px] h-[18px]" strokeWidth={2} />
       </ChromeButton>

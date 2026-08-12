@@ -188,7 +188,8 @@ export class StorageAdapter {
   }
 }
 
-// Analytics adapter
+// Analytics adapter. The Vercel script is injected from main.tsx for the web
+// build only, so custom events below are intentionally no-ops in the extension.
 export const Analytics = {
   track: (event: string, properties?: Record<string, unknown>) => {
     if (!isExtension) {
