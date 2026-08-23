@@ -194,6 +194,16 @@ if (
   throw new Error("Favorite sync is missing explicit opt-in or private-data safeguards")
 }
 
+// Intentional saves should take precedence over the lightweight local recovery
+// list whenever the collection is opened. Recent is the fallback for a new
+// user with nothing saved, and a manual tab choice must not be overwritten.
+if (
+  !/likedArticles\.length > 0 \? "saved" : "recent"/.test(likesModal) ||
+  !/tabWasChosenByUser/.test(likesModal)
+) {
+  throw new Error("Collection does not default to Saved with a Recent fallback")
+}
+
 // A failed load-more request should result in one notification, not a burst
 // of duplicate toasts.
 const loadMoreToastCount = (app.match(/Failed to load more articles/g) ?? []).length

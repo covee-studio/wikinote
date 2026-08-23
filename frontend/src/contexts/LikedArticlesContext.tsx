@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useRef, useState } from "react"
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react"
 import type { ReactNode } from "react"
 import { Heart } from "lucide-react"
 import { StorageAdapter } from "../utils/environment"
@@ -53,18 +53,28 @@ function migrateStoredItem(item: unknown): DiscoveryItem | null {
 // ─── Context ──────────────────────────────────────────────────
 interface LikedArticlesContextType {
   likedArticles: DiscoveryItem[]
+  recentArticles: RecentArticle[]
   toggleLike: (item: DiscoveryItem) => void
   isLiked: (item: DiscoveryItem) => boolean
+  rememberRecent: (item: DiscoveryItem) => void
+  clearRecent: () => void
   syncAvailable: boolean
   syncEnabled: boolean
   syncStatus: FavoriteSyncStatus
   setSyncEnabled: (enabled: boolean) => void
 }
 
+export interface RecentArticle {
+  item: DiscoveryItem
+  seenAt: number
+}
+
 const LikedArticlesContext = createContext<LikedArticlesContextType | undefined>(undefined)
 
 const LOCAL_RECORDS_KEY = "wikinote-liked-records-v1"
 const SYNC_ENABLED_KEY = "wikinote-favorites-sync-enabled"
+const RECENT_RECORDS_KEY = "wikinote-recent-articles-v1"
+const MAX_RECENT_ARTICLES = 30
 
 function visibleItems(records: Map<string, LikeRecord>): DiscoveryItem[] {
   return [...records.values()]
@@ -84,6 +94,15 @@ function validLocalRecords(value: unknown): LikeRecord[] {
     const candidate = record as Partial<LikeRecord>
     return typeof candidate.id === "string" && typeof candidate.updatedAt === "number"
   })
+}
+
+function validRecentArticles(value: unknown): RecentArticle[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((record): record is RecentArticle => {
+    if (!record || typeof record !== "object") return false
+    const candidate = record as Partial<RecentArticle>
+    return typeof candidate.seenAt === "number" && Boolean(migrateStoredItem(candidate.item))
+  }).map((record) => ({ item: migrateStoredItem(record.item)!, seenAt: record.seenAt }))
 }
 
 function mergeRecords(local: Map<string, LikeRecord>, remote: LikeRecord[]): Map<string, LikeRecord> {
@@ -108,12 +127,14 @@ function sameRecordVersions(a: Map<string, LikeRecord>, b: Map<string, LikeRecor
 
 export function LikedArticlesProvider({ children }: { children: ReactNode }) {
   const [likedArticles, setLikedArticles] = useState<DiscoveryItem[]>([])
+  const [recentArticles, setRecentArticles] = useState<RecentArticle[]>([])
   const [syncAvailable] = useState(() => isFavoriteSyncAvailable())
   const [syncEnabled, setSyncEnabledState] = useState(false)
   const [syncStatus, setSyncStatus] = useState<FavoriteSyncStatus>(syncAvailable ? "disabled" : "unavailable")
   const [hydrated, setHydrated] = useState(false)
   const [showHeart, setShowHeart] = useState(false)
   const recordsRef = useRef<Map<string, LikeRecord>>(new Map())
+  const recentArticlesRef = useRef<RecentArticle[]>([])
   const syncEnabledRef = useRef(false)
   const syncWriteChain = useRef(Promise.resolve())
 
@@ -126,6 +147,15 @@ export function LikedArticlesProvider({ children }: { children: ReactNode }) {
       StorageAdapter.set(LOCAL_RECORDS_KEY, [...records.values()]),
     ])
   }
+
+  const persistRecent = useCallback((records: RecentArticle[]) => {
+    const next = records
+      .sort((a, b) => b.seenAt - a.seenAt)
+      .slice(0, MAX_RECENT_ARTICLES)
+    recentArticlesRef.current = next
+    setRecentArticles(next)
+    void StorageAdapter.set(RECENT_RECORDS_KEY, next)
+  }, [])
 
   const queueSyncWrite = () => {
     if (!syncEnabledRef.current || !syncAvailable) return
@@ -144,10 +174,11 @@ export function LikedArticlesProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
     const hydrate = async () => {
-      const [saved, savedRecords, savedSyncEnabled] = await Promise.all([
+      const [saved, savedRecords, savedSyncEnabled, savedRecent] = await Promise.all([
         StorageAdapter.get<unknown[]>("likedArticles"),
         StorageAdapter.get<unknown[]>(LOCAL_RECORDS_KEY),
         StorageAdapter.get<boolean>(SYNC_ENABLED_KEY),
+        StorageAdapter.get<unknown[]>(RECENT_RECORDS_KEY),
       ])
       if (cancelled) return
 
@@ -159,6 +190,11 @@ export function LikedArticlesProvider({ children }: { children: ReactNode }) {
         : [...recordsFromItems(migrated).values()]
       recordsRef.current = new Map(records.map((record) => [record.id, record]))
       setLikedArticles(visibleItems(recordsRef.current))
+      const recent = validRecentArticles(savedRecent)
+        .sort((a, b) => b.seenAt - a.seenAt)
+        .slice(0, MAX_RECENT_ARTICLES)
+      recentArticlesRef.current = recent
+      setRecentArticles(recent)
       setHydrated(true)
 
       const shouldSync = syncAvailable && savedSyncEnabled === true
@@ -202,6 +238,21 @@ export function LikedArticlesProvider({ children }: { children: ReactNode }) {
 
   const isLiked = (item: DiscoveryItem): boolean =>
     likedArticles.some((a) => a.id === item.id)
+
+  const rememberRecent = useCallback((item: DiscoveryItem) => {
+    if (!hydrated) return
+    const seenAt = Date.now()
+    persistRecent([
+      { item, seenAt },
+      ...recentArticlesRef.current.filter((record) => record.item.id !== item.id),
+    ])
+  }, [hydrated, persistRecent])
+
+  const clearRecent = () => {
+    recentArticlesRef.current = []
+    setRecentArticles([])
+    void StorageAdapter.remove(RECENT_RECORDS_KEY)
+  }
 
   const setSyncEnabled = (enabled: boolean) => {
     if (!syncAvailable || !hydrated) return
@@ -269,7 +320,7 @@ export function LikedArticlesProvider({ children }: { children: ReactNode }) {
   }, [hydrated, syncEnabled, syncAvailable])
 
   return (
-    <LikedArticlesContext.Provider value={{ likedArticles, toggleLike, isLiked, syncAvailable, syncEnabled, syncStatus, setSyncEnabled }}>
+    <LikedArticlesContext.Provider value={{ likedArticles, recentArticles, toggleLike, isLiked, rememberRecent, clearRecent, syncAvailable, syncEnabled, syncStatus, setSyncEnabled }}>
       {children}
       {showHeart && (
         <div className="heart-animation">
