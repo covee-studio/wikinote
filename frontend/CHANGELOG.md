@@ -1,5 +1,18 @@
 # Changelog
 
+All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
+
+## [2.1.0](https://github.com/covee-studio/wikinote/compare/v2.0.8...v2.1.0) (2026-08-23)
+
+
+### Features
+
+* add local recent collection ([6a9827d](https://github.com/covee-studio/wikinote/commit/6a9827de294dbff0257329246ce4ff22f5ea9e04))
+* add local recent collection ([12e9391](https://github.com/covee-studio/wikinote/commit/12e9391771a143adc75d3ad661bea0a732cdb3e2))
+* add web extension install entry ([cb6fe3c](https://github.com/covee-studio/wikinote/commit/cb6fe3c7d66e83bcd32fbe9efacae29b931f03f6))
+
+# Changelog
+
 All notable changes to this project will be documented in this file.
 
 ## v2.0.8 - 2026-08-12
