@@ -10,12 +10,18 @@
     "buyMeCoffee": "Buy me a coffee"
   },
   "likes": {
-    "title": "Liked Articles",
+    "title": "Your collection",
+    "saved": "Saved",
+    "recent": "Recent",
+    "savedAndRecent": "Saved and recently seen",
     "export": "Export",
-    "search": "Search liked articles...",
+    "search": "Search saved articles...",
+    "searchRecent": "Search recent articles...",
     "noMatches": "No matches found.",
     "noLikedArticles": "No liked articles yet.",
+    "noRecentArticles": "Nothing to revisit yet.",
     "remove": "Remove from likes",
+    "clearRecent": "Clear recent",
     "articles": "articles",
     "tryDifferentSearch": "Try a different search term",
     "startLiking": "Start liking articles you enjoy"

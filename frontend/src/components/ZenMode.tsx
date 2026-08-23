@@ -431,8 +431,9 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const shareTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
+  const lastRememberedItemIdRef = useRef<string | null>(null)
 
-  const { toggleLike, isLiked } = useLikedArticles()
+  const { toggleLike, isLiked, rememberRecent } = useLikedArticles()
   const { showToast } = useToast()
   const { t } = useI18n()
 
@@ -532,9 +533,18 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
     return () => window.removeEventListener('keydown', onKey)
   }, [isOpen, modal, themeOpen, prev, next])
 
-  if (!isOpen) return null
-
   const item = index !== -1 ? items[index] : anchoredItemRef.current
+
+  // Keep a small, local-only record of content that was actually shown. This
+  // deliberately happens here rather than in the fetch layer: a downloaded
+  // batch is not a reading history, whereas the resolved Zen item is.
+  useEffect(() => {
+    if (!isOpen || !item || lastRememberedItemIdRef.current === item.id) return
+    lastRememberedItemIdRef.current = item.id
+    rememberRecent(item)
+  }, [isOpen, item, rememberRecent])
+
+  if (!isOpen) return null
 
   // Only fall back to the dedicated loading screen when we truly have
   // nothing to show yet (first-ever load). Do NOT also gate on

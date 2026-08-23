@@ -1,5 +1,5 @@
-import { Cloud, Download, Heart, Search, X } from "lucide-react"
-import { useRef, useState } from "react"
+import { Clock3, Cloud, Download, Heart, Search, X } from "lucide-react"
+import { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useLikedArticles } from "../contexts/LikedArticlesContext"
 import { useI18n } from "../hooks/useI18n"
@@ -7,34 +7,77 @@ import { useFocusTrap } from "../hooks/useFocusTrap"
 import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation"
 import { getAdapter } from "../sources/registry"
 import { Toggle } from "./Toggle"
+import type { DiscoveryItem } from "../types/DiscoveryItem"
 
 interface LikesModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
+function SourceBadge({ item }: { item: DiscoveryItem }) {
+  const adapter = getAdapter(item.source)
+  return (
+    <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-slate-100 bg-white p-1 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+      {adapter.logoSrc ? (
+        <img src={adapter.logoSrc} alt="" className="h-full w-full rounded-full object-contain" />
+      ) : (
+        <span className="text-sm font-semibold text-slate-500">{adapter.label.slice(0, 1)}</span>
+      )}
+    </div>
+  )
+}
+
 export function LikesModal({ isOpen, onClose }: LikesModalProps) {
   const { t } = useI18n()
   const {
     likedArticles,
+    recentArticles,
     toggleLike,
+    clearRecent,
     syncAvailable,
     syncEnabled,
     syncStatus,
     setSyncEnabled,
   } = useLikedArticles()
+  const [activeTab, setActiveTab] = useState<"saved" | "recent">("saved")
+  const [tabWasChosenByUser, setTabWasChosenByUser] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const containerRef = useRef<HTMLDivElement>(null)
 
   useKeyboardNavigation({ onEscape: onClose, enabled: isOpen })
   useFocusTrap(isOpen, containerRef)
 
-  const filteredArticles = likedArticles.filter((item) =>
-    getAdapter(item.source)
-      .getSearchText(item)
-      .toLowerCase()
-      .includes(searchQuery.toLowerCase())
+  // Saved is the natural entry point when the user has deliberately kept
+  // something. Recent is a recovery surface, so it becomes the default only
+  // when there is nothing saved. Do not override a tab the user has chosen
+  // during this open session (including while storage is still hydrating).
+  useEffect(() => {
+    if (!isOpen) {
+      setTabWasChosenByUser(false)
+      return
+    }
+    if (!tabWasChosenByUser) {
+      setActiveTab(likedArticles.length > 0 ? "saved" : "recent")
+    }
+  }, [isOpen, likedArticles.length, tabWasChosenByUser])
+
+  const articles: Array<{ item: DiscoveryItem; seenAt?: number }> = activeTab === "saved"
+    ? likedArticles.map((item) => ({ item }))
+    : recentArticles
+  const filteredArticles = articles.filter(({ item }) =>
+    getAdapter(item.source).getSearchText(item).toLowerCase().includes(searchQuery.toLowerCase())
   )
+
+  const formatSeenAt = (seenAt: number) => {
+    const seconds = Math.max(0, Math.floor((Date.now() - seenAt) / 1000))
+    if (seconds < 60) return "Just now"
+    const minutes = Math.floor(seconds / 60)
+    if (minutes < 60) return `${minutes} min ago`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return `${hours}h ago`
+    if (hours < 48) return "Yesterday"
+    return new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(new Date(seenAt))
+  }
 
   const handleExport = () => {
     const data = likedArticles.map((item) => getAdapter(item.source).getExportData(item))
@@ -82,12 +125,12 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
                 <div>
                   <h2 className="text-xl font-bold text-slate-800">{t("likes.title")}</h2>
                   <p className="text-sm text-slate-400">
-                    {likedArticles.length} {t("likes.articles")}
+                    {t("likes.savedAndRecent")}
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                {likedArticles.length > 0 && (
+                {activeTab === "saved" && likedArticles.length > 0 && (
                   <button
                     onClick={handleExport}
                     className="flex items-center gap-1.5 px-3 py-1.5 text-sm border border-slate-200 rounded-lg text-slate-500 hover:text-slate-700 hover:border-slate-300 transition-all"
@@ -107,7 +150,30 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
               </div>
             </div>
 
-            {syncAvailable && (
+            <div className="mb-4 flex border-b border-slate-100" role="tablist" aria-label="Collection views">
+              {(["saved", "recent"] as const).map((tab) => {
+                const selected = activeTab === tab
+                return (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={selected}
+                    onClick={() => {
+                      setTabWasChosenByUser(true)
+                      setActiveTab(tab)
+                      setSearchQuery("")
+                    }}
+                    className={`relative px-4 pb-2.5 text-sm transition-colors ${selected ? "font-medium text-slate-800" : "text-slate-400 hover:text-slate-600"}`}
+                  >
+                    {t(`likes.${tab}`)}
+                    {selected && <span className="absolute inset-x-4 bottom-0 h-0.5 rounded-full bg-slate-800" />}
+                  </button>
+                )
+              })}
+            </div>
+
+            {activeTab === "saved" && syncAvailable && (
               <div
                 className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-slate-50/70 px-3 py-2.5 mb-4"
                 title="Only compact favorite previews are synced. API keys and tokens stay on this device."
@@ -141,7 +207,7 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t("likes.search")}
+                placeholder={activeTab === "saved" ? t("likes.search") : t("likes.searchRecent")}
                 className="w-full text-slate-800 px-4 py-2.5 pl-10 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-300 placeholder-slate-400"
               />
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -152,28 +218,35 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
               {filteredArticles.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-center">
                   <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mb-4">
-                    <Heart className="w-7 h-7 text-slate-400" />
+                    {activeTab === "saved"
+                      ? <Heart className="w-7 h-7 text-slate-400" />
+                      : <Clock3 className="w-7 h-7 text-slate-400" />}
                   </div>
                   <p className="text-slate-700 text-base font-medium">
-                    {searchQuery ? t("likes.noMatches") : t("likes.noLikedArticles")}
+                    {searchQuery ? t("likes.noMatches") : activeTab === "saved" ? t("likes.noLikedArticles") : t("likes.noRecentArticles")}
                   </p>
                   <p className="text-slate-400 text-sm mt-1">
-                    {searchQuery ? t("likes.tryDifferentSearch") : t("likes.startLiking")}
+                    {searchQuery ? t("likes.tryDifferentSearch") : activeTab === "saved" ? t("likes.startLiking") : "The last things you opened will appear here"}
                   </p>
                 </div>
               ) : (
-                <div className="flex flex-col gap-2">
-                  {filteredArticles.map((item) => {
+                <div className="flex flex-col divide-y divide-slate-100">
+                  {filteredArticles.map(({ item, seenAt }) => {
                     const adapter = getAdapter(item.source)
                     const preview = adapter.getLikePreview(item)
                     return (
                       <div
                         key={item.id}
-                        className="group p-4 rounded-xl border border-slate-100 hover:bg-slate-50 transition-colors"
+                        className="group px-2 py-4 transition-colors hover:bg-slate-50/80"
                       >
                         <div className="flex gap-4 items-start">
-                          {preview.thumbnailNode}
+                          {activeTab === "recent" ? <SourceBadge item={item} /> : preview.thumbnailNode}
                           <div className="flex-1 min-w-0">
+                            {activeTab === "recent" && (
+                              <p className="mb-0.5 text-[10px] font-semibold uppercase tracking-[0.13em] text-slate-400">
+                                {adapter.label}
+                              </p>
+                            )}
                             <div className="flex justify-between items-start gap-2">
                               <a
                                 href={item.url}
@@ -183,14 +256,20 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
                               >
                                 {item.title}
                               </a>
-                              <button
-                                onClick={() => toggleLike(item)}
-                                className="text-slate-300 hover:text-red-500 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all"
-                                aria-label={t("likes.remove")}
-                                title={t("likes.remove")}
-                              >
-                                <X className="w-3.5 h-3.5" />
-                              </button>
+                              {activeTab === "saved" ? (
+                                <button
+                                  onClick={() => toggleLike(item)}
+                                  className="text-slate-300 hover:text-red-500 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                                  aria-label={t("likes.remove")}
+                                  title={t("likes.remove")}
+                                >
+                                  <X className="w-3.5 h-3.5" />
+                                </button>
+                              ) : seenAt ? (
+                                <time className="shrink-0 pt-0.5 text-[11px] text-slate-400" dateTime={new Date(seenAt).toISOString()}>
+                                  {formatSeenAt(seenAt)}
+                                </time>
+                              ) : null}
                             </div>
                             {preview.descriptionNode ?? (
                               <p className="text-sm text-slate-400 line-clamp-2 mt-0.5 leading-relaxed">
@@ -205,6 +284,13 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
                 </div>
               )}
             </div>
+            {activeTab === "recent" && recentArticles.length > 0 && (
+              <div className="flex justify-end pt-3">
+                <button type="button" onClick={clearRecent} className="text-xs text-slate-400 transition-colors hover:text-slate-700">
+                  {t("likes.clearRecent")}
+                </button>
+              </div>
+            )}
           </motion.div>
 
           <div

@@ -5,6 +5,12 @@ import { VitePWA } from "vite-plugin-pwa";
 import { resolve } from "path";
 
 export default defineConfig({
+  // The shared runtime needs an explicit web value. The extension build
+  // injects `true` from its own config; without this counterpart the web
+  // bundle leaves the identifier unresolved and fails before React mounts.
+  define: {
+    __IS_EXTENSION__: JSON.stringify(false),
+  },
   plugins: [
     react(),
     tailwindcss(),
