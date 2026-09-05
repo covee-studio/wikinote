@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'motion/react'
-import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Chrome as ChromeIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon, Check as CheckIcon, Shuffle as ShuffleIcon } from 'lucide-react'
+import { motion, AnimatePresence, useReducedMotion } from 'motion/react'
+import { ChevronLeft as ChevronLeftIcon, ChevronRight as ChevronRightIcon, Chrome as ChromeIcon, Heart as HeartIcon, Share2 as Share2Icon, Layers as LayersIcon, Palette as PaletteIcon, Info as InfoIcon } from 'lucide-react'
 import { useLikedArticles } from '../contexts/LikedArticlesContext'
 import { useToast } from '../contexts/ToastContext'
 import { useI18n } from '../hooks/useI18n'
 import { useLocalization } from '../hooks/useLocalization'
 import { useFocusTrap } from '../hooks/useFocusTrap'
 import { getAdapter } from '../sources/registry'
-import type { DiscoveryItem } from '../types/DiscoveryItem'
+import type { DiscoveryItem, SourceId } from '../types/DiscoveryItem'
 import { Analytics, isExtension } from '../utils/environment'
 import { CHROME_WEB_STORE_URL } from '../utils/productLinks'
 import { ZEN_THEMES } from '../utils/zenThemes'
@@ -31,6 +31,7 @@ interface ZenModeProps {
   isLoading?: boolean
   loadError?: string
   onRetry?: () => void
+  sourceErrors?: Partial<Record<SourceId, string>>
 }
 
 const SCROLL_FADE_SIZE = '3.75rem'
@@ -93,7 +94,7 @@ function FadingScroll({ children, maxHeightVh }: { children: React.ReactNode; ma
 }
 
 function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
-  const { primary, primaryKind, secondary, imageUrl, metaNode, primaryWeight = 500, contentKind = "title", accent, accentText, sourceLabel, noLink, contentScrollable } =
+  const { primary, primaryKind, secondary, secondaryLabel, imageUrl, metaNode, primaryWeight = 500, contentKind = "title", accent, accentText, sourceLabel, noLink, contentScrollable } =
     getAdapter(item.source).getZenContent(item)
   const { currentLanguage } = useLocalization()
   const translation = useAutoTranslatedText(
@@ -103,7 +104,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
   )
   const translatedPrimary = translation.text
 
-  const linkProps = !noLink ? { href: item.url, target: '_blank' as const, rel: 'noopener noreferrer' } : null
+  const linkProps = !noLink && item.url ? { href: item.url, target: '_blank' as const, rel: 'noopener noreferrer' } : null
   const imageStyle = { width: 120, height: 120, objectFit: 'cover' as const, flexShrink: 0 }
   // Justify Chinese body copy, but keep English body copy left-aligned so
   // browser justification does not create distracting word gaps. Use the
@@ -119,8 +120,8 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
   const primaryStyle = {
     // Keep the semantic hierarchy stable across sources. Wikipedia and HN
     // provide titles/headlines; Memos and Hypothesis provide reading content.
-    fontSize: contentKind === "body" ? 'clamp(18px, 1.6vw, 28px)' : 'clamp(30px, 3.1vw, 48px)',
-    lineHeight: contentKind === "body" ? 1.85 : 1.62,
+    fontSize: contentKind === "body" ? 'clamp(18px, 1.65vw, 25px)' : 'clamp(30px, 3.2vw, 46px)',
+    lineHeight: contentKind === "body" ? 1.95 : 1.35,
     letterSpacing: '0.005em',
     fontWeight: contentKind === "body" ? 400 : primaryWeight,
     overflowWrap: 'anywhere' as const,
@@ -143,7 +144,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
     </div>
   ) : (
     <p
-      className={`font-serif-display whitespace-pre-line ${readingColumnClass} ${dark ? 'text-slate-50' : 'text-slate-900'}`}
+      className={`reading-primary font-serif-display whitespace-pre-line ${readingColumnClass} ${dark ? 'text-slate-50' : 'text-slate-900'}`}
       style={primaryStyle}
       data-translation-engine={translation.engine}
     >
@@ -151,7 +152,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
     </p>
   )
   const primaryContent = primaryKind === "highlight" ? (
-    <blockquote className={`${readingColumnClass} border-l-2 ${dark ? 'border-white/30' : 'border-slate-300'} pl-6`}>
+    <blockquote className={`reading-quote ${readingColumnClass} border-l-2 ${dark ? 'border-white/30' : 'border-slate-300'} pl-6`}>
       {primaryEl}
     </blockquote>
   ) : primaryEl
@@ -161,6 +162,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
       {primaryContent}
       {secondary && (
         <div className={contentKind === "body" ? `${readingColumnClass} mt-10 border-t border-slate-300/30 pl-6 pt-7` : ""}>
+          {secondaryLabel && <p className="mb-3 text-left text-[11px] tracking-[0.12em] opacity-70">{secondaryLabel}</p>}
           <p
             className={contentKind === "body"
               ? `font-serif-display whitespace-pre-line mx-auto w-full max-w-[680px] ${dark ? 'text-slate-300' : 'text-slate-600'}`
@@ -185,7 +187,7 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
     : linkedTextBlock
 
   return (
-    <article className="text-center flex flex-col items-center w-full">
+    <article className="reading-content text-center flex flex-col items-center w-full" data-source={item.source} data-content-kind={contentKind}>
       {imageUrl && (
         linkProps ? (
           <a {...linkProps} className="hover:opacity-80 transition-opacity mb-8">
@@ -206,14 +208,14 @@ function ZenContent({ item, dark }: { item: DiscoveryItem; dark: boolean }) {
         )
       )}
       <div className="mb-6">
-        <div className="inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: accentText }}>
+        <div className="inline-flex items-center gap-2 text-[10.5px] font-semibold uppercase tracking-[0.18em]" style={{ color: dark ? '#bdcfc8' : accentText }}>
           <span aria-hidden className="w-1 h-1 rounded-full" style={{ backgroundColor: accent }} />
           {sourceLabel}
         </div>
       </div>
       <div aria-hidden className="mx-auto mb-7 h-[2px] w-10 rounded-full" style={{ backgroundColor: accent, opacity: 0.5 }} />
       {content}
-      <div className="mt-9 text-[12px] text-slate-400">{metaNode}</div>
+      <div className={`mt-9 text-[12px] ${dark ? 'text-slate-300' : 'text-slate-500'}`}>{metaNode}</div>
     </article>
   )
 }
@@ -240,6 +242,18 @@ function ChromeButton({
 
 type ModalKey = 'sources' | 'likes' | 'about' | null
 
+function AutoThemePreview() {
+  return (
+    <div aria-hidden className="theme-scene theme-preview auto-theme-preview">
+      <svg viewBox="0 0 100 48" preserveAspectRatio="none">
+        <path className="auto-preview-sky" d="M-8 8 C18 -2 34 18 58 11 S89 0 108 12 V-4 H-8Z" />
+        <path className="auto-preview-sage" d="M-6 47 C14 28 34 39 49 27 S78 17 106 34 V52 H-6Z" />
+        <path className="auto-preview-light" d="M17 48 C25 28 43 12 69 -3 H92 C63 15 51 31 46 48Z" />
+      </svg>
+    </div>
+  )
+}
+
 function ThemePicker({
   dark,
   themeId,
@@ -255,6 +269,8 @@ function ThemePicker({
   onClose: () => void
   onSelect: (id: string) => void
 }) {
+  const pickerRef = useRef<HTMLDivElement>(null)
+  useFocusTrap(themeOpen, pickerRef)
   return (
     <div className="relative">
       <ChromeButton label="Appearance" active={themeOpen} onClick={onToggle} dark={dark}>
@@ -265,11 +281,12 @@ function ThemePicker({
           <>
             <div className="fixed inset-0 z-10" onClick={onClose} aria-hidden />
             <motion.div
+              ref={pickerRef}
               initial={{ opacity: 0, y: -6, scale: 0.97 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -6, scale: 0.97 }}
               transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-              className="absolute right-0 mt-2 w-[288px] z-20 rounded-2xl bg-white/90 backdrop-blur-xl border border-white/70 shadow-[0_16px_48px_rgba(15,23,42,0.16)] p-3"
+              className={`appearance-panel absolute right-0 mt-2 w-[288px] z-20 rounded-2xl backdrop-blur-xl border shadow-[0_16px_48px_rgba(15,23,42,0.16)] p-3 ${dark ? 'bg-slate-900/95 border-slate-600/60' : 'bg-white/90 border-white/70'}`}
             >
               <div className="text-[10.5px] font-semibold uppercase tracking-[0.14em] text-slate-400 px-1 pb-2">
                 Appearance
@@ -279,11 +296,10 @@ function ThemePicker({
                   {
                     id: 'random',
                     name: 'Auto',
-                    swatch: 'linear-gradient(135deg, #eef2f5 0%, #dbe4e8 48%, #f1eee8 100%)',
-                    isAuto: true,
-                    Preview: undefined,
+                    swatch: undefined,
+                    Preview: AutoThemePreview,
                   },
-                  ...ZEN_THEMES.map((th) => ({ ...th, isAuto: false })),
+                  ...ZEN_THEMES,
                 ].map((th) => {
                   const selected = th.id === themeId
                   const Preview = th.Preview
@@ -297,26 +313,16 @@ function ThemePicker({
                       aria-label={`${th.name} theme`}
                     >
                       <span
-                        className="relative w-full h-10 rounded-lg overflow-hidden border transition-all"
+                        className="appearance-swatch relative w-full h-10 rounded-[10px] overflow-hidden border transition-[transform,box-shadow,border-color] duration-200 group-hover:-translate-y-px"
                         style={{
                           background: Preview ? undefined : th.swatch,
-                          borderColor: selected ? '#334155' : 'rgba(226,232,240,0.9)',
-                          boxShadow: selected ? '0 0 0 1.5px #334155' : 'none',
+                          borderColor: selected ? (dark ? '#c7d8cf' : '#71857b') : (dark ? '#475569' : 'rgba(211,220,216,0.82)'),
+                          boxShadow: selected ? `0 0 0 1px ${dark ? '#c7d8cf' : '#71857b'}, 0 4px 12px rgba(55,72,64,.08)` : '0 2px 7px rgba(55,72,64,.035)',
                         }}
                       >
-                        {th.isAuto && (
-                          <span className="absolute inset-0 inline-flex items-center justify-center">
-                            <ShuffleIcon className="w-4 h-4 text-slate-500" strokeWidth={1.8} />
-                          </span>
-                        )}
                         {Preview && <Preview />}
-                        {selected && (
-                          <span className="absolute top-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-slate-800 text-white inline-flex items-center justify-center">
-                            <CheckIcon className="w-2 h-2" strokeWidth={3} />
-                          </span>
-                        )}
                       </span>
-                      <span className={`text-[10px] ${selected ? 'text-slate-900 font-medium' : 'text-slate-500'}`}>
+                      <span className={`text-[10px] ${dark ? (selected ? 'text-slate-100 font-medium' : 'text-slate-400') : (selected ? 'text-slate-900 font-medium' : 'text-slate-500')}`}>
                         {th.name}
                       </span>
                     </button>
@@ -397,21 +403,32 @@ function TopToolbar({
   )
 }
 
-export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNearEnd, isLoading = false, loadError, onRetry }: ZenModeProps) {
+export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNearEnd, isLoading = false, loadError, onRetry, sourceErrors }: ZenModeProps) {
+  const reducedMotion = useReducedMotion()
+  const [pageVisible, setPageVisible] = useState(() => !document.hidden)
+  useEffect(() => {
+    const update = () => setPageVisible(!document.hidden)
+    document.addEventListener('visibilitychange', update)
+    return () => document.removeEventListener('visibilitychange', update)
+  }, [])
   const [currentItemId, setCurrentItemId] = useState<string | null>(null)
   // When items is rebuilt with a completely different random batch (Wikipedia uses
   // generator=random so each fetch returns new article IDs), currentItemId may not
   // exist in the new array. We keep the last found item in a ref so the display
   // stays stable — no jump — until the user deliberately navigates.
   const anchoredItemRef = useRef<DiscoveryItem | null>(null)
+  const anchorFeedKey = useRef(feedKey)
   const index = useMemo(() => {
     if (!currentItemId || items.length === 0) return -1
     return items.findIndex((it) => it.id === currentItemId)
   }, [currentItemId, items])
   // Keep anchor up-to-date whenever the item is present in the current batch.
   useEffect(() => {
-    if (index !== -1 && items[index]) anchoredItemRef.current = items[index]
-  }, [index, items])
+    if (index !== -1 && items[index]) {
+      anchoredItemRef.current = items[index]
+      anchorFeedKey.current = feedKey
+    }
+  }, [index, items, feedKey])
   const [themeId, setThemeId] = useState(() => {
     const saved = localStorage.getItem('zen-theme-id')
     if (saved === 'dawn' || saved === 'sunrise') {
@@ -431,28 +448,20 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
   const idleTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const shareTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const lastRememberedItemIdRef = useRef<string | null>(null)
 
   const { toggleLike, isLiked, rememberRecent } = useLikedArticles()
   const { showToast } = useToast()
   const { t } = useI18n()
 
-  useFocusTrap(isOpen && !modal && !themeOpen, containerRef)
-
   const theme = ZEN_THEMES.find((th) => th.id === resolvedThemeId) ?? ZEN_THEMES[0]
   const Backdrop = theme.Backdrop
   const isDark = !!theme.dark
 
-  // Note: we intentionally do NOT clear anchoredItemRef here. Clearing it
-  // made `item` (below) resolve to null the instant feedKey/anchorKey
-  // changed — e.g. toggling a source or finishing a Memos config edit —
-  // which forced the render into the "loading" branch (a different
-  // background/layout) for one paint before the new item was picked. That
-  // was the whole-window "flash". Keeping the last item visible via
-  // anchoredItemRef until a fresh one is chosen makes the transition
-  // seamless; the "keep anchor up-to-date" effect above will overwrite it
-  // as soon as the new batch resolves.
+  // Preserve an anchor during same-feed refreshes only. An account/source
+  // change must stop displaying content from the previous configuration.
   useEffect(() => {
+    anchoredItemRef.current = null
+    anchorFeedKey.current = feedKey
     setCurrentItemId(null)
   }, [feedKey])
 
@@ -485,7 +494,7 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
   const wakeUp = useCallback(() => {
     setIdle(false)
     if (idleTimer.current) clearTimeout(idleTimer.current)
-    idleTimer.current = setTimeout(() => setIdle(true), 2800)
+    idleTimer.current = setTimeout(() => setIdle(!containerRef.current?.querySelector(':focus-visible')), 4000)
   }, [])
 
   useEffect(() => {
@@ -533,14 +542,13 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
     return () => window.removeEventListener('keydown', onKey)
   }, [isOpen, modal, themeOpen, prev, next])
 
-  const item = index !== -1 ? items[index] : anchoredItemRef.current
+  const item = index !== -1 ? items[index] : anchorFeedKey.current === feedKey ? anchoredItemRef.current : null
 
   // Keep a small, local-only record of content that was actually shown. This
   // deliberately happens here rather than in the fetch layer: a downloaded
   // batch is not a reading history, whereas the resolved Zen item is.
   useEffect(() => {
-    if (!isOpen || !item || lastRememberedItemIdRef.current === item.id) return
-    lastRememberedItemIdRef.current = item.id
+    if (!isOpen || !item) return
     rememberRecent(item)
   }, [isOpen, item, rememberRecent])
 
@@ -553,9 +561,9 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
   // still valid, which used to force a jarring flash to this screen.
   if (!item) {
     return (
-      <div className="fixed inset-0 z-[200]" style={{ background: theme.surface }}
-        role="dialog" aria-modal="true" aria-label="Zen mode loading">
-        <Backdrop />
+      <div className="reading-room fixed inset-0 z-[200]" data-dark={isDark} style={{ background: theme.surface }}
+        aria-label="Zen mode loading">
+        <div className="theme-backdrop" data-paused={!pageVisible}><Backdrop /></div>
         <div className="absolute top-0 left-0 px-8 pt-6 z-20">
           <span className={`text-[15px] font-bold tracking-tight ${isDark ? 'text-slate-100' : 'text-slate-700'} opacity-40`}>
             Wikinote
@@ -607,10 +615,13 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
           ) : (
             <div className={`max-w-sm text-center text-sm ${isDark ? 'text-slate-300' : 'text-slate-500'}`}>
               No content is available from the enabled sources.
+              {onRetry && <button type="button" className="mt-4 block w-full underline underline-offset-4" onClick={onRetry}>Try another batch</button>}
             </div>
           )}
         </div>
-        <SourcesModal isOpen={modal === 'sources'} onClose={() => setModal(null)} />
+        <AboutModal isOpen={modal === 'about'} onClose={() => setModal(null)} />
+        <SourcesModal isOpen={modal === 'sources'} sourceErrors={sourceErrors} onClose={() => setModal(null)} />
+        <LikesModal isOpen={modal === 'likes'} onClose={() => setModal(null)} />
       </div>
     )
   }
@@ -620,7 +631,8 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
 
   const handleShare = async () => {
     try {
-      await navigator.clipboard.writeText(item.url)
+      const content = getAdapter(item.source).getZenContent(item)
+      await navigator.clipboard.writeText(item.url || [content.primary, content.secondary].filter(Boolean).join('\n\n'))
       setShareCopied(true)
       wakeUp()
       if (shareTimer.current) clearTimeout(shareTimer.current)
@@ -633,12 +645,17 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-[200] overflow-hidden"
+      className="reading-room fixed inset-0 z-[200] overflow-hidden"
+      data-dark={isDark}
       style={{ background: theme.surface }}
-      role="dialog" aria-modal="true" aria-label="Zen mode"
+      aria-label="Zen mode"
       onMouseMove={wakeUp}
+      onFocusCapture={wakeUp}
+      onKeyDownCapture={wakeUp}
+      onTouchStart={wakeUp}
     >
-      <Backdrop />
+      <div className="theme-backdrop" data-paused={!pageVisible}><Backdrop /></div>
+      {Object.keys(sourceErrors ?? {}).length > 0 && <button type="button" onClick={() => setModal('sources')} className="source-notice absolute bottom-8 left-8 z-30 max-w-[150px] rounded-full px-3 py-2 text-left text-[11px]" aria-label="Review source connection status">A source needs attention</button>}
 
       {/* Top-left: brand */}
       <motion.div
@@ -673,10 +690,10 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
           <AnimatePresence mode="wait">
             <motion.div
               key={item.id}
-              initial={{ opacity: 0, y: 14 }}
+              initial={{ opacity: 0, y: reducedMotion ? 0 : 8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -14 }}
-              transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+              exit={{ opacity: 0, y: reducedMotion ? 0 : -6 }}
+              transition={{ duration: reducedMotion ? 0 : 0.24, ease: [0.22, 1, 0.36, 1] }}
             >
               <ZenContent item={item} dark={isDark} />
             </motion.div>
@@ -760,7 +777,7 @@ export function ZenMode({ isOpen, feedKey, anchorKey, items, initialIndex, onNea
       </motion.div>
 
       <AboutModal isOpen={modal === 'about'} onClose={() => setModal(null)} />
-      <SourcesModal isOpen={modal === 'sources'} onClose={() => setModal(null)} />
+      <SourcesModal isOpen={modal === 'sources'} sourceErrors={sourceErrors} onClose={() => setModal(null)} />
       <LikesModal isOpen={modal === 'likes'} onClose={() => setModal(null)} />
     </div>
   )

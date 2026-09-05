@@ -7,6 +7,7 @@ import type { DiscoveryItem, SourceId } from "../types/DiscoveryItem"
 import type { Language } from "../types/ArticleProps"
 
 export interface FetchConfig {
+  signal?: AbortSignal
   language?: Language
   /** Per-source user settings (API keys, endpoints, etc.) stored in SourcesContext */
   sourceConfig?: Record<string, string>
@@ -39,6 +40,7 @@ export interface ZenContentData {
   primaryKind?: "highlight" | "note"
   /** Optional secondary text shown below the title (e.g. article extract) */
   secondary?: string
+  secondaryLabel?: string
   /** Optional hero image URL */
   imageUrl?: string
   /** Metadata row (read time, score, tags, etc.) rendered as a ReactNode */
@@ -90,6 +92,11 @@ export interface SourceAdapter {
   /** If true, source requires config before it can return data.
    *  These sources are excluded from the default-enabled set. */
   readonly requiresConfig?: boolean
+  /** Fixed API host requested only when the user connects this source. */
+  readonly permissionOrigin?: string
+  readonly setupUrl?: string
+  readonly setupLabel?: string
+  readonly setupHint?: string
   /** Override the feed cache stale time (ms) for this source.
    *  Set to 0 to always refetch on mount while still showing cached data instantly.
    *  Defaults to the global CACHE_TTL_MS when absent. */

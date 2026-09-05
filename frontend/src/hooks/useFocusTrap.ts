@@ -5,6 +5,7 @@ export function useFocusTrap(enabled: boolean, containerRef: React.RefObject<HTM
     if (!enabled || !containerRef.current) return;
 
     const container = containerRef.current;
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const focusableSelectors = [
       'a[href]',
       'area[href]',
@@ -20,6 +21,7 @@ export function useFocusTrap(enabled: boolean, containerRef: React.RefObject<HTM
     ].join(',');
 
     const getFocusable = () => Array.from(container.querySelectorAll<HTMLElement>(focusableSelectors));
+    const frame = requestAnimationFrame(() => getFocusable()[0]?.focus());
 
     const handleKeydown = (e: KeyboardEvent) => {
       if (e.key !== 'Tab') return;
@@ -36,7 +38,7 @@ export function useFocusTrap(enabled: boolean, containerRef: React.RefObject<HTM
           e.preventDefault();
         }
       } else {
-        if (active === last) {
+        if (active === last || !container.contains(active)) {
           first.focus();
           e.preventDefault();
         }
@@ -44,6 +46,10 @@ export function useFocusTrap(enabled: boolean, containerRef: React.RefObject<HTM
     };
 
     document.addEventListener('keydown', handleKeydown);
-    return () => document.removeEventListener('keydown', handleKeydown);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener('keydown', handleKeydown);
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
   }, [enabled, containerRef]);
 }

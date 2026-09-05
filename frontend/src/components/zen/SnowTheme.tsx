@@ -1,61 +1,30 @@
-import { useMemo } from 'react'
-import { motion } from 'motion/react'
+import type { CSSProperties } from 'react'
+import { snowParticles } from './sceneGeometry'
 
-interface Flake { left: number; size: number; dur: number; delay: number; sway: number; op: number; blur: number }
+const FLAKES = snowParticles(76)
 
-function makeFlakes(count: number, near: boolean): Flake[] {
-  return Array.from({ length: count }).map(() => ({
-    left: Math.random() * 100,
-    size: near ? 3 + Math.random() * 4 : 1.5 + Math.random() * 2,
-    dur: near ? 8 + Math.random() * 7 : 14 + Math.random() * 12,
-    delay: Math.random() * 14,
-    sway: (near ? 30 : 16) + Math.random() * 40,
-    op: near ? 0.55 + Math.random() * 0.4 : 0.25 + Math.random() * 0.3,
-    blur: near ? 0 : 1.2,
-  }))
+function SnowLandscape() {
+  return <svg className="snow-landscape" viewBox="0 0 1200 240" preserveAspectRatio="none">
+    <path d="M0 135Q155 102 310 148T690 150T1200 117V240H0Z" fill="#d4dfe3" opacity=".55" />
+    <path d="M0 172Q178 121 380 171T840 162T1200 173V240H0Z" fill="#eef2f1" />
+    <path d="M0 207Q220 172 415 211T830 197T1200 202V240H0Z" fill="#f7f8f5" />
+  </svg>
 }
 
 export function SnowTheme() {
-  const far = useMemo(() => makeFlakes(28, false), [])
-  const near = useMemo(() => makeFlakes(22, true), [])
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden"
-      style={{ background: 'linear-gradient(180deg, #d3dae3 0%, #dfe5ea 55%, #e9edf0 100%)' }}>
-      <div className="absolute inset-x-0 bottom-0" style={{
-        height: '30%',
-        background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.5) 100%)',
-      }} />
-      {[...far, ...near].map((f, i) => (
-        <motion.span key={i} className="absolute rounded-full"
-          style={{
-            left: `${f.left}%`, top: -12, width: f.size, height: f.size,
-            backgroundColor: `rgba(255,255,255,${f.op})`,
-            boxShadow: f.blur === 0 ? '0 0 4px rgba(255,255,255,0.8)' : undefined,
-            filter: f.blur ? `blur(${f.blur}px)` : undefined,
-          }}
-          animate={{ y: ['0vh', '110vh'], x: [0, f.sway, -f.sway / 2, 0] }}
-          transition={{
-            y: { duration: f.dur, delay: f.delay, repeat: Infinity, ease: 'linear' },
-            x: { duration: f.dur / 2, delay: f.delay, repeat: Infinity, ease: 'easeInOut' },
-          }}
-        />
-      ))}
-    </div>
-  )
+  return <div aria-hidden className="theme-scene snow-scene">
+    <div className="snow-light" /><SnowLandscape />
+    <div className="snow-flurries">{FLAKES.map((f, i) => (
+      <span key={i} className={`snow-track snow-depth-${f.depth}`} style={{
+        left: `${f.x}%`, '--fall-duration': `${f.duration}s`, '--fall-delay': `${f.delay}s`,
+        '--sway': `${f.sway}px`, '--flake-opacity': f.opacity,
+      } as CSSProperties}><i style={{ width: f.size, height: f.size }} /></span>
+    ))}</div>
+  </div>
 }
 
 export function SnowPreview() {
-  return (
-    <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #d3dae3 0%, #e9edf0 100%)' }}>
-      <div className="absolute inset-x-0 bottom-0" style={{
-        height: '30%', background: 'linear-gradient(180deg, transparent, rgba(255,255,255,0.5))',
-      }} />
-      {[{l:22,t:24,s:3},{l:50,t:44,s:2},{l:70,t:20,s:3.5},{l:36,t:64,s:2},{l:82,t:54,s:3}].map((p, i) => (
-        <span key={i} className="absolute rounded-full" style={{
-          left: `${p.l}%`, top: `${p.t}%`, width: p.s, height: p.s,
-          backgroundColor: 'rgba(255,255,255,0.95)', boxShadow: '0 0 3px rgba(255,255,255,0.9)',
-        }} />
-      ))}
-    </div>
-  )
+  return <div className="theme-scene theme-preview snow-scene"><SnowLandscape />
+    {FLAKES.slice(0, 12).map((f, i) => <i key={i} className="snow-preview-flake" style={{ left: `${f.x}%`, top: `${(-f.delay / f.duration) * 90}%`, width: f.size / 1.5, height: f.size / 1.5 }} />)}
+  </div>
 }

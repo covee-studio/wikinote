@@ -35,9 +35,8 @@ export function AboutModal({ isOpen, onClose }: AboutModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="z-[41] p-6 rounded-2xl w-full max-w-md flex flex-col relative"
+            className="reading-panel z-[41] p-7 rounded-2xl w-full max-w-md flex flex-col relative"
             style={{
-              background: '#ffffff',
               boxShadow: '0 8px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)',
             }}
             role="document"

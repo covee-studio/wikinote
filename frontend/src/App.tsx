@@ -32,19 +32,11 @@ function dedup(items: DiscoveryItem[]): DiscoveryItem[] {
   })
 }
 
-function hashString(value: string): string {
-  let hash = 5381
-  for (let i = 0; i < value.length; i++) {
-    hash = (hash * 33) ^ value.charCodeAt(i)
-  }
-  return (hash >>> 0).toString(36)
-}
-
 function configFingerprint(adapter: SourceAdapter, config: Record<string, string>): string {
   const fields = adapter.configSchema ?? []
   const normalized = fields.reduce<Record<string, string>>((acc, field) => {
     const value = config[field.key]?.trim() ?? ""
-    acc[field.key] = field.secret ? `secret:${hashString(value)}` : value
+    acc[field.key] = field.secret ? `revision:${config.__cacheId ?? 'unconfigured'}` : value
     return acc
   }, {})
   return JSON.stringify(normalized)
@@ -56,47 +48,11 @@ function isFullyConfigured(adapter: SourceAdapter, config: Record<string, string
   return adapter.configSchema.every((f) => f.required === false || Boolean(config[f.key]?.trim()))
 }
 
-// How long the user must pause typing in a source's config form before that
-// config is considered "settled" and allowed to affect fingerprints/queryKeys.
-// Without this, every keystroke in a secret field (e.g. an API token) changes
-// its hash and re-triggers fetches/Zen resets for the whole time the user is
-// typing a valid value, not just while the config is incomplete.
-const CONFIG_SETTLE_DELAY_MS = 600
-
-/**
- * Debounces a map of per-adapter configs so consumers only see a new value
- * once the user has paused editing for CONFIG_SETTLE_DELAY_MS. Config
- * objects that haven't changed keep the exact same reference across renders.
- */
-function useSettledConfigs(
-  activeAdapters: SourceAdapter[],
-  getSourceConfig: (id: SourceId) => Record<string, string>
-): Record<string, Record<string, string>> {
-  const rawConfigs = activeAdapters.reduce<Record<string, Record<string, string>>>((acc, a) => {
-    acc[a.id] = getSourceConfig(a.id)
-    return acc
-  }, {})
-  const rawConfigsKey = JSON.stringify(rawConfigs)
-
-  const [settledConfigs, setSettledConfigs] = useState(rawConfigs)
-  const settledKeyRef = useRef(rawConfigsKey)
-
-  useEffect(() => {
-    if (rawConfigsKey === settledKeyRef.current) return
-    const handle = setTimeout(() => {
-      settledKeyRef.current = rawConfigsKey
-      setSettledConfigs(rawConfigs)
-    }, CONFIG_SETTLE_DELAY_MS)
-    return () => clearTimeout(handle)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rawConfigsKey])
-
-  return settledKeyRef.current === rawConfigsKey ? rawConfigs : settledConfigs
-}
-
 function App() {
   const [extraItemsBySource, setExtraItemsBySource] = useState<ItemsBySource>({})
   const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const loadMoreController = useRef<AbortController | null>(null)
+  const extraItemsFeedKey = useRef('')
   const [zenIndex, setZenIndex] = useState(-1)
   // Incremented each time a replaceAnchorOnRefetch source gets fresh data.
   // Passed to ZenMode so it can reset the anchor independently of feedKey.
@@ -112,30 +68,28 @@ function App() {
   const prevDataUpdatedAtRef = useRef<Partial<Record<SourceId, number>>>({})
 
   const activeAdapters = ADAPTER_LIST.filter((a) => enabledSources.has(a.id))
-  // Only reflects config values once the user has paused typing for
-  // CONFIG_SETTLE_DELAY_MS — see useSettledConfigs for why this is needed
-  // on top of the isFullyConfigured() placeholder below.
-  const settledConfigs = useSettledConfigs(activeAdapters, getSourceConfig)
+  // Source forms keep a local draft and commit on Save, so no second debounce is needed.
+  const settledConfigs = Object.fromEntries(activeAdapters.map(adapter => [adapter.id, getSourceConfig(adapter.id)]))
   const activeSourceKey = activeAdapters
     .map((adapter) => {
       const langId = adapter.id === "wikipedia" ? currentLanguage.id : ""
       const config = settledConfigs[adapter.id] ?? {}
-      // Use a stable placeholder while the user is mid-typing so that
-      // activeSourceKey (and therefore zenIndex / zenRestorePendingRef) don't
-      // thrash on every keystroke. The real fingerprint is only included once
-      // ALL required fields have non-empty values AND the user has paused
-      // typing (config is "settled") — otherwise entering e.g. a token
-      // character-by-character keeps re-triggering fetches/resets the whole
-      // time even though the field is technically "non-empty" already.
+      // Incomplete saved configurations do not have an active feed identity.
       const cfgStr = isFullyConfigured(adapter, config)
         ? configFingerprint(adapter, config)
         : "__unconfigured__"
       return `${adapter.id}:${langId}:${cfgStr}`
     })
     .join("|")
+  const currentFeedKey = useRef(activeSourceKey)
+  currentFeedKey.current = activeSourceKey
 
   useEffect(() => {
+    loadMoreController.current?.abort()
+    loadMoreController.current = null
+    setIsLoadingMore(false)
     setExtraItemsBySource({})
+    extraItemsFeedKey.current = activeSourceKey
     setZenIndex(-1)
     zenRestorePendingRef.current = true
     // Reset per-adapter dataUpdatedAt tracking when source config changes
@@ -145,12 +99,9 @@ function App() {
   const queryResults = useQueries({
     queries: activeAdapters.map((adapter) => {
       const langId = adapter.id === "wikipedia" ? currentLanguage.id : ""
-      // Use the settled (debounced) config here too so the queryKey — and the
-      // config actually passed to adapter.fetch — stay in lockstep with
-      // activeSourceKey instead of re-firing on every keystroke.
+      // Use the same saved configuration for both the query and feed identity.
       const config = settledConfigs[adapter.id] ?? {}
-      // Mirror the same placeholder logic used in activeSourceKey so the
-      // queryKey is stable while the user is mid-typing in the config form.
+      // Never include credentials in query or storage keys.
       const configStr = isFullyConfigured(adapter, config)
         ? configFingerprint(adapter, config)
         : "__unconfigured__"
@@ -159,10 +110,11 @@ function App() {
 
       return {
         queryKey: ["articles", adapter.id, langId, configStr],
-        queryFn: async () => {
+        queryFn: async ({ signal }: { signal: AbortSignal }) => {
           try {
-            const items = await adapter.fetch({ language: currentLanguage, sourceConfig: config })
-            if (items.length > 0) feedCache.set(cacheKey, items)
+            const items = await adapter.fetch({ language: currentLanguage, sourceConfig: config, signal })
+            signal.throwIfAborted()
+            if (items.length > 0) void feedCache.set(cacheKey, items)
             return items
           } catch (error) {
             if (adapter.fallbackToCachedDataOnError && cached?.items?.length) {
@@ -171,9 +123,9 @@ function App() {
             throw error
           }
         },
-        enabled: ready,
+        enabled: ready && isFullyConfigured(adapter, config),
         refetchOnWindowFocus: false,
-        retry: 1,
+        retry: adapter.requiresConfig ? 0 : 1,
         initialData: adapter.showCachedWhileRefetching === false ? undefined : cached?.items,
         initialDataUpdatedAt: cached?.timestamp ?? 0,
         // Per-adapter override: Memos sets cacheTtlMs=0 so every mount triggers
@@ -189,13 +141,20 @@ function App() {
     interleaveN(
       activeAdapters.map((adapter, i) => [
         ...(Array.isArray(queryResults[i]?.data) ? (queryResults[i].data as DiscoveryItem[]) : []),
-        ...(extraItemsBySource[adapter.id] ?? []),
+        ...(extraItemsFeedKey.current === activeSourceKey ? extraItemsBySource[adapter.id] ?? [] : []),
       ])
     )
   )
 
   const hasQueryError = articles.length === 0 && queryResults.some((result) => result.isError)
-  const isLoading = !ready || queryResults.some((result) => result.isPending || result.isFetching)
+  const sourceErrors = Object.fromEntries(activeAdapters.flatMap((adapter, i) => {
+    const result = queryResults[i]
+    if (result?.isError) return [[adapter.id, result.error instanceof TypeError ? 'Connection failed. Check permissions, network, or use the Chrome extension.' : result.error.message]]
+    if (!isFullyConfigured(adapter, settledConfigs[adapter.id] ?? {})) return [[adapter.id, 'Complete your source settings to connect.']]
+    if (result?.isSuccess && result.data?.length === 0) return [[adapter.id, 'No reading content found. Check your account or try another batch.']]
+    return []
+  }))
+  const isLoading = !ready || queryResults.some((result, i) => isFullyConfigured(activeAdapters[i], settledConfigs[activeAdapters[i].id]) && (result.isPending || result.isFetching))
   const retryLoad = useCallback(() => {
     void Promise.all(queryResults.map((result) => result.refetch()))
   }, [queryResults])
@@ -240,7 +199,10 @@ function App() {
 
   // Load more when user navigates near the end
   const loadMore = async () => {
-    if (!ready || isLoadingMore || activeAdapters.length === 0) return
+    if (!ready || isLoadingMore || loadMoreController.current || isLoading || activeAdapters.length === 0) return
+    const controller = new AbortController()
+    loadMoreController.current = controller
+    const requestFeedKey = activeSourceKey
     setIsLoadingMore(true)
     try {
       const results = await Promise.allSettled(
@@ -249,19 +211,23 @@ function App() {
             language: currentLanguage,
             sourceConfig: settledConfigs[adapter.id] ?? getSourceConfig(adapter.id),
             fetchMode: "more",
+            signal: controller.signal,
           })
           return [adapter.id, items] as const
         })
       )
+      if (controller.signal.aborted || currentFeedKey.current !== requestFeedKey) return
       const next: ItemsBySource = {}
+      let failed = false
       for (const result of results) {
         if (result.status === "fulfilled") {
           const [sourceId, items] = result.value
           if (items.length > 0) next[sourceId] = items
         } else {
-          showToast("Failed to load more articles")
+          failed = true
         }
       }
+      if (failed) showToast("Failed to load more articles")
       if (Object.keys(next).length > 0) {
         setExtraItemsBySource((prev) => {
           const updated = { ...prev }
@@ -275,7 +241,10 @@ function App() {
         })
       }
     } finally {
-      setIsLoadingMore(false)
+      if (loadMoreController.current === controller) {
+        loadMoreController.current = null
+        setIsLoadingMore(false)
+      }
     }
   }
 
@@ -284,12 +253,13 @@ function App() {
       isOpen={true}
       feedKey={activeSourceKey}
       anchorKey={anchorKey}
+      sourceErrors={sourceErrors}
       items={articles}
       initialIndex={zenIndex}
       onNearEnd={loadMore}
       isLoading={isLoading}
       loadError={hasQueryError ? "Unable to load content" : undefined}
-      onRetry={hasQueryError ? retryLoad : undefined}
+      onRetry={retryLoad}
     />
   )
 }

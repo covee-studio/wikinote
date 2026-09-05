@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,500;8..60,600&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 html, body {
@@ -11,8 +10,50 @@ html, body {
 
 .font-serif-display,
 .font-serif-editorial {
-  font-family: 'Source Serif 4', 'LXGW WenKai', '霞鹜文楷', 'Iowan Old Style', 'Apple Garamond', Georgia, 'Songti SC', 'STSong', serif;
+  font-family: 'Iowan Old Style', 'Palatino Linotype', 'Songti SC', 'Noto Serif CJK SC', 'Source Han Serif SC', 'STSong', Georgia, serif;
   font-feature-settings: 'liga', 'kern';
+}
+
+/* A small shared reading palette, used by both the page and its utility panels. */
+.reading-room {
+  --reading-paper: #faf8f3;
+  --reading-ink: #29332e;
+  --reading-muted: #69766d;
+  --reading-line: #dddcd2;
+  --reading-accent: #526e5e;
+  color: var(--reading-ink);
+}
+.reading-room[data-dark="true"] {
+  --reading-ink: #e5e9e1;
+  --reading-muted: #c0cbc0;
+  --reading-accent: #c2d3c7;
+}
+.reading-panel {
+  background: linear-gradient(145deg, #fffefa, var(--reading-paper, #faf8f3));
+  border: 1px solid rgba(221, 220, 210, .85);
+  box-shadow: 0 24px 90px #26352c1a, 0 2px 8px #26352c08;
+}
+.reading-panel h2, .reading-panel h3 { color: #293c31; }
+.reading-panel .source-row { border-color: #dedfd5; }
+.reading-panel .source-row:hover { background-color: #eef1e8; }
+.reading-panel button[type="submit"] { background-color: #3f5b49; }
+.reading-panel button:disabled { opacity: .55; cursor: wait; }
+.reading-primary { text-wrap: pretty; color: var(--reading-ink); }
+.reading-content[data-content-kind="title"] .reading-primary { text-wrap: balance; }
+.reading-quote { border-color: #8b9f8d; }
+.reading-content[data-content-kind="body"] { text-align: left; }
+.reading-note { padding: 24px; line-height: 1.85; background: #faf8f3; color: #29332e; }
+.reading-note footer { margin-top: 24px; font-size: 12px; color: #69766d; }
+.source-notice { background: #faf8f3e8; color: #76552e; border: 1px solid #d8cab6; }
+.reading-room :focus-visible { outline: 2px solid #809b86; outline-offset: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @keyframes zen-wave-drift {

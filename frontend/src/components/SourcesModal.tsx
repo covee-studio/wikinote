@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronDown, Eye, EyeOff, Info, Languages, Layers, Settings, X } from "lucide-react"
+import { ArrowLeft, BookOpen, ChevronDown, Eye, EyeOff, Info, Languages, Layers, Settings, X } from "lucide-react"
 import { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import { useSources } from "../contexts/SourcesContext"
@@ -15,6 +15,7 @@ import { Toggle } from "./Toggle"
 interface SourcesModalProps {
   isOpen: boolean
   onClose: () => void
+  sourceErrors?: Partial<Record<SourceId, string>>
 }
 
 type SourcesView = "sources" | SourceId
@@ -43,13 +44,15 @@ function SourceHint({ sourceId, sourceLabel, description }: { sourceId: string; 
   )
 }
 
-export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
-  const { enabledSources, toggleSource, getSourceConfig, updateSourceConfig, ensureHostPermission } = useSources()
+export function SourcesModal({ isOpen, onClose, sourceErrors = {} }: SourcesModalProps) {
+  const { enabledSources, toggleSource, getSourceConfig, updateSourceConfig, ensureHostPermission, disconnectSource } = useSources()
   const { showToast } = useToast()
   const { currentLanguage, setLanguage } = useLocalization()
   const [view, setView] = useState<SourcesView>("sources")
   const [settingsDraft, setSettingsDraft] = useState<Record<string, string>>({})
   const [showToken, setShowToken] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [settingsError, setSettingsError] = useState('')
   const containerRef = useRef<HTMLDivElement>(null)
   const settingsAdapter = view === "sources" ? undefined : ADAPTER_LIST.find((adapter) => adapter.id === view)
 
@@ -61,31 +64,51 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
     setView("sources")
     setSettingsDraft({})
     setShowToken(false)
+    setSettingsError('')
   }, [isOpen])
 
   const openSourceSettings = (adapter: SourceAdapter) => {
     setSettingsDraft({ ...getSourceConfig(adapter.id) })
     setShowToken(false)
+    setSettingsError('')
     setView(adapter.id)
   }
 
-  const saveSourceSettings = (event: React.FormEvent<HTMLFormElement>) => {
+  const saveSourceSettings = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    if (!settingsAdapter) return
-    for (const field of settingsAdapter.configSchema ?? []) {
-      updateSourceConfig(settingsAdapter.id, field.key, settingsDraft[field.key] ?? "")
+    if (!settingsAdapter || saving) return
+    if (settingsAdapter.configSchema?.some(field => field.required !== false && !settingsDraft[field.key]?.trim())) {
+      setSettingsError('Complete the required fields before saving.')
+      return
     }
-    ensureHostPermission(settingsAdapter.id, settingsDraft)
-    // Saving a complete configuration is the explicit setup action. Enable the
-    // source immediately so the user does not have to save, go back, and flip
-    // the same switch a second time.
-    if (!enabledSources.has(settingsAdapter.id)) {
-      toggleSource(settingsAdapter.id, settingsDraft)
-    }
-    setView("sources")
+    setSaving(true)
+    setSettingsError('')
+    try {
+      if (!await ensureHostPermission(settingsAdapter.id, settingsDraft)) {
+        setSettingsError('Allow access to this source to connect it. Your changes have not been saved.')
+        return
+      }
+      for (const field of settingsAdapter.configSchema ?? []) {
+        updateSourceConfig(settingsAdapter.id, field.key, settingsDraft[field.key]?.trim() ?? "")
+      }
+      // Saving a complete configuration also activates the source.
+      if (!enabledSources.has(settingsAdapter.id)) {
+        toggleSource(settingsAdapter.id, settingsDraft)
+      }
+      setView("sources")
+    } catch {
+      setSettingsError('Could not connect this source. Please try again.')
+    } finally { setSaving(false) }
   }
 
-  const handleSourceToggle = (adapter: (typeof ADAPTER_LIST)[number]) => {
+  const handleSourceToggle = async (adapter: (typeof ADAPTER_LIST)[number]) => {
+    if (!enabledSources.has(adapter.id) && adapter.requiresConfig &&
+      adapter.configSchema?.every(field => field.required === false || getSourceConfig(adapter.id)[field.key]?.trim())) {
+      if (!await ensureHostPermission(adapter.id)) {
+        showToast(`Allow access to ${adapter.label} before enabling it`)
+        return
+      }
+    }
     const toggled = toggleSource(adapter.id)
     if (toggled || enabledSources.has(adapter.id)) return
 
@@ -113,7 +136,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             ref={containerRef}
-            className="relative z-[41] flex h-[min(600px,92vh)] w-full max-w-md flex-col overflow-y-auto overscroll-y-contain rounded-2xl bg-white p-6"
+            className="reading-panel relative z-[41] flex max-h-[92vh] min-h-[min(600px,92vh)] w-full max-w-md flex-col overflow-y-auto overscroll-y-contain rounded-2xl p-5 sm:p-7"
             style={{
               boxShadow: "0 8px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
             }}
@@ -125,9 +148,9 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                   <Layers className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-800">Sources</h2>
+                  <h2 className="font-serif-editorial text-[22px] sm:text-2xl font-medium text-slate-800">Your reading room</h2>
                   <p className="text-sm text-slate-400">
-                    {enabledSources.size} of {ADAPTER_LIST.length} active
+                    Sources · {enabledSources.size} of {ADAPTER_LIST.length} active
                   </p>
                 </div>
               </div>
@@ -151,7 +174,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                   transition={{ duration: 0.16, ease: "easeOut" }}
                 >
                   <div className="mb-5 flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 px-4 py-3">
-                    <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-white text-slate-500 ring-1 ring-slate-100">
+                    <div className="hidden sm:flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full bg-white text-slate-500 ring-1 ring-slate-100">
                       <Languages className="h-5 w-5" strokeWidth={1.8} />
                     </div>
                     <div className="flex min-w-0 flex-1 items-center gap-1">
@@ -164,7 +187,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                         description="Wikipedia articles and Hacker News headline translation"
                       />
                     </div>
-                    <div className="relative w-[148px] flex-shrink-0">
+                    <div className="relative w-[132px] sm:w-[148px] flex-shrink-0">
                       <select
                         id="article-language-select"
                         value={currentLanguage.id}
@@ -189,8 +212,8 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                       return (
                         <div
                           key={adapter.id}
-                          className={`relative flex h-[72px] items-center rounded-xl border border-slate-100 px-4 transition-all duration-200 hover:z-30 hover:bg-slate-50 ${
-                            active ? "bg-white" : "bg-slate-50"
+                          className={`source-row relative flex min-h-[72px] items-center rounded-xl border border-slate-100 px-4 py-3 transition-colors duration-200 hover:z-30 ${
+                            active ? "bg-white/60" : "bg-white/20"
                           }`}
                         >
                           <div className="flex w-full items-center gap-3">
@@ -204,10 +227,11 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                                     className="h-full w-full object-contain"
                                   />
                                 ) : (
-                                  <Layers className="h-5 w-5 text-slate-400" aria-hidden="true" />
+                                  <BookOpen className="h-5 w-5 text-emerald-800" aria-hidden="true" />
                                 )}
                               </span>
-                              <div className="flex min-w-0 items-center gap-1">
+                              <div className="flex min-w-0 flex-col items-start gap-1">
+                                <div className="flex items-center gap-1">
                                 <label
                                   htmlFor={`source-toggle-${adapter.id}`}
                                   className={`cursor-pointer select-none font-semibold ${active ? "text-slate-800" : "text-slate-500"}`}
@@ -219,6 +243,8 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                                   sourceLabel={adapter.label}
                                   description={adapter.description}
                                 />
+                                </div>
+                                {sourceErrors[adapter.id] && <p role="status" className="text-[11px] leading-relaxed text-amber-800">{sourceErrors[adapter.id]}</p>}
                               </div>
                             </div>
                             <div className="ml-auto flex items-center gap-3">
@@ -270,15 +296,16 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                       />
                     ) : (
                       <div className="flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-500">
-                        <Layers className="h-9 w-9" strokeWidth={1.6} />
+                        <BookOpen className="h-9 w-9 text-emerald-800" strokeWidth={1.6} />
                       </div>
                     )}
-                    <h3 className="mt-5 text-3xl font-bold tracking-tight text-slate-800">
+                    <h3 className="font-serif-editorial mt-5 text-3xl font-medium tracking-tight text-slate-800">
                       {settingsAdapter?.label ?? "Source"}
                     </h3>
                   </div>
 
-                  <form className="mt-10 flex flex-col gap-5" onSubmit={saveSourceSettings}>
+                  {settingsAdapter?.setupUrl && <div className="mt-5 text-center text-xs leading-relaxed text-slate-500"><a className="text-emerald-800 underline underline-offset-4" href={settingsAdapter.setupUrl} target="_blank" rel="noopener noreferrer">{settingsAdapter.setupLabel}</a><p className="mt-3">{settingsAdapter.setupHint}</p></div>}
+                  <form className="mt-8 flex flex-col gap-5" onSubmit={saveSourceSettings}>
                     {(settingsAdapter?.configSchema ?? []).map((field) => {
                       const isSecret = field.secret === true
                       const value = settingsDraft[field.key] ?? ""
@@ -303,6 +330,7 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                               className={`w-full rounded-xl border border-slate-200 bg-white py-3 pl-3.5 text-sm text-slate-800 outline-none transition-shadow placeholder:text-slate-300 focus:border-slate-300 focus:ring-2 focus:ring-slate-200 ${isSecret ? "pr-28" : "pr-3.5"}`}
                               autoComplete="off"
                               spellCheck={false}
+                              required={field.required !== false}
                             />
                             {isSecret && (
                               <button
@@ -320,12 +348,16 @@ export function SourcesModal({ isOpen, onClose }: SourcesModalProps) {
                       )
                     })}
 
+                    {settingsError && <p role="alert" className="text-sm text-amber-800">{settingsError}</p>}
                     <button
                       type="submit"
+                      disabled={saving}
                       className="mt-3 w-full rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
                     >
-                      Save
+                      {saving ? 'Connecting…' : 'Save & connect'}
                     </button>
+                    {settingsAdapter && Object.keys(getSourceConfig(settingsAdapter.id)).length > 0 && <button type="button" disabled={saving} onClick={() => { disconnectSource(settingsAdapter.id); setSettingsDraft({}); setView('sources') }} className="text-sm text-slate-500 underline underline-offset-4">Disconnect & remove key</button>}
+                    {settingsAdapter?.id === 'weread' && <p className="text-center text-[11px] leading-relaxed text-slate-500">Your saved highlights stay on this device and are not included in Chrome Sync. Disconnecting keeps your saved collection.</p>}
                   </form>
                 </motion.div>
               )}

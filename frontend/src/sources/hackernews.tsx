@@ -142,13 +142,13 @@ export const hackerNewsAdapter: SourceAdapter = {
       primary: item.title,
       metaNode: (
         <span className="inline-flex items-center flex-wrap justify-center gap-x-2 gap-y-1">
-          {domain && <span className="font-mono text-slate-500">{domain}</span>}
+          {domain && <span className="font-mono opacity-85">{domain}</span>}
           {domain && <span className="text-slate-300">·</span>}
-          <span><span className="font-medium text-slate-600">{raw.score}</span> points</span>
+          <span><span className="font-medium">{raw.score}</span> points</span>
           <span className="text-slate-300">·</span>
           <span className="inline-flex items-center gap-1">
             <MessageSquareIcon className="w-3 h-3" strokeWidth={2} />
-            <span className="font-medium text-slate-600">{raw.commentCount}</span>
+            <span className="font-medium">{raw.commentCount}</span>
           </span>
           <span className="text-slate-300">·</span>
           <span>{raw.author}</span>

@@ -25,6 +25,7 @@ type WikipediaApiPage = {
   thumbnail?: { source: string; width: number; height: number }
   canonicalurl: string
   categories?: { title: string }[]
+  pageprops?: { disambiguation?: string }
 }
 
 const EN_FALLBACK: Language = {
@@ -47,7 +48,8 @@ async function fetchArticleBatch(language: Language): Promise<DiscoveryItem[]> {
         format: "json",
         generator: "random",
         grnnamespace: "0",
-        prop: "extracts|info|pageimages|categories",
+        prop: "extracts|info|pageimages|categories|pageprops",
+        ppprop: "disambiguation",
         inprop: "url|varianttitles",
         grnlimit: RANDOM_BATCH_SIZE,
         exintro: "1",
@@ -68,6 +70,7 @@ async function fetchArticleBatch(language: Language): Promise<DiscoveryItem[]> {
 
   const pages = data.query.pages as Record<string, WikipediaApiPage>
   return Object.values(pages)
+    .filter((page) => !Object.prototype.hasOwnProperty.call(page.pageprops ?? {}, 'disambiguation'))
     .filter((page) => isSafeArticle(page.categories?.map((c) => c.title)))
     .map((page): WikiArticleRaw => ({
       title: page.title,
@@ -77,7 +80,7 @@ async function fetchArticleBatch(language: Language): Promise<DiscoveryItem[]> {
       thumbnail: page.thumbnail,
       url: page.canonicalurl,
     }))
-    .filter((raw) => raw.url && raw.extract)
+    .filter((raw) => raw.url && typeof raw.extract === 'string' && raw.extract.trim().length >= 80)
     .map((raw): DiscoveryItem => ({
       id: `wiki-${raw.pageid}`,
       source: "wikipedia",

@@ -73,6 +73,9 @@ function compactRaw(item: DiscoveryItem): Record<string, unknown> {
   const raw = asRecord(item.raw)
 
   switch (item.source) {
+    case "weread":
+      // WeRead favorites are local-only and filtered before serialization.
+      return {}
     case "wikipedia":
       return pickDefined({
         pageid: numberValue(raw.pageid),
@@ -221,7 +224,7 @@ export async function readFavoriteSyncRecords(): Promise<{ records: LikeRecord[]
 }
 
 export async function writeFavoriteSyncRecords(records: LikeRecord[], previousChunkKeys: string[] = []): Promise<void> {
-  const syncRecords = records.map(toSyncRecord)
+  const syncRecords = records.filter(record => !record.id.startsWith('weread-') && record.item?.source !== 'weread').map(toSyncRecord)
   if (byteLength(syncRecords) > TOTAL_BYTE_LIMIT) {
     throw new Error("Favorites exceed Chrome Sync storage quota")
   }

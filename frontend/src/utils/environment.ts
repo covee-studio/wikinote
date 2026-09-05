@@ -101,6 +101,8 @@ export class StorageAdapter {
   }
 
   static async remove(key: string): Promise<void> {
+    // Remove the mirror too, otherwise get() resurrects it after Chrome removal.
+    localStorage.removeItem(key);
     if (isExtension && typeof chrome !== 'undefined') {
       return new Promise((resolve) => {
         chrome!.storage!.local.remove([key], resolve);

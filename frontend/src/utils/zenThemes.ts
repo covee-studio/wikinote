@@ -1,6 +1,7 @@
 import type { FC } from 'react'
-import { WavesTheme } from '../components/zen/WavesTheme'
-import { MistTheme } from '../components/zen/MistTheme'
+import '../components/zen/theme-scenes.css'
+import { WavesTheme, WavesPreview } from '../components/zen/WavesTheme'
+import { MistTheme, MistPreview } from '../components/zen/MistTheme'
 import { ConstellationTheme, ConstellationPreview } from '../components/zen/ConstellationTheme'
 import { PaperTheme } from '../components/zen/PaperTheme'
 import { RipplesTheme, RipplesPreview } from '../components/zen/RipplesTheme'
@@ -26,7 +27,7 @@ export const ZEN_THEMES: ZenTheme[] = [
     id: 'waves',
     name: 'Waves',
     surface: 'linear-gradient(180deg, #f8f7f4 0%, #f3f2ee 55%, #ecebe7 100%)',
-    swatch: 'linear-gradient(180deg, #f3f2ee 40%, #9fb0a8 100%)',
+    Preview: WavesPreview,
     Backdrop: WavesTheme,
   },
   {
@@ -40,7 +41,7 @@ export const ZEN_THEMES: ZenTheme[] = [
     id: 'mist',
     name: 'Mist',
     surface: '#f5f5f4',
-    swatch: 'radial-gradient(circle at 30% 35%, #c3d0d6 0%, #f3f1ee 60%)',
+    Preview: MistPreview,
     Backdrop: MistTheme,
   },
   {
@@ -88,8 +89,8 @@ export const ZEN_THEMES: ZenTheme[] = [
   },
   {
     id: 'rainbow',
-    name: 'Rainbow',
-    surface: 'linear-gradient(180deg, #eaeef1 0%, #f1f0ec 70%, #e9ebe7 100%)',
+    name: 'After rain',
+    surface: 'linear-gradient(160deg, #e8f2f3, #f6f8f0 65%, #e1eeee)',
     Preview: RainbowPreview,
     Backdrop: RainbowTheme,
   },

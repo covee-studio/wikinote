@@ -71,7 +71,7 @@ if (/translated\s*\?\?\s*original/.test(translation)) {
 if (!/animation:\s*'zen-breathe/.test(zen) || /pendingWidth|animate-pulse/.test(zen)) {
   throw new Error("Translation pending state still uses the heavyweight skeleton layout")
 }
-if (/function primarySize/.test(zen) || !/contentKind === "body"/.test(zen) || !/clamp\(18px, 1\.6vw, 28px\)/.test(zen)) {
+if (/function primarySize/.test(zen) || !/contentKind === "body"/.test(zen) || !/clamp\(18px, 1\.65vw, 25px\)/.test(zen)) {
   throw new Error("Zen content does not preserve title and body reading hierarchies")
 }
 if (!/contentKind:\s*"body"/.test(memos) || !/contentKind:\s*"body"/.test(hypothesis)) {

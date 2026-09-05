@@ -7,6 +7,7 @@ import { hackerNewsAdapter } from "./hackernews"
 import { hypothesisAdapter } from "./hypothesis"
 import { memosAdapter } from "./memos"
 import { wikipediaAdapter } from "./wikipedia"
+import { wereadAdapter } from "./weread"
 import type { SourceAdapter } from "./adapter"
 import type { SourceId } from "../types/DiscoveryItem"
 
@@ -15,6 +16,7 @@ export const ADAPTER_REGISTRY: Record<SourceId, SourceAdapter> = {
   hackernews: hackerNewsAdapter,
   memos: memosAdapter,
   hypothesis: hypothesisAdapter,
+  weread: wereadAdapter,
 }
 
 /** Ordered list for UI rendering (Sources button dots, SourcesModal cards) */

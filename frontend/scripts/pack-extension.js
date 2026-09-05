@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { resolve } from 'path';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, mkdirSync, unlinkSync, readFileSync } from 'fs';
 
 function pack() {
   const distDir = resolve(process.cwd(), 'dist');
@@ -19,11 +19,17 @@ function pack() {
   }
 
   try {
+    const manifest = JSON.parse(readFileSync(resolve(extDir, 'manifest.json'), 'utf8'));
+    const requiredFiles = [manifest.chrome_url_overrides?.newtab, ...Object.values(manifest.icons ?? {})];
+    if (!requiredFiles.length || requiredFiles.some(file => !file || !existsSync(resolve(extDir, file)))) {
+      throw new Error('The extension is missing its new-tab entry or icons.');
+    }
     // -r: recursive, -X: strip extra file attributes, -q: quiet
-    execSync(`cd ${extDir} && rm -f ${zipPath} && zip -r -X -q ${zipPath} .` , { stdio: 'inherit' });
+    if (existsSync(zipPath)) unlinkSync(zipPath);
+    execFileSync('zip', ['-r', '-X', '-q', zipPath, '.'], { cwd: extDir, stdio: 'inherit' });
     console.log(`\n✅ Packed: ${zipPath}`);
   } catch (err) {
-    console.error('❌ Failed to create zip. Ensure the "zip" command is available.');
+    console.error('❌ Failed to create zip:', err.message);
     process.exit(1);
   }
 }

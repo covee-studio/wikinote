@@ -1,0 +1,146 @@
+/* Scene-specific art direction. All scenes are animated by default.
+   Only explicit OS accessibility preferences freeze motion, never hide the artwork. */
+.theme-backdrop, .theme-scene { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.theme-backdrop { isolation: isolate; }
+.theme-backdrop[data-paused="true"] * { animation-play-state: paused !important; }
+.theme-preview * { animation: none !important; }
+
+.auto-theme-preview { background: linear-gradient(145deg, #f7f8f5, #edf3f1); }
+.auto-theme-preview svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.auto-preview-sky { fill: #dce9ed; opacity: .72; }
+.auto-preview-sage { fill: #cbdcd3; opacity: .78; }
+.auto-preview-light { fill: #fffdf7; opacity: .72; }
+
+.waves-scene { background: radial-gradient(ellipse at 50% 8%, #fffdfa 0%, transparent 64%), linear-gradient(180deg, #f8f7f3 0%, #f1f2ed 100%); }
+.waves-light { position: absolute; top: -34%; left: 50%; width: min(900px, 94vw); aspect-ratio: 1; border-radius: 50%; transform: translateX(-50%); background: radial-gradient(circle, #fffdfde6 0%, transparent 64%); opacity: .55; }
+.waves-canvas { position: absolute; left: 0; right: 0; bottom: 0; display: block; width: 100%; height: clamp(190px, 29vh, 260px); opacity: .9; }
+.waves-preview-art { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+.mountains-scene { background: radial-gradient(ellipse at 56% 20%, #fbf8ee 0%, transparent 68%), linear-gradient(#f1ede1, #e2e7db); }
+.mountain-landscape { position: absolute; bottom: 0; width: 100%; height: clamp(270px, 49vh, 560px); }
+.mountain-mist { position: absolute; width: 125%; left: -12%; background: radial-gradient(ellipse, #f3f3e8b0, #edf0e45c 40%, transparent 72%); filter: blur(12px); }
+.mountain-mist-far { height: 12vh; bottom: 12vh; animation: mountain-mist 28s ease-in-out infinite alternate; }
+.mountain-mist-near { height: 8vh; bottom: 4vh; opacity: .55; animation: mountain-mist 22s -11s ease-in-out infinite alternate-reverse; }
+.mountain-flock { position: absolute; top: 15%; left: 0; width: 120px; height: 64px; color: #536d62; animation: mountain-flight 42s linear infinite; }
+.mountain-flock svg { position: absolute; width: 17px; height: 10px; animation: mountain-wing 1.1s ease-in-out infinite; }
+@keyframes mountain-mist { from { transform: translateX(-7%) scaleY(.8); opacity: .45; } to { transform: translateX(7%) scaleY(1.2); opacity: .8; } }
+@keyframes mountain-flight { 0% { transform: translate(-100px, 15px); opacity: 0; } 5% { opacity: .85; } 92% { opacity: .85; } 100% { transform: translate(calc(100vw + 100px), -22px); opacity: 0; } }
+@keyframes mountain-wing { 0%, 100% { transform: scaleY(.8); } 50% { transform: scaleY(-.35); } }
+.theme-preview .mountain-landscape { width: 100%; left: 0; height: 100%; }
+
+.snow-scene { background: linear-gradient(160deg, #c8d4df 0%, #dbe4e9 48%, #ecf0f0 100%); }
+.snow-light { position: absolute; inset: 0; background: radial-gradient(ellipse at 68% 18%, #fff9 0%, transparent 55%); animation: snow-light 18s ease-in-out infinite alternate; }
+.snow-landscape { position: absolute; bottom: 0; width: 100%; height: 29%; }
+.snow-track { position: absolute; top: -16px; opacity: var(--flake-opacity); animation: snow-fall var(--fall-duration) var(--fall-delay) linear infinite; }
+.snow-track i { display: block; border-radius: 46% 54% 61% 39%; background: #fff; animation: snow-sway 7s var(--fall-delay) ease-in-out infinite alternate; }
+.snow-depth-0 { filter: blur(.55px); }
+.snow-depth-2 i { filter: blur(.3px); }
+.snow-preview-flake { position: absolute; border-radius: 50%; background: white; }
+@keyframes snow-fall { from { transform: translateY(-2vh); } to { transform: translateY(108vh); } }
+@keyframes snow-sway { from { transform: translateX(calc(var(--sway) * -.5)) rotate(0deg); } to { transform: translateX(var(--sway)) rotate(125deg); } }
+@keyframes snow-light { from { opacity: .55; transform: translateX(-2%); } to { opacity: .95; transform: translateX(2%); } }
+
+.mist-scene { background: #f4f8f6; }
+.mist-cloud { position: absolute; width: clamp(320px, 52vw, 760px); aspect-ratio: 1; border-radius: 50%; filter: blur(28px); }
+.mist-cloud-blue { left: -8%; top: -17%; background: radial-gradient(ellipse, #b5d6e9b8 10%, #cae2ed80 37%, transparent 70%); animation: mist-blue 23s -5s ease-in-out infinite alternate; }
+.mist-cloud-green { right: -15%; top: 22%; background: radial-gradient(ellipse, #c0e0d3a8 12%, #d4eade70 40%, transparent 70%); animation: mist-green 27s -9s ease-in-out infinite alternate; }
+.mist-cloud-pearl { left: 12%; bottom: -35%; width: clamp(300px, 48vw, 700px); background: radial-gradient(ellipse, #bed9e394 5%, #d4e8eb70 35%, transparent 70%); animation: mist-pearl 21s -12s ease-in-out infinite alternate; }
+.mist-reading-light { position: absolute; inset: 0; background: radial-gradient(ellipse 40% 48% at 50% 43%, #f9fbf54d, transparent 85%); }
+@keyframes mist-blue { from { transform: translate(0, 0) scale(.95); } to { transform: translate(20%, 17%) scale(1.12); } }
+@keyframes mist-green { from { transform: translate(0, 0) scale(1); } to { transform: translate(-17%, -15%) scale(1.15); } }
+@keyframes mist-pearl { from { transform: translate(-10%, 0); } to { transform: translate(12%, -19%) scale(1.12); } }
+.theme-preview .mist-cloud { width: 80%; min-width: 0; filter: blur(3px); }
+
+.after-rain-scene { background: radial-gradient(ellipse at 65% 28%, #fcfcf5 0%, transparent 62%), linear-gradient(155deg, #e0eff2, #f3f7f0 60%, #deeeec); }
+.after-rain-light { position: absolute; inset: -8%; width: 116%; height: 116%; filter: blur(7px); }
+.after-rain-ribbon { transform-origin: 50% 50%; }
+.after-rain-ribbon-cool { animation: refraction-cool 22s -6s ease-in-out infinite alternate; }
+.after-rain-ribbon-warm { animation: refraction-warm 26s -11s ease-in-out infinite alternate; }
+.after-rain-sun { position: absolute; inset: 0; background: radial-gradient(ellipse at 80% 8%, #fffbe8b3, transparent 55%); animation: after-rain-sun 18s ease-in-out infinite alternate; }
+.after-rain-haze { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 48%, #f8fcf650 10%, transparent 68%); }
+@keyframes refraction-cool { from { transform: translate(-2%, -2%) skewX(-4deg); opacity: .6; } to { transform: translate(5%, 2%) skewX(5deg); opacity: 1; } }
+@keyframes refraction-warm { from { transform: translate(2%, 1%) skewX(3deg); opacity: .65; } to { transform: translate(-4%, -3%) skewX(-6deg); opacity: 1; } }
+@keyframes after-rain-sun { from { opacity: .5; transform: translateX(-2%); } to { opacity: .95; transform: translateX(2%); } }
+.theme-preview .after-rain-light { filter: blur(.6px); }
+@keyframes cloud-drift { from { transform: translateX(-7%); } to { transform: translateX(7%); } }
+
+.ripples-scene { background: radial-gradient(ellipse at 48% 40%, #f5f7f2 10%, #e4ece6 70%, #ceded6 100%); }
+.water-light { position: absolute; width: 70%; height: 40%; background: radial-gradient(ellipse, #fff7, transparent 68%); filter: blur(16px); }
+.water-light-one { left: -20%; top: -8%; animation: water-light 18s ease-in-out infinite alternate; }
+.water-light-two { right: -22%; bottom: -12%; animation: water-light 22s -8s ease-in-out infinite alternate-reverse; }
+.ripple-pool { position: absolute; aspect-ratio: 1; transform: translate(-50%, -50%); }
+.water-ring { position: absolute; inset: 0; border: 1px solid #72968a70; border-radius: 50%; box-shadow: 0 0 2px #fff9, inset 0 0 2px #fff6; opacity: .4; transform: scale(.6); animation: water-expand var(--ripple-duration) linear infinite; }
+.water-drop { position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; border-radius: 50%; background: #fff; box-shadow: 0 0 6px #fff; animation: water-drop var(--ripple-duration) var(--ripple-delay) linear infinite; }
+@keyframes water-expand { 0% { transform: scale(.025); opacity: 0; } 12% { opacity: .85; } 65% { opacity: .35; } 100% { transform: scale(1); opacity: 0; } }
+@keyframes water-drop { 0%, 9% { opacity: .8; transform: scale(1); } 20%, 100% { opacity: 0; transform: scale(0); } }
+@keyframes water-light { from { transform: translateX(-10%) skewX(-12deg); } to { transform: translateX(10%) skewX(12deg); } }
+.ripples-preview-art { position: absolute; inset: 0; width: 100%; height: 100%; }
+.ripples-preview-art path { fill: none; stroke: #8ca79b; stroke-width: .72; stroke-linecap: round; opacity: .5; }
+
+.bamboo-scene { background: radial-gradient(ellipse at 52% 34%, #f1f4eaaa, transparent 70%), linear-gradient(155deg, #d5e2dc, #e9eee4 65%, #cbdcd0); }
+.bamboo-grove { position: absolute; bottom: -12px; width: clamp(200px, 27vw, 390px); height: min(91vh, 880px); color: #355b4c; }
+.bamboo-grove-near { left: -3%; animation: bamboo-wind 8s ease-in-out infinite alternate; transform-origin: 25% 100%; }
+.bamboo-grove-far { right: -8%; height: 66vh; opacity: .3; filter: blur(1.1px); transform: scaleX(-1); }
+.bamboo-plant { width: 100%; height: 100%; overflow: visible; }
+.bamboo-sprig { transform-origin: 0 0; animation: bamboo-leaf 6s ease-in-out infinite alternate; }
+.bamboo-haze { position: absolute; bottom: -15%; left: -15%; width: 130%; height: 35%; background: radial-gradient(ellipse, #eff4e9b3, transparent 70%); animation: cloud-drift 24s ease-in-out infinite alternate; }
+.bamboo-rain { position: absolute; inset: 0; mask-image: linear-gradient(90deg, #0009, #0003 35%, #0003 65%, #0009); }
+.bamboo-rain i { position: absolute; top: -55px; width: 1px; background: linear-gradient(transparent, #74998a65); animation: bamboo-rain 1.2s linear infinite; }
+@keyframes bamboo-wind { from { transform: rotate(-.5deg); } to { transform: rotate(.7deg); } }
+@keyframes bamboo-leaf { from { transform: rotate(-3deg); } to { transform: rotate(4deg); } }
+@keyframes bamboo-rain { from { transform: translate(0, -5vh) rotate(12deg); } to { transform: translate(-15vh, 115vh) rotate(12deg); } }
+.theme-preview .bamboo-grove { width: 55%; height: 110%; }
+.theme-preview .bamboo-grove-near { left: -9%; }
+.theme-preview .bamboo-grove-far { right: -12%; height: 80%; }
+
+.stars-scene { background: radial-gradient(ellipse at 52% 0%, #202c43, #101725 65%, #0b101c); }
+.stellar-haze { position: absolute; inset: 0; opacity: .45; background: radial-gradient(ellipse 30% 80% at 78% 14%, #74809619, transparent 70%), radial-gradient(ellipse at 14% 82%, #677ea018, transparent 55%); animation: stellar-haze 30s ease-in-out infinite alternate; }
+.scene-star { position: absolute; border-radius: 50%; background: #edf4ff; opacity: var(--star-opacity); box-shadow: 0 0 4px #dfeaff50; animation: star-twinkle 5s ease-in-out infinite; }
+.scene-star:nth-child(9n) { background: #fff4dd; box-shadow: 0 0 6px #fff2d755; }
+.meteor-track { position: absolute; width: 180px; height: 1px; transform: rotate(33deg); }
+.scene-meteor { display: block; height: 1px; width: 140px; background: linear-gradient(90deg, transparent, #d6e7ff70 65%, #fff); opacity: 0; animation: meteor-pass 14s linear infinite; }
+.scene-meteor::after { content: ''; position: absolute; right: 0; top: -1px; width: 3px; height: 3px; border-radius: 50%; background: white; box-shadow: 0 0 7px #d6e7ff; }
+@keyframes star-twinkle { 0%, 100% { opacity: calc(var(--star-opacity) * .5); } 50% { opacity: var(--star-opacity); } }
+@keyframes stellar-haze { from { opacity: .35; } to { opacity: .65; } }
+@keyframes meteor-pass { 0% { opacity: 0; transform: translateX(-160px); } 2% { opacity: .9; } 9% { opacity: 0; transform: translateX(260px); } 100% { opacity: 0; transform: translateX(260px); } }
+
+.ocean-scene { background: linear-gradient(180deg, #e8f2f5 0%, #f4f9f6 43%, #e1f0ef 64%, #c0dedd 100%); }
+.ocean-depth { position: absolute; left: 0; right: 0; bottom: -2%; height: 38%; background: linear-gradient(transparent, #abd1cf85); animation: ocean-breathe 17s ease-in-out infinite alternate; }
+.ocean-sunpath { position: absolute; left: 42%; bottom: -12%; width: 37%; height: 44%; background: radial-gradient(ellipse, #fffdf680 0%, transparent 68%); transform: skewX(-18deg); filter: blur(14px); animation: ocean-sunpath 19s ease-in-out infinite alternate; }
+.sea-reflections { position: absolute; bottom: 1%; left: 0; width: 100%; height: 30%; }
+.sea-reflections path { fill: none; stroke: #f9fffc; stroke-width: .85; stroke-linecap: round; opacity: var(--glint-opacity); animation: sea-glint 8s ease-in-out infinite; }
+@keyframes ocean-breathe { from { transform: translateY(0); opacity: .65; } to { transform: translateY(-6px); opacity: .95; } }
+@keyframes ocean-sunpath { from { opacity: .6; transform: translateX(-5%) skewX(-18deg); } to { opacity: .9; transform: translateX(5%) skewX(-12deg); } }
+@keyframes sea-glint { 0%, 100% { opacity: calc(var(--glint-opacity) * .15); transform: translateX(-4px); } 50% { opacity: var(--glint-opacity); transform: translateX(4px); } }
+.ocean-vessel { position: absolute; right: 15%; bottom: 23%; width: clamp(80px, 9vw, 116px); height: auto; animation: vessel-drift 24s ease-in-out infinite; }
+@keyframes vessel-drift { 0%, 100% { transform: translate(-18px, 0); } 50% { transform: translate(18px, -5px); } }
+.ocean-vessel svg { display: block; width: 100%; overflow: visible; }
+.vessel-hull { transform-origin: 80px 81px; animation: vessel-rock 7s ease-in-out infinite; }
+.vessel-reflection { opacity: .19; animation: vessel-reflection 7s ease-in-out infinite; }
+.vessel-wake { fill: none; stroke: #f4faf7; stroke-width: .7; animation: vessel-wake 5s ease-in-out infinite; }
+@keyframes vessel-rock { 0%, 100% { transform: rotate(-1.2deg) translateY(0); } 50% { transform: rotate(1.1deg) translateY(1.5px); } }
+@keyframes vessel-reflection { 0%, 100% { opacity: .13; } 50% { opacity: .23; } }
+@keyframes vessel-wake { 0%, 100% { opacity: .25; transform: scaleX(.9); } 50% { opacity: .7; transform: scaleX(1.06); } }
+
+@media (max-width: 640px) {
+  .waves-canvas { height: clamp(220px, 31svh, 280px); }
+  .mountain-landscape { width: 170%; left: -35%; height: 36vh; }
+  .mountain-flock { top: 12%; }
+  .bamboo-grove { width: 190px; }
+  .bamboo-grove-near { left: -82px; opacity: .65; }
+  .bamboo-grove-far { right: -90px; }
+  .mist-cloud { width: 110vw; }
+  .mist-cloud-blue { left: -38%; top: -2%; }
+  .mist-cloud-green { right: -48%; top: 38%; }
+  .mist-cloud-pearl { left: -20%; bottom: -8%; }
+  .ocean-vessel { right: 9%; bottom: 20%; }
+  .snow-depth-0:nth-child(2n) { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme-scene *, .ocean-vessel * { animation: none !important; }
+  .snow-track { top: calc(var(--flake-opacity) * 90%); }
+  .mountain-flock { left: 12%; }
+  .bamboo-rain { display: none; }
+  .scene-meteor { opacity: 0; }
+}

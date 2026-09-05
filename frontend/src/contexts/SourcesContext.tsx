@@ -8,6 +8,7 @@ import type { ReactNode } from "react"
 import type { SourceId } from "../types/DiscoveryItem"
 import { ADAPTER_LIST } from "../sources/registry"
 import { requestOptionalHostPermission } from "../utils/environment"
+import { feedCache } from '../utils/feedCache'
 
 function urlFieldKeys(id: SourceId): string[] {
   const adapter = ADAPTER_LIST.find((a) => a.id === id)
@@ -25,12 +26,13 @@ interface SourcesContextType {
   sourceConfigs: SourceConfigs
   updateSourceConfig: (id: SourceId, key: string, value: string) => void
   getSourceConfig: (id: SourceId) => Record<string, string>
+  disconnectSource: (id: SourceId) => void
   /** Requests the Chrome extension host permission needed to fetch this
    *  source's configured URL field(s), if any. Safe to call repeatedly —
    *  no-ops once granted or outside the extension context. Call this from
-   *  a genuine user gesture (e.g. an input's onBlur), since
+   *  a genuine user gesture (Save or the source toggle), since
    *  chrome.permissions.request requires one. */
-  ensureHostPermission: (id: SourceId, configOverride?: Record<string, string>) => void
+  ensureHostPermission: (id: SourceId, configOverride?: Record<string, string>) => Promise<boolean>
 }
 
 const SourcesContext = createContext<SourcesContextType | undefined>(undefined)
@@ -68,7 +70,16 @@ function loadEnabled(): Set<SourceId> {
 function loadConfigs(): SourceConfigs {
   try {
     const raw = localStorage.getItem(CONFIGS_KEY)
-    if (raw) return JSON.parse(raw) as SourceConfigs
+    if (raw) {
+      const parsed = JSON.parse(raw)
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+      return Object.fromEntries(ALL_SOURCE_IDS.flatMap(id => {
+        const value = parsed[id]
+        if (!value || typeof value !== 'object' || Array.isArray(value)) return []
+        const config = Object.fromEntries(Object.entries(value).filter(([, entry]) => typeof entry === 'string'))
+        return [[id, { ...config, __cacheId: config.__cacheId || crypto.randomUUID() }]]
+      })) as SourceConfigs
+    }
   } catch { /* ignore */ }
   return {}
 }
@@ -109,9 +120,7 @@ export function SourcesProvider({ children }: { children: ReactNode }) {
       return next
     })
 
-    if (!currentlyEnabled && adapter?.requiresConfig) {
-      ensureHostPermission(id, configOverride)
-    }
+    // The setup UI awaits host permission before activating a configured source.
     return true
   }
 
@@ -120,29 +129,43 @@ export function SourcesProvider({ children }: { children: ReactNode }) {
   const updateSourceConfig = (id: SourceId, key: string, value: string) => {
     setSourceConfigs((prev) => ({
       ...prev,
-      [id]: { ...(prev[id] ?? {}), [key]: value },
+      [id]: { ...(prev[id] ?? {}), [key]: value, __cacheId: crypto.randomUUID() },
     }))
   }
 
   const getSourceConfig = (id: SourceId): Record<string, string> =>
     sourceConfigs[id] ?? {}
 
-  // Requests the host permission for every configured URL field of this
-  // source. Also called whenever the user finishes editing a URL field
-  // (see SourcesModal's onBlur) — not just on enable — so changing an
-  // already-enabled source's instance URL doesn't keep failing with a
-  // silent CORS/"Failed to fetch" error because permission was only ever
-  // granted for the *previous* URL.
-  const ensureHostPermission = (id: SourceId, configOverride?: Record<string, string>) => {
+  const disconnectSource = (id: SourceId) => {
+    setSourceConfigs(previous => {
+      const next = { ...previous }
+      delete next[id]
+      return next
+    })
+    setEnabledSources(previous => {
+      const next = new Set(previous)
+      next.delete(id)
+      if (!next.size) next.add(DEFAULT_SOURCE_IDS[0])
+      return next
+    })
+    void feedCache.clearSource(id)
+  }
+
+  // Save requests permission for the draft endpoint before persisting it,
+  // including when an already-active source changes its instance URL.
+  const ensureHostPermission = async (id: SourceId, configOverride?: Record<string, string>): Promise<boolean> => {
+    const adapter = ADAPTER_LIST.find((candidate) => candidate.id === id)
+    if (adapter?.permissionOrigin && !await requestOptionalHostPermission(adapter.permissionOrigin)) return false
     for (const key of urlFieldKeys(id)) {
       const value = configOverride?.[key] ?? sourceConfigs[id]?.[key]
-      if (value?.trim()) void requestOptionalHostPermission(value)
+      if (value?.trim() && !await requestOptionalHostPermission(value)) return false
     }
+    return true
   }
 
   return (
     <SourcesContext.Provider
-      value={{ enabledSources, toggleSource, isEnabled, sourceConfigs, updateSourceConfig, getSourceConfig, ensureHostPermission }}
+      value={{ enabledSources, toggleSource, isEnabled, sourceConfigs, updateSourceConfig, getSourceConfig, ensureHostPermission, disconnectSource }}
     >
       {children}
     </SourcesContext.Provider>

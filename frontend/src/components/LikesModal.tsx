@@ -109,9 +109,8 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             ref={containerRef}
-            className="z-[41] p-6 rounded-2xl w-full max-w-2xl h-[80vh] flex flex-col relative"
+            className="reading-panel z-[41] p-7 rounded-2xl w-full max-w-2xl h-[80vh] flex flex-col relative"
             style={{
-              background: "#ffffff",
               boxShadow: "0 8px 40px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
             }}
             role="document"
@@ -123,7 +122,7 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
                   <Heart className="w-5 h-5 text-white" fill="currentColor" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-slate-800">{t("likes.title")}</h2>
+                  <h2 className="font-serif-editorial text-2xl font-medium text-slate-800">{t("likes.title")}</h2>
                   <p className="text-sm text-slate-400">
                     {t("likes.savedAndRecent")}
                   </p>
@@ -249,7 +248,7 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
                             )}
                             <div className="flex justify-between items-start gap-2">
                               <a
-                                href={item.url}
+                                href={item.url || undefined}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className={`font-semibold text-slate-800 transition-colors line-clamp-1 ${preview.titleHoverClass}`}
@@ -259,7 +258,7 @@ export function LikesModal({ isOpen, onClose }: LikesModalProps) {
                               {activeTab === "saved" ? (
                                 <button
                                   onClick={() => toggleLike(item)}
-                                  className="text-slate-300 hover:text-red-500 p-1 rounded-full opacity-0 group-hover:opacity-100 transition-all"
+                                  className="text-slate-400 hover:text-red-500 p-1 rounded-full opacity-60 group-hover:opacity-100 focus-visible:opacity-100 transition-colors"
                                   aria-label={t("likes.remove")}
                                   title={t("likes.remove")}
                                 >
